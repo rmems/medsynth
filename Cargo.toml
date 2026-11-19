@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = ["crates/medsynth-schema"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+# Shared dependencies are declared centrally; member crates opt in via
+# `workspace = true` (see issue #6 implementation note for the base stack).
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["arbitrary_precision", "raw_value"] }
+schemars = "1"
+jsonschema = "0.61"
+thiserror = "2"

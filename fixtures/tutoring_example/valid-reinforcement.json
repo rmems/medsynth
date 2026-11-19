@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "tut-fixture-0001",
+  "domain": "psb",
+  "subdomain": "psychology",
+  "tier": "foundation",
+  "learner_prompt": {
+    "text": "I keep mixing up negative reinforcement and punishment. How do I tell them apart?",
+    "anchors": []
+  },
+  "tutor_response": {
+    "style": "explanatory",
+    "text": "Focus on two questions: is something being added or removed, and is the behavior meant to increase or decrease? Reinforcement always increases a behavior: negative reinforcement does so by removing an aversive stimulus, such as fastening a seatbelt to stop the warning chime. Punishment always decreases a behavior; for example, a traffic fine intended to reduce speeding. So 'negative' in negative reinforcement means subtraction of a stimulus, not something bad happening to the learner.",
+    "anchors": [
+      {
+        "source_id": "example-psychology-12e",
+        "locator": "ch6:operant-conditioning"
+      }
+    ]
+  },
+  "provenance": {
+    "generator": "handwritten-fixture",
+    "model": null,
+    "prompt_version": null,
+    "template_version": null
+  },
+  "verification_status": "unverified",
+  "labels": [],
+  "taxonomy_version": "0.1",
+  "contract_version": null
+}

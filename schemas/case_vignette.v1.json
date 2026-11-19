@@ -1,0 +1,414 @@
+{
+  "$defs": {
+    "Anchor": {
+      "additionalProperties": false,
+      "description": "A source anchor citing one registry source plus a locator inside it.\n\nAnchors are first-class, structured fields — never free text. Per contract\n§4, every clinical or scientific fact in a record carries one, and the\ncited passage must actually support the claim it is attached to (checked\nby the verification pipeline, #9).",
+      "properties": {
+        "locator": {
+          "description": "Locator inside the source, written in the locator convention the\nregistry publishes for that source (chapter + section, or page where\nthe convention provides one — e.g. `ch34:cardiac-cycle` or `p.482`).\nThe string is intentionally untyped until #5 publishes per-source\nlocator conventions; this field exists so those conventions have\nsomewhere to land.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_id": {
+          "$ref": "#/$defs/SourceId",
+          "description": "Id of a source in the anchor source registry (#5). Only registry ids\nmay be cited; a fact whose only support is an unlisted source is\nunanchored until that source is approved (contract §4)."
+        }
+      },
+      "required": [
+        "source_id",
+        "locator"
+      ],
+      "type": "object"
+    },
+    "AnchoredClaim": {
+      "additionalProperties": false,
+      "description": "A block of record text that is definitionally a clinical or scientific\nclaim — a rationale, an expected answer, or a teaching point — so at least\none source anchor is required (contract §4).",
+      "properties": {
+        "anchors": {
+          "description": "Source anchors supporting the claim. At least one is required; the\ncited passage must actually support it (checked by #9, not here).",
+          "items": {
+            "$ref": "#/$defs/Anchor"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "text": {
+          "description": "The claim itself.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "anchors"
+      ],
+      "type": "object"
+    },
+    "AnchoredText": {
+      "additionalProperties": false,
+      "description": "A block of record text together with the source anchors supporting its\nclinical and scientific claims (contract §4).\n\n`anchors` may be empty only when the text asserts no clinical or\nscientific fact — pure pedagogy (definitions, instructions to the\nlearner), or fictional-patient observations, which are invented and exempt\nfrom anchoring. The JSON Schema cannot tell a claim from pedagogy; the\nverification pipeline (#9) checks that every claim is anchored and that\neach cited passage actually supports it.",
+      "properties": {
+        "anchors": {
+          "description": "Source anchors for the claims this text makes. Empty only for pure\npedagogy or invented fictional-patient observations (contract §4).",
+          "items": {
+            "$ref": "#/$defs/Anchor"
+          },
+          "type": "array"
+        },
+        "text": {
+          "description": "The text itself.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "anchors"
+      ],
+      "type": "object"
+    },
+    "Domain": {
+      "description": "`domain` — the four taxonomy domains (taxonomy §3.1).",
+      "oneOf": [
+        {
+          "const": "bbf",
+          "description": "Biological & Biochemical Foundations (MCAT).",
+          "type": "string"
+        },
+        {
+          "const": "cpf",
+          "description": "Chemical & Physical Foundations (MCAT).",
+          "type": "string"
+        },
+        {
+          "const": "psb",
+          "description": "Psychological, Social & Biological Foundations (MCAT).",
+          "type": "string"
+        },
+        {
+          "const": "pre_clinical",
+          "description": "Pre-clinical systems.",
+          "type": "string"
+        }
+      ]
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "How a record was produced — enough to reproduce or audit its drafting.\n\nModel-drafted records carry `model` and `prompt_version`;\ntemplate-generated records carry `template_version`. Hand-written records\n(fixtures, the gold seed set) name their author or checklist in\n`generator`.",
+      "properties": {
+        "generator": {
+          "description": "Identifier of the generator that produced the record — a procedural\ntemplate name, a teacher-model pipeline id, or a human author tag.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "model": {
+          "description": "Teacher model identifier, when the record was model-drafted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prompt_version": {
+          "description": "Version of the prompt used with the teacher model, when applicable.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "template_version": {
+          "description": "Version of the procedural template, when template-generated.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "generator"
+      ],
+      "type": "object"
+    },
+    "RecordId": {
+      "description": "Unique record identifier: a lowercase slug of 3-64 characters.",
+      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9](?![\\s\\S])",
+      "type": "string"
+    },
+    "RecordLabel": {
+      "description": "A label in a record's metadata — exceptional conditions the contract\nrequires to be visible on the record itself.\n\nThis is a closed set: new labels are added here first, not written as\nfree-form strings.",
+      "oneOf": [
+        {
+          "const": "historical_superseded",
+          "description": "The record is retained even though every one of its anchors cites a\nsuperseded source — the only case where contract §7 lets such a\nrecord stay in the dataset, and only when this label is present.",
+          "type": "string"
+        }
+      ]
+    },
+    "SchemaVersion": {
+      "const": 1,
+      "description": "Version of the record schema this record conforms to.",
+      "type": "integer"
+    },
+    "SourceId": {
+      "description": "Id of a source in the anchor source registry: a lowercase slug of 3-64 characters. Registry ids are edition-scoped so the cited edition or year is visible (contract §7).",
+      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9](?![\\s\\S])",
+      "type": "string"
+    },
+    "Subdomain": {
+      "description": "`subdomain` — the twenty-five taxonomy subdomain slugs (taxonomy §3.2).\n\nEvery subdomain has exactly one parent domain; the mapping is enforced by\n[`Subdomain::parent_domain`] and checked by each record's `validate`\nmethod, since the domain/subdomain pairing cannot be expressed in JSON\nSchema alone.",
+      "oneOf": [
+        {
+          "enum": [
+            "cardiovascular",
+            "respiratory",
+            "renal",
+            "gastrointestinal",
+            "endocrine",
+            "neurology",
+            "musculoskeletal",
+            "hematology_oncology",
+            "infectious_disease",
+            "pharmacology_principles"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "bio_physical_foundations",
+          "description": "Chemical & physical foundations of biological systems.",
+          "type": "string"
+        },
+        {
+          "const": "macromolecules",
+          "description": "Structure and function of biological macromolecules.",
+          "type": "string"
+        },
+        {
+          "const": "cell_function",
+          "description": "Principles of cell function.",
+          "type": "string"
+        },
+        {
+          "const": "cell_processes",
+          "description": "Processes governing cellular organization and function.",
+          "type": "string"
+        },
+        {
+          "const": "system_interactions",
+          "description": "Interactions between systems and organs.",
+          "type": "string"
+        },
+        {
+          "const": "animal_structure",
+          "description": "Unique aspects of animal structure and function.",
+          "type": "string"
+        },
+        {
+          "const": "translation",
+          "description": "Translation of chemical and physical sciences.",
+          "type": "string"
+        },
+        {
+          "const": "properties_of_matter",
+          "description": "Properties of matter.",
+          "type": "string"
+        },
+        {
+          "const": "transmission",
+          "description": "Principles of transmission of information.",
+          "type": "string"
+        },
+        {
+          "const": "mechanics",
+          "description": "Principles of mechanics.",
+          "type": "string"
+        },
+        {
+          "const": "development",
+          "description": "Development and lifespan learning processes.",
+          "type": "string"
+        },
+        {
+          "const": "socioeconomic",
+          "description": "Socioeconomic status, education, and poverty.",
+          "type": "string"
+        },
+        {
+          "const": "culture_identity",
+          "description": "Culture, language, and identity.",
+          "type": "string"
+        },
+        {
+          "const": "psychology",
+          "description": "Psychology and social behaviors.",
+          "type": "string"
+        },
+        {
+          "const": "environment",
+          "description": "Environment and external factors.",
+          "type": "string"
+        }
+      ]
+    },
+    "Tier": {
+      "description": "`tier` — difficulty tiers, defined per format (taxonomy §3.3–§4). The same\ntier name means different things in an MCQ, a case vignette, and a tutoring\nexample; a record's tier is always interpreted relative to its format.",
+      "enum": [
+        "foundation",
+        "application",
+        "reasoning"
+      ],
+      "type": "string"
+    },
+    "VerificationStatus": {
+      "description": "Where a record sits on the path to the dataset (contract §8).\n\nExactly these four values. Only the verification & admission pipeline (#9)\nmay advance a record's status; generators always write `unverified`, and\nnothing outside #9 writes `key-checked`, `anchor-checked`, or `admitted`.\nThis schema defines the enum — it does not perform the advancement.",
+      "oneOf": [
+        {
+          "const": "unverified",
+          "description": "Drafted but not yet checked; never reaches the dataset.",
+          "type": "string"
+        },
+        {
+          "const": "key-checked",
+          "description": "Answer key re-derived and confirmed (#9).",
+          "type": "string"
+        },
+        {
+          "const": "anchor-checked",
+          "description": "Source anchors resolved and confirmed to support their claims (#9).",
+          "type": "string"
+        },
+        {
+          "const": "admitted",
+          "description": "Passed verification and admitted into the dataset by the admission\ngate (#9); counts toward coverage-matrix fill (taxonomy §5).",
+          "type": "string"
+        }
+      ]
+    },
+    "VignetteQuestion": {
+      "additionalProperties": false,
+      "description": "One question on the vignette and the answer a learner should reach.",
+      "properties": {
+        "answer": {
+          "$ref": "#/$defs/AnchoredClaim",
+          "description": "The expected answer, with anchors supporting it."
+        },
+        "question": {
+          "description": "The question posed to the learner about the fictional patient.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "question",
+        "answer"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/rmems/medsynth/main/schemas/case_vignette.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A clinical-style vignette about a fictional patient, with associated\nquestions (taxonomy §3.3 `case_vignette`, tier definitions §4.2).",
+  "properties": {
+    "contract_version": {
+      "description": "Version of `docs/contract.md` this record was admitted under (contract\n§9). `null` until the admission gate (#9) sets it; required non-blank\nonce `verification_status` is `admitted` — enforced by\n[`CaseVignetteRecord::validate`].",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "domain": {
+      "$ref": "#/$defs/Domain",
+      "description": "Taxonomy domain (taxonomy §3.1)."
+    },
+    "findings": {
+      "description": "Objective findings — vitals, labs, imaging, exam findings — invented\nfor this fictional patient. These are observations, not claims, and\nare exempt from anchoring (contract §4); interpretive claims about\nthem belong in `reasoning_chain`.",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "id": {
+      "$ref": "#/$defs/RecordId",
+      "description": "Unique record identifier."
+    },
+    "labels": {
+      "default": [],
+      "description": "Record-level metadata labels; empty in the ordinary case. See\n[`RecordLabel`] for the closed set — e.g. `historical_superseded`\nmarks a record retained on superseded sources (contract §7).",
+      "items": {
+        "$ref": "#/$defs/RecordLabel"
+      },
+      "type": "array"
+    },
+    "presentation": {
+      "description": "Presentation of the fictional patient (contract §2): the narrative a\nlearner reads first. Invented observations are exempt from anchoring\n(contract §4); claims *about* them live in `reasoning_chain` and\n`teaching_points`, where anchors attach.",
+      "minLength": 1,
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance",
+      "description": "How the record was produced."
+    },
+    "questions": {
+      "description": "Questions posed about the vignette, each with its expected answer.",
+      "items": {
+        "$ref": "#/$defs/VignetteQuestion"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "reasoning_chain": {
+      "description": "Stepwise reasoning chain connecting the findings to the answers —\nthe \"how you get there\" a learner should be able to reproduce.",
+      "items": {
+        "$ref": "#/$defs/AnchoredText"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "schema_version": {
+      "$ref": "#/$defs/SchemaVersion",
+      "description": "Version of this record schema."
+    },
+    "subdomain": {
+      "$ref": "#/$defs/Subdomain",
+      "description": "Taxonomy subdomain; must belong to `domain` (taxonomy §3.2). Checked\nby [`CaseVignetteRecord::validate`]."
+    },
+    "taxonomy_version": {
+      "description": "Version of `docs/taxonomy.md` this record was classified under\n(taxonomy §6).",
+      "minLength": 1,
+      "type": "string"
+    },
+    "teaching_points": {
+      "description": "Teaching points the vignette is designed to convey; each is a claim\nand must carry at least one anchor (contract §4).",
+      "items": {
+        "$ref": "#/$defs/AnchoredClaim"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "tier": {
+      "$ref": "#/$defs/Tier",
+      "description": "Difficulty tier, interpreted per the `case_vignette` definitions\n(taxonomy §4.2)."
+    },
+    "verification_status": {
+      "$ref": "#/$defs/VerificationStatus",
+      "description": "Verification status; advanced only by the pipeline in #9."
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "domain",
+    "subdomain",
+    "tier",
+    "presentation",
+    "findings",
+    "questions",
+    "reasoning_chain",
+    "teaching_points",
+    "provenance",
+    "verification_status",
+    "taxonomy_version"
+  ],
+  "title": "CaseVignetteRecord",
+  "type": "object"
+}

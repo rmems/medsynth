@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": "tut-fixture-0002",
+  "domain": "bbf",
+  "subdomain": "cell_processes",
+  "tier": "application",
+  "learner_prompt": {
+    "text": "Why does a cell need both glycolysis and the citric acid cycle? Isn't one pathway enough?",
+    "anchors": []
+  },
+  "tutor_response": {
+    "style": "socratic",
+    "text": "Before we answer that — where does glycolysis happen, and what does it actually produce? And once you have pyruvate, what is left to extract from it? Walk me through what each pathway gives the cell.",
+    "anchors": []
+  },
+  "provenance": {
+    "generator": "handwritten-fixture",
+    "model": null,
+    "prompt_version": null,
+    "template_version": null
+  },
+  "verification_status": "unverified",
+  "labels": [],
+  "taxonomy_version": "0.1",
+  "contract_version": null
+}
