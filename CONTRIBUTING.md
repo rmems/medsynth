@@ -17,6 +17,11 @@ version:
 
 ## How to contribute
 
+AI-assisted contributions are welcome — feel free to use coding agents, and
+feel free to open issues for anything you'd like to see (records, tooling,
+docs, pipeline improvements). The contract applies to agent-written code
+exactly as it does to human-written code.
+
 1. Open an issue describing the change before writing code for anything
    non-trivial.
 2. Branch from `main`; keep commits focused.
