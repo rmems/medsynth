@@ -2,7 +2,7 @@
 
 **Status:** binding for all records, generators, verifiers, and reviewers in this
 repository.
-**Version:** 1.0 — first issued contract; see §9 for versioning rules.
+**Version:** 0.1 — first issued contract; see §9 for versioning rules.
 **Operationalized by:** record schemas (#4), anchor source registry (#5),
 curriculum taxonomy (#3), verification pipeline (#9) — each lands via its own
 issue; §8 describes how they enforce this contract.
