@@ -59,6 +59,7 @@
     "template_version": null
   },
   "verification_status": "unverified",
+  "labels": [],
   "taxonomy_version": "0.1",
   "contract_version": null
 }

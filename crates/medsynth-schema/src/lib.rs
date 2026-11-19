@@ -21,6 +21,7 @@
 pub mod anchor;
 mod error;
 mod id;
+mod labels;
 pub mod provenance;
 mod records;
 mod schemas;
@@ -31,6 +32,7 @@ mod version;
 pub use anchor::{Anchor, InvalidSourceId, SOURCE_ID_PATTERN, SourceId};
 pub use error::ValidationError;
 pub use id::{InvalidRecordId, RECORD_ID_PATTERN, RecordId};
+pub use labels::RecordLabel;
 pub use provenance::{Provenance, VerificationStatus};
 pub use records::{
     CaseVignetteRecord, McqOption, McqRationale, McqRecord, TutorResponse, TutoringExampleRecord,

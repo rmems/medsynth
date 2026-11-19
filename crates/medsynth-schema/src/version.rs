@@ -31,8 +31,10 @@ impl Serialize for SchemaVersion {
 
 impl<'de> Deserialize<'de> for SchemaVersion {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let v = u32::deserialize(deserializer)?;
-        if v == CURRENT_SCHEMA_VERSION {
+        // JSON Schema's numeric semantics treat 1.0 as the integer 1, so the
+        // generated `const` accepts it; deserialization must match.
+        let v = serde_json::Number::deserialize(deserializer)?;
+        if v.as_f64() == Some(f64::from(CURRENT_SCHEMA_VERSION)) {
             Ok(Self)
         } else {
             Err(D::Error::custom(format!(

@@ -13,4 +13,12 @@ pub enum ValidationError {
     /// Two options share a label.
     #[error("duplicate option label `{label}`")]
     DuplicateOptionLabel { label: String },
+    /// An `admitted` record must store the contract version it was admitted
+    /// under (contract §9).
+    #[error("`admitted` record has no contract_version")]
+    AdmittedWithoutContractVersion,
+    /// A record drafted by a teacher model must record the prompt version
+    /// that produced it.
+    #[error("provenance names a model but no prompt_version")]
+    ModelWithoutPromptVersion,
 }

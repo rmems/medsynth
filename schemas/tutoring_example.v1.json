@@ -109,6 +109,16 @@
       "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9]$",
       "type": "string"
     },
+    "RecordLabel": {
+      "description": "A label in a record's metadata — exceptional conditions the contract\nrequires to be visible on the record itself.\n\nThis is a closed set: new labels are added here first, not written as\nfree-form strings.",
+      "oneOf": [
+        {
+          "const": "historical_superseded",
+          "description": "The record is retained even though every one of its anchors cites a\nsuperseded source — the only case where contract §7 lets such a\nrecord stay in the dataset, and only when this label is present.",
+          "type": "string"
+        }
+      ]
+    },
     "SchemaVersion": {
       "const": 1,
       "description": "Version of the record schema this record conforms to.",
@@ -228,11 +238,10 @@
       "description": "The tutor's response to the learner — instructional framing (\"consider,\"\n\"the typical presentation is,\" \"first-line management per [anchored\nguideline]\"), never directives to act on a real patient (contract §5).",
       "properties": {
         "anchors": {
-          "description": "Source anchors for the claims the response makes; at least one is\nrequired (contract §4).",
+          "description": "Source anchors for the claims the response makes. Empty only when the\nreply asserts no clinical or scientific fact — a Socratic response may\nteach by asking questions alone, which is claim-free pedagogy\n(contract §4). #9 checks that every claim made is anchored.",
           "items": {
             "$ref": "#/$defs/Anchor"
           },
-          "minItems": 1,
           "type": "array"
         },
         "style": {
@@ -299,7 +308,7 @@
   "description": "A worked instructional example — one learner prompt and one tutor\nresponse — for supervised fine-tuning (taxonomy §3.3 `tutoring_example`,\ntier definitions §4.3).",
   "properties": {
     "contract_version": {
-      "description": "Version of `docs/contract.md` this record was admitted under (contract\n§9). `null` until the admission gate (#9) sets it.",
+      "description": "Version of `docs/contract.md` this record was admitted under (contract\n§9). `null` until the admission gate (#9) sets it; required non-blank\nonce `verification_status` is `admitted` — enforced by\n[`TutoringExampleRecord::validate`].",
       "type": [
         "string",
         "null"
@@ -312,6 +321,14 @@
     "id": {
       "$ref": "#/$defs/RecordId",
       "description": "Unique record identifier."
+    },
+    "labels": {
+      "default": [],
+      "description": "Record-level metadata labels; empty in the ordinary case. See\n[`RecordLabel`] for the closed set — e.g. `historical_superseded`\nmarks a record retained on superseded sources (contract §7).",
+      "items": {
+        "$ref": "#/$defs/RecordLabel"
+      },
+      "type": "array"
     },
     "learner_prompt": {
       "$ref": "#/$defs/AnchoredText",

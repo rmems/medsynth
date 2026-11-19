@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::ValidationError;
 use crate::id::RecordId;
+use crate::labels::RecordLabel;
 use crate::provenance::{Provenance, VerificationStatus};
 use crate::taxonomy::{Domain, Subdomain, Tier};
 use crate::text::{AnchoredClaim, AnchoredText};
@@ -53,12 +54,19 @@ pub struct CaseVignetteRecord {
     pub provenance: Provenance,
     /// Verification status; advanced only by the pipeline in #9.
     pub verification_status: VerificationStatus,
+    /// Record-level metadata labels; empty in the ordinary case. See
+    /// [`RecordLabel`] for the closed set — e.g. `historical_superseded`
+    /// marks a record retained on superseded sources (contract §7).
+    #[serde(default)]
+    pub labels: Vec<RecordLabel>,
     /// Version of `docs/taxonomy.md` this record was classified under
     /// (taxonomy §6).
     #[schemars(length(min = 1))]
     pub taxonomy_version: String,
     /// Version of `docs/contract.md` this record was admitted under (contract
-    /// §9). `null` until the admission gate (#9) sets it.
+    /// §9). `null` until the admission gate (#9) sets it; required non-blank
+    /// once `verification_status` is `admitted` — enforced by
+    /// [`CaseVignetteRecord::validate`].
     pub contract_version: Option<String>,
 }
 
@@ -70,6 +78,12 @@ impl CaseVignetteRecord {
     pub fn validate(&self) -> Result<(), Vec<ValidationError>> {
         let mut errors = Vec::new();
         crate::records::check_taxonomy(&mut errors, self.domain, self.subdomain);
+        crate::records::check_contract_version(
+            &mut errors,
+            self.verification_status,
+            self.contract_version.as_deref(),
+        );
+        crate::records::check_provenance(&mut errors, &self.provenance);
         if errors.is_empty() {
             Ok(())
         } else {

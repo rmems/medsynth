@@ -7,7 +7,7 @@
   "presentation": "A fictional 58-year-old patient is brought to the emergency department with a 3-hour history of substernal chest pressure radiating to the left arm, accompanied by diaphoresis and nausea. The patient has no prior cardiac history.",
   "findings": [
     "ECG: ST-segment elevation in leads II, III, and aVF",
-    "Troponin I 0.42 ng/mL (reference range <0.04 ng/mL)",
+    "Troponin I 0.42 ng/mL",
     "Heart rate 92/min, blood pressure 138/84 mmHg"
   ],
   "questions": [
@@ -71,6 +71,7 @@
     "template_version": null
   },
   "verification_status": "unverified",
+  "labels": [],
   "taxonomy_version": "0.1",
   "contract_version": null
 }

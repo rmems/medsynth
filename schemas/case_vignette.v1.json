@@ -133,6 +133,16 @@
       "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9]$",
       "type": "string"
     },
+    "RecordLabel": {
+      "description": "A label in a record's metadata — exceptional conditions the contract\nrequires to be visible on the record itself.\n\nThis is a closed set: new labels are added here first, not written as\nfree-form strings.",
+      "oneOf": [
+        {
+          "const": "historical_superseded",
+          "description": "The record is retained even though every one of its anchors cites a\nsuperseded source — the only case where contract §7 lets such a\nrecord stay in the dataset, and only when this label is present.",
+          "type": "string"
+        }
+      ]
+    },
     "SchemaVersion": {
       "const": 1,
       "description": "Version of the record schema this record conforms to.",
@@ -299,7 +309,7 @@
   "description": "A clinical-style vignette about a fictional patient, with associated\nquestions (taxonomy §3.3 `case_vignette`, tier definitions §4.2).",
   "properties": {
     "contract_version": {
-      "description": "Version of `docs/contract.md` this record was admitted under (contract\n§9). `null` until the admission gate (#9) sets it.",
+      "description": "Version of `docs/contract.md` this record was admitted under (contract\n§9). `null` until the admission gate (#9) sets it; required non-blank\nonce `verification_status` is `admitted` — enforced by\n[`CaseVignetteRecord::validate`].",
       "type": [
         "string",
         "null"
@@ -319,6 +329,14 @@
     "id": {
       "$ref": "#/$defs/RecordId",
       "description": "Unique record identifier."
+    },
+    "labels": {
+      "default": [],
+      "description": "Record-level metadata labels; empty in the ordinary case. See\n[`RecordLabel`] for the closed set — e.g. `historical_superseded`\nmarks a record retained on superseded sources (contract §7).",
+      "items": {
+        "$ref": "#/$defs/RecordLabel"
+      },
+      "type": "array"
     },
     "presentation": {
       "description": "Presentation of the fictional patient (contract §2): the narrative a\nlearner reads first. Invented observations are exempt from anchoring\n(contract §4); claims *about* them live in `reasoning_chain` and\n`teaching_points`, where anchors attach.",

@@ -107,28 +107,51 @@ where
     }
 }
 
-/// Assert an invalid fixture fails schema validation for exactly one reason.
-fn assert_invalid(validator: &jsonschema::Validator, path: &Path) {
+/// Assert an invalid fixture fails for exactly one reason — either one JSON
+/// Schema rule or one cross-field `validate` rule.
+fn assert_invalid<T>(validator: &jsonschema::Validator, path: &Path)
+where
+    T: serde::de::DeserializeOwned + HasValidate,
+{
     let instance = read_instance(path);
 
     let errors: Vec<_> = validator.iter_errors(&instance).collect();
-    assert!(
-        !errors.is_empty(),
-        "invalid fixture {} unexpectedly passed schema validation",
-        path.display()
-    );
-    assert_eq!(
-        errors.len(),
-        1,
-        "invalid fixture {} must break exactly one rule, found {} errors:\n{}",
-        path.display(),
-        errors.len(),
-        errors
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
+    if errors.is_empty() {
+        // Schema-clean: the planted defect must live in the cross-field
+        // layer (e.g. domain/subdomain pairing, key without an option).
+        let record: T = serde_json::from_value(instance).unwrap_or_else(|e| {
+            panic!(
+                "{} must deserialize into the record type: {e}",
+                path.display()
+            )
+        });
+        let Err(errors) = record.validate() else {
+            panic!(
+                "invalid fixture {} passed both validation layers",
+                path.display()
+            );
+        };
+        assert_eq!(
+            errors.len(),
+            1,
+            "invalid fixture {} must break exactly one rule, found {} cross-field errors: {errors:?}",
+            path.display(),
+            errors.len()
+        );
+    } else {
+        assert_eq!(
+            errors.len(),
+            1,
+            "invalid fixture {} must break exactly one rule, found {} schema errors:\n{}",
+            path.display(),
+            errors.len(),
+            errors
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+                .join("\n")
+        );
+    }
 }
 
 fn check_format<T>(format_dir: &str, schema_name: &str)
@@ -141,7 +164,7 @@ where
         assert_valid::<T>(validator, &path);
     }
     for path in fixture_files(format_dir, "invalid-") {
-        assert_invalid(validator, &path);
+        assert_invalid::<T>(validator, &path);
     }
 }
 
