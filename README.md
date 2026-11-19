@@ -1,5 +1,8 @@
 # medsynth
 
+[![License: Apache 2.0 OR MIT](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](LICENSE-APACHE)
+[![Status](https://img.shields.io/badge/status-v0.1%20in%20construction-orange.svg)](https://github.com/rmems/medsynth/issues)
+
 Synthetic training and evaluation data for pre-medical and early medical
 education — every fact traceable to a reference.
 
