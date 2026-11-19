@@ -225,7 +225,9 @@ Foundation and application tiers are weighted above reasoning (~37% / 37% /
 - **Generation (#8):** produces records against per-cell targets and stops at
   each exact cell target — a cell at target is complete, under-target cells
   define remaining work. Generators do not over-produce: 300 is the v0.1
-  total, not a floor.
+  total, not a floor. The cap applies to *admitted fill*, not draft count:
+  records rejected at verification or audit may be replaced by new drafts
+  until the cell's admitted count reaches its target.
 - **Assembly (#13):** the admitted, verified dataset is tallied against this
   matrix; the scoreboard reports per-cell fill and the grand total against
   the 300-record v0.1 target. Generation completion and assembly scoring use
@@ -244,6 +246,11 @@ Foundation and application tiers are weighted above reasoning (~37% / 37% /
   contract version required by contract §9), so validators can select the
   enum set that was in force when the record was admitted — the same
   grandfathering mechanism contract §9 applies to contract versions.
+- The admission gate applies the same staleness rule to taxonomy versions as
+  contract §9 applies to contract versions: a record processed under a stale
+  taxonomy version is rejected or held, never admitted. A draft may outlive
+  its classification version; it is re-classified under the current taxonomy
+  or held before admission.
 - Changing a coverage target requires the new matrix to re-reconcile to the
   stated total (300 for v0.1) with the arithmetic shown.
 - Removing a slug is a breaking change: records already admitted under it
