@@ -18,21 +18,27 @@ pub const RECORD_ID_PATTERN: &str = r"^[a-z][a-z0-9-]{1,62}[a-z0-9](?![\s\S])";
 #[serde(transparent)]
 pub struct RecordId(String);
 
+/// Whether `s` is a lowercase slug of 3–64 characters with no leading or
+/// trailing hyphen — the shared shape behind [`RecordId::is_valid`] and
+/// `SourceId::is_valid`.
+pub(crate) fn is_slug(s: &str) -> bool {
+    let b = s.as_bytes();
+    (3..=64).contains(&b.len())
+        && b[0].is_ascii_lowercase()
+        && is_slug_end(b[b.len() - 1])
+        && b[1..b.len() - 1]
+            .iter()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'-')
+}
+
+pub(crate) fn is_slug_end(c: u8) -> bool {
+    c.is_ascii_lowercase() || c.is_ascii_digit()
+}
+
 impl RecordId {
     /// Whether `s` conforms to [`RECORD_ID_PATTERN`].
     pub fn is_valid(s: &str) -> bool {
-        let b = s.as_bytes();
-        if !(3..=64).contains(&b.len()) {
-            return false;
-        }
-        if !b[0].is_ascii_lowercase()
-            || !(b[b.len() - 1].is_ascii_lowercase() || b[b.len() - 1].is_ascii_digit())
-        {
-            return false;
-        }
-        b[1..b.len() - 1]
-            .iter()
-            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'-')
+        is_slug(s)
     }
 
     /// Wrap a string, checking [`RECORD_ID_PATTERN`].

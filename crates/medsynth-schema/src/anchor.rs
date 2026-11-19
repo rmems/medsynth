@@ -33,16 +33,7 @@ pub struct SourceId(String);
 impl SourceId {
     /// Whether `s` conforms to [`SOURCE_ID_PATTERN`].
     pub fn is_valid(s: &str) -> bool {
-        let b = s.as_bytes();
-        if !(3..=64).contains(&b.len()) {
-            return false;
-        }
-        if !b[0].is_ascii_lowercase() || !is_slug_end(b[b.len() - 1]) {
-            return false;
-        }
-        b[1..b.len() - 1]
-            .iter()
-            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == b'-')
+        crate::id::is_slug(s)
     }
 
     /// Wrap a string, checking [`SOURCE_ID_PATTERN`].
@@ -58,10 +49,6 @@ impl SourceId {
     pub fn as_str(&self) -> &str {
         &self.0
     }
-}
-
-fn is_slug_end(c: u8) -> bool {
-    c.is_ascii_lowercase() || c.is_ascii_digit()
 }
 
 /// Error returned when a source id does not match [`SOURCE_ID_PATTERN`].
