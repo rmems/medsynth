@@ -31,10 +31,13 @@ impl Serialize for SchemaVersion {
 
 impl<'de> Deserialize<'de> for SchemaVersion {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        // JSON Schema's numeric semantics treat 1.0 as the integer 1, so the
-        // generated `const` accepts it; deserialization must match.
+        // JSON Schema's numeric semantics treat 1.0 and 1e0 as the integer 1,
+        // so the generated `const` accepts them; deserialization must match —
+        // and must not round an unsupported version like 1.0000000000000001
+        // into 1. serde_json's arbitrary_precision keeps the raw token, so
+        // this compares the exact decimal the record carries.
         let v = serde_json::Number::deserialize(deserializer)?;
-        if v.as_f64() == Some(f64::from(CURRENT_SCHEMA_VERSION)) {
+        if is_exactly_current(&v.to_string()) {
             Ok(Self)
         } else {
             Err(D::Error::custom(format!(
@@ -42,6 +45,26 @@ impl<'de> Deserialize<'de> for SchemaVersion {
             )))
         }
     }
+}
+
+/// Whether a raw JSON number token is exactly the current version: `1`, a
+/// decimal `1.0…`, or either with a zero exponent (`1e0`).
+fn is_exactly_current(token: &str) -> bool {
+    let (mantissa, exponent) = match token.find(['e', 'E']) {
+        Some(i) => (&token[..i], &token[i + 1..]),
+        None => (token, "0"),
+    };
+    if !matches!(exponent.parse::<i64>(), Ok(0)) {
+        return false;
+    }
+    let expected = CURRENT_SCHEMA_VERSION.to_string();
+    let mut parts = mantissa.splitn(2, '.');
+    if parts.next() != Some(expected.as_str()) {
+        return false;
+    }
+    parts
+        .next()
+        .is_none_or(|frac| !frac.is_empty() && frac.bytes().all(|b| b == b'0'))
 }
 
 impl JsonSchema for SchemaVersion {

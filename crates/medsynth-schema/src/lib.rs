@@ -35,8 +35,8 @@ pub use id::{InvalidRecordId, RECORD_ID_PATTERN, RecordId};
 pub use labels::RecordLabel;
 pub use provenance::{Provenance, VerificationStatus};
 pub use records::{
-    CaseVignetteRecord, McqOption, McqRationale, McqRecord, TutorResponse, TutoringExampleRecord,
-    TutoringStyle, VignetteQuestion,
+    CaseVignetteRecord, McqOption, McqRationale, McqRecord, OptionLabel, TutorResponse,
+    TutoringExampleRecord, TutoringStyle, VignetteQuestion,
 };
 pub use schemas::{SchemaFile, schema_files};
 pub use taxonomy::{Domain, Subdomain, Tier};

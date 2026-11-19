@@ -5,7 +5,7 @@ mod mcq;
 mod tutoring_example;
 
 pub use case_vignette::{CaseVignetteRecord, VignetteQuestion};
-pub use mcq::{McqOption, McqRationale, McqRecord};
+pub use mcq::{McqOption, McqRationale, McqRecord, OptionLabel};
 pub use tutoring_example::{TutorResponse, TutoringExampleRecord, TutoringStyle};
 
 use crate::error::ValidationError;

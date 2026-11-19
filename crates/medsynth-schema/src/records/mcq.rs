@@ -3,6 +3,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::anchor::Anchor;
 use crate::error::ValidationError;
 use crate::id::RecordId;
 use crate::labels::RecordLabel;
@@ -35,8 +36,7 @@ pub struct McqRecord {
     pub options: Vec<McqOption>,
     /// Label of the correct option. Must match one of `options[].label` —
     /// enforced by [`McqRecord::validate`], beyond what JSON Schema expresses.
-    #[schemars(regex(pattern = "^[A-E]$"))]
-    pub key: String,
+    pub key: OptionLabel,
     /// Why the key is the best answer and why the strongest distractor is
     /// wrong. Distractors are anchored through the refutation here, not on
     /// the option itself (contract §4).
@@ -77,15 +77,15 @@ impl McqRecord {
         crate::records::check_provenance(&mut errors, &self.provenance);
         let mut seen = std::collections::HashSet::new();
         for option in &self.options {
-            if !seen.insert(option.label.clone()) {
+            if !seen.insert(option.label) {
                 errors.push(ValidationError::DuplicateOptionLabel {
-                    label: option.label.clone(),
+                    label: option.label.to_string(),
                 });
             }
         }
         if !self.options.iter().any(|o| o.label == self.key) {
             errors.push(ValidationError::KeyMatchesNoOption {
-                key: self.key.clone(),
+                key: self.key.to_string(),
             });
         }
         if errors.is_empty() {
@@ -101,13 +101,45 @@ impl McqRecord {
 #[serde(deny_unknown_fields)]
 pub struct McqOption {
     /// Option label, `A`–`E`, unique within the record.
-    #[schemars(regex(pattern = "^[A-E]$"))]
-    pub label: String,
-    /// Option text. Carries no anchors: a distractor is a wrong answer by
-    /// design and is anchored through the rationale's refutation instead
-    /// (contract §4).
+    pub label: OptionLabel,
+    /// Option text. A distractor is a wrong answer by design and is normally
+    /// anchored through the rationale's refutation (contract §4).
     #[schemars(length(min = 1))]
     pub text: String,
+    /// Anchors for any clinical or scientific fact this option asserts that
+    /// the rationale's refutation does not address — contract §4 requires
+    /// such a fact to carry its own anchor (or the option to be rewritten).
+    /// Empty in the ordinary case.
+    #[serde(default)]
+    pub anchors: Vec<Anchor>,
+}
+
+/// An option label, `A`–`E`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+pub enum OptionLabel {
+    A,
+    B,
+    C,
+    D,
+    E,
+}
+
+impl OptionLabel {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::A => "A",
+            Self::B => "B",
+            Self::C => "C",
+            Self::D => "D",
+            Self::E => "E",
+        }
+    }
+}
+
+impl std::fmt::Display for OptionLabel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
 }
 
 /// The MCQ rationale — the issue requires explaining the key *and* why the

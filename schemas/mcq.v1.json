@@ -96,13 +96,20 @@
       "additionalProperties": false,
       "description": "One answer option.",
       "properties": {
+        "anchors": {
+          "default": [],
+          "description": "Anchors for any clinical or scientific fact this option asserts that\nthe rationale's refutation does not address — contract §4 requires\nsuch a fact to carry its own anchor (or the option to be rewritten).\nEmpty in the ordinary case.",
+          "items": {
+            "$ref": "#/$defs/Anchor"
+          },
+          "type": "array"
+        },
         "label": {
-          "description": "Option label, `A`–`E`, unique within the record.",
-          "pattern": "^[A-E]$",
-          "type": "string"
+          "$ref": "#/$defs/OptionLabel",
+          "description": "Option label, `A`–`E`, unique within the record."
         },
         "text": {
-          "description": "Option text. Carries no anchors: a distractor is a wrong answer by\ndesign and is anchored through the rationale's refutation instead\n(contract §4).",
+          "description": "Option text. A distractor is a wrong answer by design and is normally\nanchored through the rationale's refutation (contract §4).",
           "minLength": 1,
           "type": "string"
         }
@@ -131,6 +138,17 @@
         "strongest_distractor"
       ],
       "type": "object"
+    },
+    "OptionLabel": {
+      "description": "An option label, `A`–`E`.",
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "type": "string"
     },
     "Provenance": {
       "additionalProperties": false,
@@ -344,9 +362,8 @@
       "description": "Unique record identifier."
     },
     "key": {
-      "description": "Label of the correct option. Must match one of `options[].label` —\nenforced by [`McqRecord::validate`], beyond what JSON Schema expresses.",
-      "pattern": "^[A-E]$",
-      "type": "string"
+      "$ref": "#/$defs/OptionLabel",
+      "description": "Label of the correct option. Must match one of `options[].label` —\nenforced by [`McqRecord::validate`], beyond what JSON Schema expresses."
     },
     "labels": {
       "default": [],

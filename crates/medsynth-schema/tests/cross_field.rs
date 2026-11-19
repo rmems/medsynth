@@ -67,7 +67,7 @@ fn subdomain_must_match_domain() {
 #[test]
 fn key_must_match_an_option() {
     let mut record = mcq();
-    record.key = "E".into(); // fixture has A-D
+    record.key = medsynth_schema::OptionLabel::E; // fixture has A-D
     assert_eq!(
         record.validate(),
         Err(vec![ValidationError::KeyMatchesNoOption {
@@ -85,4 +85,8 @@ fn schema_version_matches_schema_numeric_semantics() {
     assert!(serde_json::from_value::<SchemaVersion>(serde_json::json!(1.5)).is_err());
     assert!(serde_json::from_value::<SchemaVersion>(serde_json::json!(2)).is_err());
     assert!(serde_json::from_value::<SchemaVersion>(serde_json::json!("1")).is_err());
+    // Exact decimal comparison: a version that merely *rounds* to 1.0 must
+    // not load and be rewritten as v1.
+    assert!(serde_json::from_str::<SchemaVersion>("1.0000000000000001").is_err());
+    assert!(serde_json::from_str::<SchemaVersion>("1e0").is_ok());
 }
