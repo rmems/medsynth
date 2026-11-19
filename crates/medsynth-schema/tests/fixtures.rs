@@ -67,10 +67,13 @@ impl HasValidate for TutoringExampleRecord {
 }
 
 fn read_instance(path: &Path) -> serde_json::Value {
-    serde_json::from_str(
-        &fs::read_to_string(path).unwrap_or_else(|e| panic!("read {}: {e}", path.display())),
-    )
-    .unwrap_or_else(|e| panic!("parse {}: {e}", path.display()))
+    let text = fs::read_to_string(path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+    assert!(
+        !text.contains("$serde_json::private::Number"),
+        "{} contains serde_json's arbitrary-precision number marker; fixture JSON must be plain JSON",
+        path.display()
+    );
+    serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()))
 }
 
 /// Assert a valid fixture passes schema validation, deserializes into the
@@ -151,6 +154,15 @@ where
                 .collect::<Vec<_>>()
                 .join("\n")
         );
+        // The schema error must be the only defect: a fixture that also
+        // fails validate() hides a second defect behind the one-error count.
+        if let Ok(record) = serde_json::from_value::<T>(instance) {
+            assert!(
+                record.validate().is_ok(),
+                "invalid fixture {} has a second defect visible only to validate()",
+                path.display()
+            );
+        }
     }
 }
 

@@ -31,40 +31,51 @@ impl Serialize for SchemaVersion {
 
 impl<'de> Deserialize<'de> for SchemaVersion {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        // JSON Schema's numeric semantics treat 1.0 and 1e0 as the integer 1,
-        // so the generated `const` accepts them; deserialization must match —
-        // and must not round an unsupported version like 1.0000000000000001
-        // into 1. serde_json's arbitrary_precision keeps the raw token, so
-        // this compares the exact decimal the record carries.
-        let v = serde_json::Number::deserialize(deserializer)?;
-        if is_exactly_current(&v.to_string()) {
+        // The raw JSON token preserves exactly what the record carries.
+        // Comparing an f64 would silently round 1.0000000000000001 into 1;
+        // comparing a Number would accept serde_json's arbitrary-precision
+        // object marker ({"$serde_json::private::Number": "1"}) as the
+        // version, which the schema's `const: 1` rejects as an object.
+        let raw = <Box<serde_json::value::RawValue>>::deserialize(deserializer)?;
+        let token = raw.get().trim();
+        if is_exactly_current(token) {
             Ok(Self)
         } else {
             Err(D::Error::custom(format!(
-                "unsupported schema_version {v}; this build writes and reads v{CURRENT_SCHEMA_VERSION}"
+                "unsupported schema_version {token}; this build writes and reads v{CURRENT_SCHEMA_VERSION}"
             )))
         }
     }
 }
 
-/// Whether a raw JSON number token is exactly the current version: `1`, a
-/// decimal `1.0…`, or either with a zero exponent (`1e0`).
+/// Whether a raw JSON token is exactly the current version under JSON Schema
+/// numeric semantics: `1`, `1.0`, `1e0`, `10e-1`, `0.1e1` — any exact decimal
+/// equal to it — but not `1.5`, `2`, `1.0000000000000001`, or any non-number.
+///
+/// The token's numeric value is `digits × 10^(exp - frac_len)` where `digits`
+/// is the mantissa without its decimal point. For a single-digit version that
+/// equals `CURRENT` iff `digits` is `CURRENT` followed by exactly
+/// `frac_len - exp` zeros — compared as a string so no precision is lost.
 fn is_exactly_current(token: &str) -> bool {
-    let (mantissa, exponent) = match token.find(['e', 'E']) {
-        Some(i) => (&token[..i], &token[i + 1..]),
-        None => (token, "0"),
+    let (mantissa, exp) = match token.find(['e', 'E']) {
+        Some(i) => (&token[..i], token[i + 1..].parse::<i64>().ok()),
+        None => (token, Some(0)),
     };
-    if !matches!(exponent.parse::<i64>(), Ok(0)) {
+    let Some(exp) = exp else { return false };
+    if !mantissa.bytes().next().is_some_and(|b| b.is_ascii_digit()) {
         return false;
     }
-    let expected = CURRENT_SCHEMA_VERSION.to_string();
-    let mut parts = mantissa.splitn(2, '.');
-    if parts.next() != Some(expected.as_str()) {
+    let (int_part, frac) = mantissa.split_once('.').unwrap_or((mantissa, ""));
+    let zeros_needed = frac.len() as i64 - exp;
+    if zeros_needed < 0 {
         return false;
     }
-    parts
-        .next()
-        .is_none_or(|frac| !frac.is_empty() && frac.bytes().all(|b| b == b'0'))
+    let digits: String = format!("{int_part}{frac}");
+    let expected = format!(
+        "{CURRENT_SCHEMA_VERSION}{}",
+        "0".repeat(zeros_needed as usize)
+    );
+    digits.trim_start_matches('0') == expected
 }
 
 impl JsonSchema for SchemaVersion {

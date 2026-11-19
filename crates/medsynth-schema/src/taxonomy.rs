@@ -5,10 +5,10 @@
 //! `docs/taxonomy.md` first, then mirrored here (taxonomy §6 amendment rules).
 
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 /// `domain` — the four taxonomy domains (taxonomy §3.1).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Domain {
     /// Biological & Biochemical Foundations (MCAT).
@@ -21,13 +21,21 @@ pub enum Domain {
     PreClinical,
 }
 
+string_enum! {
+    Domain,
+    "bbf" => Domain::Bbf,
+    "cpf" => Domain::Cpf,
+    "psb" => Domain::Psb,
+    "pre_clinical" => Domain::PreClinical,
+}
+
 /// `subdomain` — the twenty-five taxonomy subdomain slugs (taxonomy §3.2).
 ///
 /// Every subdomain has exactly one parent domain; the mapping is enforced by
 /// [`Subdomain::parent_domain`] and checked by each record's `validate`
 /// method, since the domain/subdomain pairing cannot be expressed in JSON
 /// Schema alone.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Subdomain {
     // domain: bbf
@@ -103,13 +111,49 @@ impl Subdomain {
     }
 }
 
+string_enum! {
+    Subdomain,
+    "bio_physical_foundations" => Subdomain::BioPhysicalFoundations,
+    "macromolecules" => Subdomain::Macromolecules,
+    "cell_function" => Subdomain::CellFunction,
+    "cell_processes" => Subdomain::CellProcesses,
+    "system_interactions" => Subdomain::SystemInteractions,
+    "animal_structure" => Subdomain::AnimalStructure,
+    "translation" => Subdomain::Translation,
+    "properties_of_matter" => Subdomain::PropertiesOfMatter,
+    "transmission" => Subdomain::Transmission,
+    "mechanics" => Subdomain::Mechanics,
+    "development" => Subdomain::Development,
+    "socioeconomic" => Subdomain::Socioeconomic,
+    "culture_identity" => Subdomain::CultureIdentity,
+    "psychology" => Subdomain::Psychology,
+    "environment" => Subdomain::Environment,
+    "cardiovascular" => Subdomain::Cardiovascular,
+    "respiratory" => Subdomain::Respiratory,
+    "renal" => Subdomain::Renal,
+    "gastrointestinal" => Subdomain::Gastrointestinal,
+    "endocrine" => Subdomain::Endocrine,
+    "neurology" => Subdomain::Neurology,
+    "musculoskeletal" => Subdomain::Musculoskeletal,
+    "hematology_oncology" => Subdomain::HematologyOncology,
+    "infectious_disease" => Subdomain::InfectiousDisease,
+    "pharmacology_principles" => Subdomain::PharmacologyPrinciples,
+}
+
 /// `tier` — difficulty tiers, defined per format (taxonomy §3.3–§4). The same
 /// tier name means different things in an MCQ, a case vignette, and a tutoring
 /// example; a record's tier is always interpreted relative to its format.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Tier {
     Foundation,
     Application,
     Reasoning,
+}
+
+string_enum! {
+    Tier,
+    "foundation" => Tier::Foundation,
+    "application" => Tier::Application,
+    "reasoning" => Tier::Reasoning,
 }

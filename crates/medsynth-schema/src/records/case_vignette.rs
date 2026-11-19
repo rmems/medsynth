@@ -38,6 +38,7 @@ pub struct CaseVignetteRecord {
     /// for this fictional patient. These are observations, not claims, and
     /// are exempt from anchoring (contract §4); interpretive claims about
     /// them belong in `reasoning_chain`.
+    #[schemars(length(min = 1))]
     pub findings: Vec<String>,
     /// Questions posed about the vignette, each with its expected answer.
     #[schemars(length(min = 1))]

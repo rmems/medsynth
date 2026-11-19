@@ -38,8 +38,9 @@ pub struct McqRecord {
     /// enforced by [`McqRecord::validate`], beyond what JSON Schema expresses.
     pub key: OptionLabel,
     /// Why the key is the best answer and why the strongest distractor is
-    /// wrong. Distractors are anchored through the refutation here, not on
-    /// the option itself (contract §4).
+    /// wrong. The refutation is anchored here; a fact another distractor
+    /// asserts that the refutation does not address carries its own anchor
+    /// on the option (contract §4).
     pub rationale: McqRationale,
     /// How the record was produced.
     pub provenance: Provenance,
@@ -115,13 +116,22 @@ pub struct McqOption {
 }
 
 /// An option label, `A`–`E`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, JsonSchema)]
 pub enum OptionLabel {
     A,
     B,
     C,
     D,
     E,
+}
+
+string_enum! {
+    OptionLabel,
+    "A" => OptionLabel::A,
+    "B" => OptionLabel::B,
+    "C" => OptionLabel::C,
+    "D" => OptionLabel::D,
+    "E" => OptionLabel::E,
 }
 
 impl OptionLabel {

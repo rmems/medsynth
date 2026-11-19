@@ -188,7 +188,7 @@
     },
     "RecordId": {
       "description": "Unique record identifier: a lowercase slug of 3-64 characters.",
-      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9]$",
+      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9](?![\\s\\S])",
       "type": "string"
     },
     "RecordLabel": {
@@ -208,7 +208,7 @@
     },
     "SourceId": {
       "description": "Id of a source in the anchor source registry: a lowercase slug of 3-64 characters. Registry ids are edition-scoped so the cited edition or year is visible (contract §7).",
-      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9]$",
+      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9](?![\\s\\S])",
       "type": "string"
     },
     "Subdomain": {
@@ -388,7 +388,7 @@
     },
     "rationale": {
       "$ref": "#/$defs/McqRationale",
-      "description": "Why the key is the best answer and why the strongest distractor is\nwrong. Distractors are anchored through the refutation here, not on\nthe option itself (contract §4)."
+      "description": "Why the key is the best answer and why the strongest distractor is\nwrong. The refutation is anchored here; a fact another distractor\nasserts that the refutation does not address carries its own anchor\non the option (contract §4)."
     },
     "schema_version": {
       "$ref": "#/$defs/SchemaVersion",

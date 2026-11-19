@@ -7,8 +7,9 @@ use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
 
 /// Shape of a record id: a lowercase slug, 3–64 characters, no leading or
-/// trailing hyphen.
-pub const RECORD_ID_PATTERN: &str = r"^[a-z][a-z0-9-]{1,62}[a-z0-9]$";
+/// trailing hyphen. Ends with `(?![\s\S])` — a true end-of-input assertion —
+/// because `$` in ECMA-style regexes can match before a final newline.
+pub const RECORD_ID_PATTERN: &str = r"^[a-z][a-z0-9-]{1,62}[a-z0-9](?![\s\S])";
 
 /// A record's unique identifier within the dataset.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]

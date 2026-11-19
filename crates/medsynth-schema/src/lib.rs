@@ -18,6 +18,31 @@
 //! `docs/taxonomy.md` (enum vocabulary and coverage); field docs cite their
 //! sections.
 
+/// Generates a strict string-only `Deserialize` for a string-valued enum.
+///
+/// serde's derived enum impl also accepts the externally-tagged object form —
+/// `{"Variant": null}` loads as the unit variant — which the generated
+/// schema's string `enum` rejects. Deserializing from a string keeps the two
+/// layers in agreement.
+macro_rules! string_enum {
+    ($ty:ty, $($lit:literal => $variant:expr),+ $(,)?) => {
+        impl<'de> ::serde::Deserialize<'de> for $ty {
+            fn deserialize<D: ::serde::Deserializer<'de>>(
+                deserializer: D,
+            ) -> ::std::result::Result<Self, D::Error> {
+                let s =
+                    <::std::string::String as ::serde::Deserialize>::deserialize(deserializer)?;
+                match s.as_str() {
+                    $($lit => ::std::result::Result::Ok($variant),)+
+                    _ => ::std::result::Result::Err(
+                        <D::Error as ::serde::de::Error>::unknown_variant(&s, &[$($lit),+]),
+                    ),
+                }
+            }
+        }
+    };
+}
+
 pub mod anchor;
 mod error;
 mod id;

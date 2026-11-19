@@ -30,7 +30,7 @@ pub struct Provenance {
 /// may advance a record's status; generators always write `unverified`, and
 /// nothing outside #9 writes `key-checked`, `anchor-checked`, or `admitted`.
 /// This schema defines the enum — it does not perform the advancement.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, JsonSchema)]
 #[serde(rename_all = "kebab-case")]
 pub enum VerificationStatus {
     /// Drafted but not yet checked; never reaches the dataset.
@@ -42,4 +42,12 @@ pub enum VerificationStatus {
     /// Passed verification and admitted into the dataset by the admission
     /// gate (#9); counts toward coverage-matrix fill (taxonomy §5).
     Admitted,
+}
+
+string_enum! {
+    VerificationStatus,
+    "unverified" => VerificationStatus::Unverified,
+    "key-checked" => VerificationStatus::KeyChecked,
+    "anchor-checked" => VerificationStatus::AnchorChecked,
+    "admitted" => VerificationStatus::Admitted,
 }

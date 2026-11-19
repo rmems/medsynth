@@ -16,10 +16,10 @@ fn main() -> std::io::Result<()> {
     std::fs::create_dir_all(&root)?;
 
     for file in medsynth_schema::schema_files() {
-        // Write to a temp file and rename so an interrupted run never leaves a
-        // truncated schema on disk.
+        // Write to a unique temp file and rename so an interrupted or
+        // concurrent run never leaves a truncated schema on disk.
         let path = root.join(&file.filename);
-        let tmp = path.with_extension("tmp");
+        let tmp = path.with_file_name(format!("{}.{}.tmp", file.filename, std::process::id()));
         std::fs::write(&tmp, file.to_json_string())?;
         std::fs::rename(&tmp, &path)?;
         println!("wrote {}", path.display());

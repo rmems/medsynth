@@ -97,11 +97,17 @@ pub struct TutorResponse {
 }
 
 /// How the tutor response teaches.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum TutoringStyle {
     /// Leads the learner with questions.
     Socratic,
     /// Explains directly, with explicit reasoning.
     Explanatory,
+}
+
+string_enum! {
+    TutoringStyle,
+    "socratic" => TutoringStyle::Socratic,
+    "explanatory" => TutoringStyle::Explanatory,
 }

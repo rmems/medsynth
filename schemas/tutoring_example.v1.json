@@ -106,7 +106,7 @@
     },
     "RecordId": {
       "description": "Unique record identifier: a lowercase slug of 3-64 characters.",
-      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9]$",
+      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9](?![\\s\\S])",
       "type": "string"
     },
     "RecordLabel": {
@@ -126,7 +126,7 @@
     },
     "SourceId": {
       "description": "Id of a source in the anchor source registry: a lowercase slug of 3-64 characters. Registry ids are edition-scoped so the cited edition or year is visible (contract §7).",
-      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9]$",
+      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9](?![\\s\\S])",
       "type": "string"
     },
     "Subdomain": {

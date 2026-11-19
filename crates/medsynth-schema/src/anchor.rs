@@ -14,8 +14,10 @@ use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
 /// only the pattern they must follow. Ids are expected to be edition-scoped
 /// (e.g. `some-textbook-7e`) so the cited edition or year is visible at a
 /// glance per the contract's currency rule (§7). Which ids exist — and what
-/// each covers — is the registry's concern, not this crate's.
-pub const SOURCE_ID_PATTERN: &str = r"^[a-z][a-z0-9-]{1,62}[a-z0-9]$";
+/// each covers — is the registry's concern, not this crate's. Ends with
+/// `(?![\s\S])` — a true end-of-input assertion — because `$` in ECMA-style
+/// regexes can match before a final newline.
+pub const SOURCE_ID_PATTERN: &str = r"^[a-z][a-z0-9-]{1,62}[a-z0-9](?![\s\S])";
 
 /// The id of a source in the anchor source registry (#5).
 ///
