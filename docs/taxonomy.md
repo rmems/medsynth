@@ -233,11 +233,12 @@ Foundation and application tiers are weighted above reasoning (~37% / 37% /
   slots, admission fills the open slots and holds the excess — held records
   do not count toward fill and are not admitted. Generators therefore never
   need to predict batch-level races; the admission gate is the backstop.
-- **Replacement drafts are budgeted.** A cell may consume at most 3× its
-  target in *resolved* draft attempts — drafts count toward the budget only
-  once verification/audit has admitted or rejected them; in-flight drafts do
-  not. If the budget is exhausted while the cell still has open slots and
-  no in-flight drafts remain, generation for that cell stops and the cell
+- **Replacement drafts are budgeted.** A cell's total draft attempts —
+  resolved *plus* in-flight — may never exceed 3× its target, and a
+  generator must not dispatch a new draft when resolved + in-flight would
+  exceed the cap. Escalation waits for in-flight drafts to resolve: once
+  nothing is pending, if the cell still has open slots and its resolved
+  count has reached the cap, generation for that cell stops and the cell
   is escalated for human review — persistent rejection is a signal about
   the taxonomy cell, the anchors, or the generator, not something to retry
   forever. Escalation never fires while drafts are pending: a cell whose
