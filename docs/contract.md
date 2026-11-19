@@ -80,7 +80,9 @@ fact that cannot be anchored does not ship.
   may even be a *true* statement that is not the best answer in context.
   Distractors are anchored through the rationale's statement of *why* the
   option is wrong — the anchor supports that refutation (false claim, or
-  true-but-not-best-here), not the option's wording.
+  true-but-not-best-here), not the option's wording. If a distractor asserts
+  a clinical fact the rationale never addresses, that fact needs its own
+  anchor — or the option gets rewritten.
 - Prose that *implies* facts ("the drug is contraindicated in pregnancy")
   carries the same anchoring duty as explicit claims.
 
@@ -135,6 +137,9 @@ This contract is enforced mechanically and procedurally:
 - **Schemas (#4)** encode the anchor fields, provenance fields, and status enum
   this contract requires. A record that cannot express its anchors is not
   schema-valid.
+- **Source registry (#5)** defines which sources anchors may cite; an anchor
+  to an unlisted source is unanchored (§4).
+- **Curriculum taxonomy (#3)** defines the scope records may cover (§6).
 - **Verification pipeline (#9)** is the correctness gate: schema validation,
   answer-key re-derivation, source-anchor resolution *and* claim-support
   checks (the cited passage must actually support the claim, not merely
