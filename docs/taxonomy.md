@@ -228,6 +228,17 @@ Foundation and application tiers are weighted above reasoning (~37% / 37% /
   total, not a floor. The cap applies to *admitted fill*, not draft count:
   records rejected at verification or audit may be replaced by new drafts
   until the cell's admitted count reaches its target.
+- **Admission enforces cell capacity atomically.** If a verification batch
+  contains more passing records for a cell than the cell has remaining
+  slots, admission fills the open slots and holds the excess — held records
+  do not count toward fill and are not admitted. Generators therefore never
+  need to predict batch-level races; the admission gate is the backstop.
+- **Replacement drafts are budgeted.** A cell may consume at most 3× its
+  target in draft attempts (counting every generated draft, admitted or
+  not). If the budget is exhausted before the cell reaches its admitted
+  target, generation for that cell stops and the cell is escalated for
+  human review — persistent rejection is a signal about the taxonomy cell,
+  the anchors, or the generator, not something to retry forever.
 - **Assembly (#13):** the admitted, verified dataset is tallied against this
   matrix; the scoreboard reports per-cell fill and the grand total against
   the 300-record v0.1 target. Generation completion and assembly scoring use
