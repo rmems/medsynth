@@ -3,8 +3,9 @@
 **Status:** binding for all records, generators, verifiers, and reviewers in this
 repository.
 **Version:** 1.0 — first issued contract; see §9 for versioning rules.
-**Implemented and enforced by:** record schemas (#4), anchor source registry
-(#5), curriculum taxonomy (#3), verification pipeline (#9).
+**Operationalized by:** record schemas (#4), anchor source registry (#5),
+curriculum taxonomy (#3), verification pipeline (#9) — each lands via its own
+issue; §8 describes how they enforce this contract.
 
 This document is the law under which medsynth operates. Every generated,
 verified, audited, and published record is judged against it. Where a pipeline
@@ -74,10 +75,12 @@ fact that cannot be anchored does not ship.
   exemption covers the observation only: any claim *about* it ("this troponin
   pattern indicates...", "these vitals are consistent with...") is a clinical
   fact and must be anchored.
-- **Distractors anchor to their refutation.** An MCQ distractor is a false
-  proposition by design; no source can support it as written. Distractors are
-  anchored through the rationale's statement of *why* the option is wrong —
-  the anchor supports that refutation, not the false wording.
+- **Distractors anchor to their refutation.** An MCQ distractor is a wrong
+  answer by design; no source can be asked to support it as written, and it
+  may even be a *true* statement that is not the best answer in context.
+  Distractors are anchored through the rationale's statement of *why* the
+  option is wrong — the anchor supports that refutation (false claim, or
+  true-but-not-best-here), not the option's wording.
 - Prose that *implies* facts ("the drug is contraindicated in pregnancy")
   carries the same anchoring duty as explicit claims.
 
