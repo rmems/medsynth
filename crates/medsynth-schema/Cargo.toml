@@ -1,0 +1,14 @@
+[package]
+name = "medsynth-schema"
+description = "Canonical Rust record types for medsynth's three record formats; the JSON Schemas in schemas/ are generated from these types with schemars."
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+jsonschema.workspace = true

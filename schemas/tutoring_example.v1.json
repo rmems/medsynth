@@ -1,0 +1,364 @@
+{
+  "$defs": {
+    "Anchor": {
+      "additionalProperties": false,
+      "description": "A source anchor citing one registry source plus a locator inside it.\n\nAnchors are first-class, structured fields — never free text. Per contract\n§4, every clinical or scientific fact in a record carries one, and the\ncited passage must actually support the claim it is attached to (checked\nby the verification pipeline, #9).",
+      "properties": {
+        "locator": {
+          "description": "Locator inside the source, written in the locator convention the\nregistry publishes for that source (chapter + section, or page where\nthe convention provides one — e.g. `ch34:cardiac-cycle` or `p.482`).\nThe string is intentionally untyped until #5 publishes per-source\nlocator conventions; this field exists so those conventions have\nsomewhere to land.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_id": {
+          "$ref": "#/$defs/SourceId",
+          "description": "Id of a source in the anchor source registry (#5). Only registry ids\nmay be cited; a fact whose only support is an unlisted source is\nunanchored until that source is approved (contract §4)."
+        }
+      },
+      "required": [
+        "source_id",
+        "locator"
+      ],
+      "type": "object"
+    },
+    "AnchoredText": {
+      "additionalProperties": false,
+      "description": "A block of record text together with the source anchors supporting its\nclinical and scientific claims (contract §4).\n\n`anchors` may be empty only when the text asserts no clinical or\nscientific fact — pure pedagogy (definitions, instructions to the\nlearner), or fictional-patient observations, which are invented and exempt\nfrom anchoring. The JSON Schema cannot tell a claim from pedagogy; the\nverification pipeline (#9) checks that every claim is anchored and that\neach cited passage actually supports it.",
+      "properties": {
+        "anchors": {
+          "description": "Source anchors for the claims this text makes. Empty only for pure\npedagogy or invented fictional-patient observations (contract §4).",
+          "items": {
+            "$ref": "#/$defs/Anchor"
+          },
+          "type": "array"
+        },
+        "text": {
+          "description": "The text itself.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "anchors"
+      ],
+      "type": "object"
+    },
+    "Domain": {
+      "description": "`domain` — the four taxonomy domains (taxonomy §3.1).",
+      "oneOf": [
+        {
+          "const": "bbf",
+          "description": "Biological & Biochemical Foundations (MCAT).",
+          "type": "string"
+        },
+        {
+          "const": "cpf",
+          "description": "Chemical & Physical Foundations (MCAT).",
+          "type": "string"
+        },
+        {
+          "const": "psb",
+          "description": "Psychological, Social & Biological Foundations (MCAT).",
+          "type": "string"
+        },
+        {
+          "const": "pre_clinical",
+          "description": "Pre-clinical systems.",
+          "type": "string"
+        }
+      ]
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "How a record was produced — enough to reproduce or audit its drafting.\n\nModel-drafted records carry `model` and `prompt_version`;\ntemplate-generated records carry `template_version`. Hand-written records\n(fixtures, the gold seed set) name their author or checklist in\n`generator`.",
+      "properties": {
+        "generator": {
+          "description": "Identifier of the generator that produced the record — a procedural\ntemplate name, a teacher-model pipeline id, or a human author tag.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "model": {
+          "description": "Teacher model identifier, when the record was model-drafted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prompt_version": {
+          "description": "Version of the prompt used with the teacher model, when applicable.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "template_version": {
+          "description": "Version of the procedural template, when template-generated.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "generator"
+      ],
+      "type": "object"
+    },
+    "RecordId": {
+      "description": "Unique record identifier: a lowercase slug of 3-64 characters.",
+      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9]$",
+      "type": "string"
+    },
+    "SchemaVersion": {
+      "const": 1,
+      "description": "Version of the record schema this record conforms to.",
+      "type": "integer"
+    },
+    "SourceId": {
+      "description": "Id of a source in the anchor source registry: a lowercase slug of 3-64 characters. Registry ids are edition-scoped so the cited edition or year is visible (contract §7).",
+      "pattern": "^[a-z][a-z0-9-]{1,62}[a-z0-9]$",
+      "type": "string"
+    },
+    "Subdomain": {
+      "description": "`subdomain` — the twenty-five taxonomy subdomain slugs (taxonomy §3.2).\n\nEvery subdomain has exactly one parent domain; the mapping is enforced by\n[`Subdomain::parent_domain`] and checked by each record's `validate`\nmethod, since the domain/subdomain pairing cannot be expressed in JSON\nSchema alone.",
+      "oneOf": [
+        {
+          "enum": [
+            "cardiovascular",
+            "respiratory",
+            "renal",
+            "gastrointestinal",
+            "endocrine",
+            "neurology",
+            "musculoskeletal",
+            "hematology_oncology",
+            "infectious_disease",
+            "pharmacology_principles"
+          ],
+          "type": "string"
+        },
+        {
+          "const": "bio_physical_foundations",
+          "description": "Chemical & physical foundations of biological systems.",
+          "type": "string"
+        },
+        {
+          "const": "macromolecules",
+          "description": "Structure and function of biological macromolecules.",
+          "type": "string"
+        },
+        {
+          "const": "cell_function",
+          "description": "Principles of cell function.",
+          "type": "string"
+        },
+        {
+          "const": "cell_processes",
+          "description": "Processes governing cellular organization and function.",
+          "type": "string"
+        },
+        {
+          "const": "system_interactions",
+          "description": "Interactions between systems and organs.",
+          "type": "string"
+        },
+        {
+          "const": "animal_structure",
+          "description": "Unique aspects of animal structure and function.",
+          "type": "string"
+        },
+        {
+          "const": "translation",
+          "description": "Translation of chemical and physical sciences.",
+          "type": "string"
+        },
+        {
+          "const": "properties_of_matter",
+          "description": "Properties of matter.",
+          "type": "string"
+        },
+        {
+          "const": "transmission",
+          "description": "Principles of transmission of information.",
+          "type": "string"
+        },
+        {
+          "const": "mechanics",
+          "description": "Principles of mechanics.",
+          "type": "string"
+        },
+        {
+          "const": "development",
+          "description": "Development and lifespan learning processes.",
+          "type": "string"
+        },
+        {
+          "const": "socioeconomic",
+          "description": "Socioeconomic status, education, and poverty.",
+          "type": "string"
+        },
+        {
+          "const": "culture_identity",
+          "description": "Culture, language, and identity.",
+          "type": "string"
+        },
+        {
+          "const": "psychology",
+          "description": "Psychology and social behaviors.",
+          "type": "string"
+        },
+        {
+          "const": "environment",
+          "description": "Environment and external factors.",
+          "type": "string"
+        }
+      ]
+    },
+    "Tier": {
+      "description": "`tier` — difficulty tiers, defined per format (taxonomy §3.3–§4). The same\ntier name means different things in an MCQ, a case vignette, and a tutoring\nexample; a record's tier is always interpreted relative to its format.",
+      "enum": [
+        "foundation",
+        "application",
+        "reasoning"
+      ],
+      "type": "string"
+    },
+    "TutorResponse": {
+      "additionalProperties": false,
+      "description": "The tutor's response to the learner — instructional framing (\"consider,\"\n\"the typical presentation is,\" \"first-line management per [anchored\nguideline]\"), never directives to act on a real patient (contract §5).",
+      "properties": {
+        "anchors": {
+          "description": "Source anchors for the claims the response makes; at least one is\nrequired (contract §4).",
+          "items": {
+            "$ref": "#/$defs/Anchor"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "style": {
+          "$ref": "#/$defs/TutoringStyle",
+          "description": "Whether the response teaches by questioning or by explaining."
+        },
+        "text": {
+          "description": "The response text.",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "style",
+        "text",
+        "anchors"
+      ],
+      "type": "object"
+    },
+    "TutoringStyle": {
+      "description": "How the tutor response teaches.",
+      "oneOf": [
+        {
+          "const": "socratic",
+          "description": "Leads the learner with questions.",
+          "type": "string"
+        },
+        {
+          "const": "explanatory",
+          "description": "Explains directly, with explicit reasoning.",
+          "type": "string"
+        }
+      ]
+    },
+    "VerificationStatus": {
+      "description": "Where a record sits on the path to the dataset (contract §8).\n\nExactly these four values. Only the verification & admission pipeline (#9)\nmay advance a record's status; generators always write `unverified`, and\nnothing outside #9 writes `key-checked`, `anchor-checked`, or `admitted`.\nThis schema defines the enum — it does not perform the advancement.",
+      "oneOf": [
+        {
+          "const": "unverified",
+          "description": "Drafted but not yet checked; never reaches the dataset.",
+          "type": "string"
+        },
+        {
+          "const": "key-checked",
+          "description": "Answer key re-derived and confirmed (#9).",
+          "type": "string"
+        },
+        {
+          "const": "anchor-checked",
+          "description": "Source anchors resolved and confirmed to support their claims (#9).",
+          "type": "string"
+        },
+        {
+          "const": "admitted",
+          "description": "Passed verification and admitted into the dataset by the admission\ngate (#9); counts toward coverage-matrix fill (taxonomy §5).",
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "$id": "https://raw.githubusercontent.com/rmems/medsynth/main/schemas/tutoring_example.v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A worked instructional example — one learner prompt and one tutor\nresponse — for supervised fine-tuning (taxonomy §3.3 `tutoring_example`,\ntier definitions §4.3).",
+  "properties": {
+    "contract_version": {
+      "description": "Version of `docs/contract.md` this record was admitted under (contract\n§9). `null` until the admission gate (#9) sets it.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "domain": {
+      "$ref": "#/$defs/Domain",
+      "description": "Taxonomy domain (taxonomy §3.1)."
+    },
+    "id": {
+      "$ref": "#/$defs/RecordId",
+      "description": "Unique record identifier."
+    },
+    "learner_prompt": {
+      "$ref": "#/$defs/AnchoredText",
+      "description": "What the learner asks or is working through. The learner's own wording\nis not a medsynth claim — anchors attach only if the prompt itself\nasserts a clinical or scientific fact the record relies on."
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance",
+      "description": "How the record was produced."
+    },
+    "schema_version": {
+      "$ref": "#/$defs/SchemaVersion",
+      "description": "Version of this record schema."
+    },
+    "subdomain": {
+      "$ref": "#/$defs/Subdomain",
+      "description": "Taxonomy subdomain; must belong to `domain` (taxonomy §3.2). Checked\nby [`TutoringExampleRecord::validate`]."
+    },
+    "taxonomy_version": {
+      "description": "Version of `docs/taxonomy.md` this record was classified under\n(taxonomy §6).",
+      "minLength": 1,
+      "type": "string"
+    },
+    "tier": {
+      "$ref": "#/$defs/Tier",
+      "description": "Difficulty tier, interpreted per the `tutoring_example` definitions\n(taxonomy §4.3)."
+    },
+    "tutor_response": {
+      "$ref": "#/$defs/TutorResponse",
+      "description": "The tutor's reply, in Socratic or explanatory style per contract §5."
+    },
+    "verification_status": {
+      "$ref": "#/$defs/VerificationStatus",
+      "description": "Verification status; advanced only by the pipeline in #9."
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "domain",
+    "subdomain",
+    "tier",
+    "learner_prompt",
+    "tutor_response",
+    "provenance",
+    "verification_status",
+    "taxonomy_version"
+  ],
+  "title": "TutoringExampleRecord",
+  "type": "object"
+}

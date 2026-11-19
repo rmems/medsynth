@@ -1,0 +1,57 @@
+//! Schema versioning — every record carries the schema version it was written
+//! against, and each generated schema file is versioned in its filename and
+//! `$id` (`schemas/<format>.v<N>.json`).
+
+use std::borrow::Cow;
+
+use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error as _};
+
+/// The schema version this crate emits and accepts.
+pub const CURRENT_SCHEMA_VERSION: u32 = 1;
+
+/// The `schema_version` field on every record. Currently always `1`; a record
+/// carrying any other version fails to deserialize under this build, so mixed
+/// versions surface immediately rather than silently validating against the
+/// wrong shape.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub struct SchemaVersion;
+
+impl SchemaVersion {
+    pub fn get(self) -> u32 {
+        CURRENT_SCHEMA_VERSION
+    }
+}
+
+impl Serialize for SchemaVersion {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_u32(CURRENT_SCHEMA_VERSION)
+    }
+}
+
+impl<'de> Deserialize<'de> for SchemaVersion {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let v = u32::deserialize(deserializer)?;
+        if v == CURRENT_SCHEMA_VERSION {
+            Ok(Self)
+        } else {
+            Err(D::Error::custom(format!(
+                "unsupported schema_version {v}; this build writes and reads v{CURRENT_SCHEMA_VERSION}"
+            )))
+        }
+    }
+}
+
+impl JsonSchema for SchemaVersion {
+    fn schema_name() -> Cow<'static, str> {
+        "SchemaVersion".into()
+    }
+
+    fn json_schema(_generator: &mut SchemaGenerator) -> Schema {
+        json_schema!({
+            "type": "integer",
+            "const": CURRENT_SCHEMA_VERSION,
+            "description": "Version of the record schema this record conforms to."
+        })
+    }
+}

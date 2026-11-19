@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "id": "mcq-fixture-bad-0001",
+  "domain": "bbf",
+  "subdomain": "macromolecules",
+  "tier": "application",
+  "stem": {
+    "text": "A researcher adds a competitive inhibitor to an enzyme-catalyzed reaction and measures kinetics at increasing substrate concentrations. Which change in the enzyme's kinetic parameters is expected?",
+    "anchors": [
+      {
+        "source_id": "example-biochemistry-9e",
+        "locator": "ch8:enzyme-kinetics"
+      }
+    ]
+  },
+  "options": [
+    {
+      "label": "A",
+      "text": "The apparent Km increases while Vmax remains unchanged."
+    },
+    {
+      "label": "B",
+      "text": "Vmax decreases while the apparent Km remains unchanged."
+    },
+    {
+      "label": "C",
+      "text": "Both the apparent Km and Vmax increase."
+    }
+  ],
+  "key": "A",
+  "rationale": {
+    "key_explanation": {
+      "text": "A competitive inhibitor competes with substrate for the active site. At saturating substrate concentrations the substrate outcompetes the inhibitor, so Vmax is unchanged; however, more substrate is required to reach half-maximal velocity, so the apparent Km increases.",
+      "anchors": [
+        {
+          "source_id": "example-biochemistry-9e",
+          "locator": "ch8:competitive-inhibition"
+        }
+      ]
+    },
+    "strongest_distractor": {
+      "text": "Option B describes pure noncompetitive inhibition, not competitive inhibition: a noncompetitive inhibitor binds a site other than the active site and reduces the effective enzyme concentration, lowering Vmax while leaving Km unchanged.",
+      "anchors": [
+        {
+          "source_id": "example-biochemistry-9e",
+          "locator": "ch8:noncompetitive-inhibition"
+        }
+      ]
+    }
+  },
+  "provenance": {
+    "generator": "handwritten-fixture",
+    "model": null,
+    "prompt_version": null,
+    "template_version": null
+  },
+  "verification_status": "unverified",
+  "taxonomy_version": "0.1",
+  "contract_version": null
+}
