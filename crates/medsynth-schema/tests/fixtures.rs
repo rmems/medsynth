@@ -68,11 +68,22 @@ impl HasValidate for TutoringExampleRecord {
 
 fn read_instance(path: &Path) -> serde_json::Value {
     let text = fs::read_to_string(path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
-    assert!(
-        !text.contains("$serde_json::private::Number"),
-        "{} contains serde_json's arbitrary-precision number marker; fixture JSON must be plain JSON",
-        path.display()
-    );
+    // serde_json's arbitrary-precision object marker
+    // ({"$serde_json::private::Number": "1"}) collapses into a Number while
+    // the fixture is parsed to Value — before either validation layer can
+    // see it, and regardless of JSON string escapes on the key. The one
+    // field where a collapsed marker could masquerade as valid is the
+    // numeric `schema_version`; check its raw token is really a number.
+    let fields: std::collections::BTreeMap<String, Box<serde_json::value::RawValue>> =
+        serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
+    if let Some(version) = fields.get("schema_version") {
+        let token = version.get().trim();
+        assert!(
+            token.bytes().next().is_some_and(|b| b.is_ascii_digit()),
+            "{}: schema_version must be a JSON number token, got {token}",
+            path.display()
+        );
+    }
     serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()))
 }
 

@@ -97,6 +97,17 @@ fn schema_version_matches_schema_numeric_semantics() {
     // Exact decimal comparison: a version that merely *rounds* to 1.0 must
     // not load and be rewritten as v1.
     assert!(serde_json::from_str::<SchemaVersion>("1.0000000000000001").is_err());
+    // Extreme exponents fail cleanly: no overflow panic, no giant allocation.
+    for token in [
+        "1e-9223372036854775808",   // i64::MIN — checked_sub handles it
+        "1e-1000",                  // large zeros_needed — length check exits
+        "1e9999999999999999999999", // exponent beyond i64 — parse fails
+    ] {
+        assert!(
+            serde_json::from_str::<SchemaVersion>(token).is_err(),
+            "{token} must fail cleanly"
+        );
+    }
     // serde_json's arbitrary-precision object marker must not substitute for
     // a real number.
     assert!(

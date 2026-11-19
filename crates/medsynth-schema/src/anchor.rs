@@ -16,7 +16,9 @@ use serde::{Deserialize, Deserializer, Serialize, de::Error as _};
 /// glance per the contract's currency rule (§7). Which ids exist — and what
 /// each covers — is the registry's concern, not this crate's. Ends with
 /// `(?![\s\S])` — a true end-of-input assertion — because `$` in ECMA-style
-/// regexes can match before a final newline.
+/// regexes can match before a final newline. The lookahead needs an engine
+/// that supports it (ECMA, or fancy-regex as used by the `jsonschema`
+/// crate); [`SourceId::is_valid`] is the portable check.
 pub const SOURCE_ID_PATTERN: &str = r"^[a-z][a-z0-9-]{1,62}[a-z0-9](?![\s\S])";
 
 /// The id of a source in the anchor source registry (#5).

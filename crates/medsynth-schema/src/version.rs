@@ -35,7 +35,9 @@ impl<'de> Deserialize<'de> for SchemaVersion {
         // Comparing an f64 would silently round 1.0000000000000001 into 1;
         // comparing a Number would accept serde_json's arbitrary-precision
         // object marker ({"$serde_json::private::Number": "1"}) as the
-        // version, which the schema's `const: 1` rejects as an object.
+        // version, which the schema's `const: 1` rejects as an object. This
+        // ties record loading to serde_json's raw-token support — fine here,
+        // since records are JSON documents by definition.
         let raw = <Box<serde_json::value::RawValue>>::deserialize(deserializer)?;
         let token = raw.get().trim();
         if is_exactly_current(token) {
@@ -56,6 +58,8 @@ impl<'de> Deserialize<'de> for SchemaVersion {
 /// is the mantissa without its decimal point. For a single-digit version that
 /// equals `CURRENT` iff `digits` is `CURRENT` followed by exactly
 /// `frac_len - exp` zeros — compared as a string so no precision is lost.
+/// Arithmetic is checked and the length is verified before any allocation:
+/// an exponent like `i64::MIN` must fail cleanly, not overflow or allocate.
 fn is_exactly_current(token: &str) -> bool {
     let (mantissa, exp) = match token.find(['e', 'E']) {
         Some(i) => (&token[..i], token[i + 1..].parse::<i64>().ok()),
@@ -66,16 +70,25 @@ fn is_exactly_current(token: &str) -> bool {
         return false;
     }
     let (int_part, frac) = mantissa.split_once('.').unwrap_or((mantissa, ""));
-    let zeros_needed = frac.len() as i64 - exp;
+    let Some(zeros_needed) = (frac.len() as i64).checked_sub(exp) else {
+        return false;
+    };
     if zeros_needed < 0 {
         return false;
     }
     let digits: String = format!("{int_part}{frac}");
+    let digits = digits.trim_start_matches('0');
+    // `digits` is `CURRENT` followed by exactly `zeros_needed` zeros iff its
+    // length matches — checked before the repeat, so a huge negative
+    // exponent exits here instead of allocating.
+    if digits.len() as i64 - 1 != zeros_needed {
+        return false;
+    }
     let expected = format!(
         "{CURRENT_SCHEMA_VERSION}{}",
         "0".repeat(zeros_needed as usize)
     );
-    digits.trim_start_matches('0') == expected
+    digits == expected
 }
 
 impl JsonSchema for SchemaVersion {
