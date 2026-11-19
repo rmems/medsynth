@@ -2,9 +2,9 @@
 
 **Status:** binding for all records, generators, verifiers, and reviewers in this
 repository.
-**Version:** 1.0
-**Depends on:** record schemas (#4), anchor source registry (#5), curriculum
-taxonomy (#3).
+**Version:** 1.0 — first issued contract; see §9 for versioning rules.
+**Implemented and enforced by:** record schemas (#4), anchor source registry
+(#5), curriculum taxonomy (#3), verification pipeline (#9).
 
 This document is the law under which medsynth operates. Every generated,
 verified, audited, and published record is judged against it. Where a pipeline
@@ -41,7 +41,10 @@ These rules apply to every record at every stage — drafted, `unverified`,
 - Every item is written for medsynth. No reproduced, paraphrased, or
   "inspired-by" MCAT, USMLE, COMLEX, or commercial question-bank items.
 - Board-*style* format is expected and encouraged (single-best-answer stems,
-  vignette format, rationales). Board *content* is prohibited.
+  vignette format, rationales). Board *content* is prohibited — that means
+  reproduced, paraphrased, or derived exam items, not subject-matter overlap.
+  An original item may test knowledge that also appears on board exams; that
+  is the point of the dataset.
 - Stems are built from the curriculum taxonomy (#3) and anchored facts — never
   retrieved from or templated off existing question banks.
 - The originality & contamination audit (#11) is the enforcement arm of this
@@ -62,8 +65,19 @@ fact that cannot be anchored does not ship.
   instructions to the learner) that asserts no clinical fact.
 - Anchors must support the claim they are attached to — citing a general
   reference for a specific numeric claim (dose, threshold, timeline) does not
-  count. The verification pipeline (#9) resolves anchors mechanically; anchors
-  it cannot resolve are treated as missing.
+  count. Resolution is necessary but not sufficient: the verification pipeline
+  (#9) must check that the cited passage actually supports the claim, not
+  merely that the locator resolves.
+- **Invented patient observations are exempt from anchoring.** Vitals, lab
+  values, histories, and imaging findings invented for a fictional patient
+  (§2) are observations, not claims — they must be plausible, not cited. The
+  exemption covers the observation only: any claim *about* it ("this troponin
+  pattern indicates...", "these vitals are consistent with...") is a clinical
+  fact and must be anchored.
+- **Distractors anchor to their refutation.** An MCQ distractor is a false
+  proposition by design; no source can support it as written. Distractors are
+  anchored through the rationale's statement of *why* the option is wrong —
+  the anchor supports that refutation, not the false wording.
 - Prose that *implies* facts ("the drug is contraindicated in pregnancy")
   carries the same anchoring duty as explicit claims.
 
@@ -102,7 +116,10 @@ A record containing any of the following is rejected outright:
 - Anchors to living documents (web resources, continuously updated databases)
   cite the access date in addition to the source's own version identifier.
 - When a new edition of an anchored guideline publishes, affected records are
-  flagged for re-verification. Superseded sources remain in the registry marked
+  flagged for re-verification. Withdrawals, retractions, safety
+  communications, and errata trigger the same recheck even without a new
+  edition — a recommendation pulled in place still makes dependent records
+  stale. Superseded sources remain in the registry marked
   as such so historical anchors stay interpretable (see #5).
 - A record anchored only to superseded sources may remain in the dataset only
   if it is explicitly labeled historical/superseded in its metadata; otherwise
@@ -116,8 +133,14 @@ This contract is enforced mechanically and procedurally:
   this contract requires. A record that cannot express its anchors is not
   schema-valid.
 - **Verification pipeline (#9)** is the correctness gate: schema validation,
-  answer-key re-derivation, source-anchor resolution, distractor plausibility,
-  and the human review sample. `unverified` drafts never reach the dataset.
+  answer-key re-derivation, source-anchor resolution *and* claim-support
+  checks (the cited passage must actually support the claim, not merely
+  resolve), distractor plausibility, and the human review sample.
+  `unverified` drafts never reach the dataset.
+- **Transient vs. invalid anchors.** A registry or resolver outage is an
+  infrastructure failure, not a missing anchor: affected records are held and
+  retried, and the admission log reports infrastructure failures separately
+  from genuine anchor defects so outages don't masquerade as rejections.
 - **Originality audit (#11)** screens for contamination and near-duplicates.
 - **CI data validation (#10)** runs schema and anchor checks on every change.
 - **Admission log** records, per batch, how many records were admitted and
@@ -130,5 +153,8 @@ This contract is enforced mechanically and procedurally:
 - This contract is versioned. Changes that tighten or clarify rules take effect
   for new records immediately; already-admitted records are grandfathered unless
   a change is safety-critical, in which case affected records are re-verified.
+- The admission gate verifies against the currently effective contract version
+  and rejects or holds any record processed by a stale verifier — a record may
+  never enter the dataset under rules that are no longer in force.
 - Every admitted record stores the contract version it was admitted under, so
   the dataset can always answer "which rules produced this record?"
