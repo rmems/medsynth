@@ -31,7 +31,9 @@ exactly as it does to human-written code.
    `rust-toolchain.toml`. Shared dependencies are declared in the workspace
    `Cargo.toml`; member crates opt in via `workspace = true`.
 4. `cargo test -p medsynth-schema` (and the relevant crate's tests) must pass.
-   If you change record types, regenerate schemas with
+   Generation changes also run `cargo test -p medsynth-generate`; that suite
+   includes the teacher-pin refusal and no-live-API fixture checks. If you
+   change record types, regenerate schemas with
    `cargo run -p medsynth-schema --bin schema-gen` — the drift test will
    fail otherwise.
 5. Never hand-edit files under `schemas/` or `data/`; they are generated or

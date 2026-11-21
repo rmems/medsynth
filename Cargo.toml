@@ -1,6 +1,10 @@
 [workspace]
 resolver = "2"
-members = ["crates/medsynth-schema", "crates/medsynth-validate"]
+members = [
+    "crates/medsynth-schema",
+    "crates/medsynth-validate",
+    "crates/medsynth-generate",
+]
 
 [workspace.package]
 version = "0.1.0"
@@ -16,6 +20,10 @@ schemars = "1"
 jsonschema = "0.61"
 thiserror = "2"
 rand_pcg = "0.3"
+# rand_pcg 0.3 implements the traits from rand_core 0.6. The generation crate
+# needs RngCore/SeedableRng in scope to drive the seeded PCG stream; this is
+# the matching trait crate, not a second RNG.
+rand_core = "0.6"
 reqwest = "0.12"
 tokio = "1"
 rayon = "1"

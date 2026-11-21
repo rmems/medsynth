@@ -1,0 +1,21 @@
+{
+    "id":  "chatcmpl-fixture-tutoring",
+    "object":  "chat.completion",
+    "created":  1795000000,
+    "model":  "deepseek-flash",
+    "choices":  [
+                    {
+                        "index":  0,
+                        "message":  {
+                                        "role":  "assistant",
+                                        "content":  "{\"learner_prompt\":{\"text\":\"Why is the alveolar wall described as thin?\",\"anchors\":[]},\"tutor_response\":{\"style\":\"explanatory\",\"text\":\"The alveolar wall is thin because it is formed mainly by a single layer of simple squamous epithelial cells resting on a thin basement membrane. That short diffusion distance lets oxygen and carbon dioxide cross quickly between air and blood.\",\"anchors\":[{\"source_id\":\"openstax-anatomy-physiology-2e\",\"locator\":\"sec22.2:the-lungs\"}]}}"
+                                    },
+                        "finish_reason":  "stop"
+                    }
+                ],
+    "usage":  {
+                  "prompt_tokens":  120,
+                  "completion_tokens":  180,
+                  "total_tokens":  300
+              }
+}

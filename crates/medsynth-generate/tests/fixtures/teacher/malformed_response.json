@@ -1,0 +1,21 @@
+{
+    "id":  "chatcmpl-fixture-malformed",
+    "object":  "chat.completion",
+    "created":  1795000000,
+    "model":  "deepseek-flash",
+    "choices":  [
+                    {
+                        "index":  0,
+                        "message":  {
+                                        "role":  "assistant",
+                                        "content":  "this is not json"
+                                    },
+                        "finish_reason":  "stop"
+                    }
+                ],
+    "usage":  {
+                  "prompt_tokens":  120,
+                  "completion_tokens":  180,
+                  "total_tokens":  300
+              }
+}
