@@ -1,15 +1,19 @@
-//! OpenAI-compatible chat-completion client for pinned teachers.
+//! Teacher fulfillment via recorded response files.
 //!
-//! Endpoint, model id, and credential env-var name come from the pin entry.
-//! The credential value is held only in memory and is never logged or written
-//! into an error, record, or manifest.
+//! The pipeline never calls a teacher API itself. Each request is written to
+//! the fulfillment directory as `<key>.request.json` — an OpenAI-compatible
+//! chat-completion body an external harness can dispatch however it likes —
+//! and the harness drops the teacher's raw response at `<key>.response.json`.
+//! The key is a hash of the exact request-file bytes, so responses cannot be
+//! mixed up across cells, attempts, pins, or runs.
 
-use std::time::Duration;
+use std::path::PathBuf;
 
 use serde_json::{Value, json};
 
+use crate::hash::sha256_str;
+use crate::teacher::TeacherError;
 use crate::teacher::prompt::count_tokens;
-use crate::teacher::{PreparedTeacher, TeacherError};
 
 /// One teacher completion request.
 #[derive(Debug, Clone)]
@@ -19,6 +23,18 @@ pub struct TeacherRequest {
     pub user: String,
     pub max_tokens: u32,
     pub temperature: f32,
+    /// The attempt ordinal, sent as the API `seed` so each attempt of a cell
+    /// asks for a distinct sample and fulfills under its own key.
+    pub seed: u32,
+    /// The batch seed, carried in `metadata` so two batches that differ only
+    /// in `--seed` cannot share a fulfillment key — no u64 packing is
+    /// injective, so the full seed travels as its own field.
+    pub batch_seed: u64,
+    /// The pin driving the request, carried in `metadata` so a revised pin
+    /// cannot silently reuse a previous variant's response file.
+    pub pin_id: String,
+    /// The pinned variant, for the same reason.
+    pub pin_variant: String,
 }
 
 /// The teacher's raw text output.
@@ -31,83 +47,114 @@ pub struct TeacherCompletion {
     pub served_model: Option<String>,
 }
 
-/// A teacher transport. Tests supply recorded responses; production uses
-/// [`HttpTeacherClient`].
+/// A teacher fulfillment source. Production uses [`RecordedTeacherClient`];
+/// tests supply recorded responses directly.
 pub trait TeacherClient {
     fn complete(&self, request: &TeacherRequest) -> Result<TeacherCompletion, TeacherError>;
 }
 
-/// HTTP client for OpenAI-compatible endpoints.
-pub struct HttpTeacherClient {
-    client: reqwest::blocking::Client,
-    endpoint: String,
-    api_key: String,
+/// Serialize `request` as the OpenAI-compatible chat-completion body that
+/// identifies the fulfillment.
+fn request_body(request: &TeacherRequest) -> Value {
+    json!({
+        "model": request.model,
+        "messages": [
+            {"role": "system", "content": request.system},
+            {"role": "user", "content": request.user}
+        ],
+        "temperature": request.temperature,
+        "max_tokens": request.max_tokens,
+        "seed": request.seed,
+        "metadata": {
+            "pin_id": request.pin_id,
+            "variant": request.pin_variant,
+            "batch_seed": request.batch_seed
+        },
+        "response_format": {"type": "json_object"}
+    })
 }
 
-impl HttpTeacherClient {
-    /// Build a client for a prepared teacher. The credential is moved into the
-    /// client and never exposed.
-    pub fn new(prepared: &PreparedTeacher) -> Result<Self, TeacherError> {
-        Self::from_endpoint(
-            prepared.pin().endpoint.clone(),
-            prepared.credentials().to_owned(),
+/// The exact bytes written to `<key>.request.json`.
+fn request_body_text(request: &TeacherRequest) -> String {
+    serde_json::to_string_pretty(&request_body(request)).unwrap()
+}
+
+/// The filename stem identifying a fulfillment: the request file's full
+/// SHA-256, so a harness that hashes the file bytes derives the same key and
+/// distinct bodies can never collide.
+pub fn fulfillment_key(request: &TeacherRequest) -> String {
+    sha256_str(&request_body_text(request))
+}
+
+/// Fulfills teacher requests from a directory of recorded responses.
+///
+/// On each request the client writes `<dir>/<key>.request.json` (creating the
+/// directory if needed) so the external harness knows exactly what to
+/// dispatch, then reads `<dir>/<key>.response.json`. A missing response fails
+/// the attempt; a malformed one fails parsing.
+pub struct RecordedTeacherClient {
+    dir: PathBuf,
+}
+
+impl RecordedTeacherClient {
+    /// `dir` is the fulfillment directory shared with the external harness.
+    pub fn new(dir: PathBuf) -> Result<Self, TeacherError> {
+        std::fs::create_dir_all(&dir).map_err(|e| {
+            TeacherError::Transport(format!(
+                "cannot create fulfillment dir {}: {e}",
+                dir.display()
+            ))
+        })?;
+        Ok(Self { dir })
+    }
+
+    fn paths(&self, request: &TeacherRequest) -> (PathBuf, PathBuf) {
+        let key = fulfillment_key(request);
+        (
+            self.dir.join(format!("{key}.request.json")),
+            self.dir.join(format!("{key}.response.json")),
         )
     }
-
-    /// Build a client from an endpoint and credential directly.
-    ///
-    /// Production uses [`HttpTeacherClient::new`]; this constructor exists for
-    /// transport tests that point at a local server. The credential is still
-    /// held only in memory.
-    pub fn from_endpoint(
-        endpoint: impl Into<String>,
-        api_key: impl Into<String>,
-    ) -> Result<Self, TeacherError> {
-        let client = reqwest::blocking::Client::builder()
-            .timeout(Duration::from_secs(120))
-            .build()
-            .map_err(|e| TeacherError::Transport(format!("cannot build HTTP client: {e}")))?;
-        Ok(Self {
-            client,
-            endpoint: endpoint.into(),
-            api_key: api_key.into(),
-        })
-    }
 }
 
-impl TeacherClient for HttpTeacherClient {
+impl TeacherClient for RecordedTeacherClient {
     fn complete(&self, request: &TeacherRequest) -> Result<TeacherCompletion, TeacherError> {
-        let body = json!({
-            "model": request.model,
-            "messages": [
-                {"role": "system", "content": request.system},
-                {"role": "user", "content": request.user}
-            ],
-            "temperature": request.temperature,
-            "max_tokens": request.max_tokens,
-            "response_format": {"type": "json_object"}
-        });
-        let response = self
-            .client
-            .post(&self.endpoint)
-            .bearer_auth(&self.api_key)
-            .json(&body)
-            .send()
-            .map_err(|e| TeacherError::Transport(format!("request failed: {e}")))?;
-        let status = response.status();
-        if !status.is_success() {
-            // Deliberately omit the body: it can echo request metadata and is
-            // not needed to diagnose an HTTP-level failure.
-            return Err(TeacherError::Transport(format!(
-                "endpoint returned HTTP {}",
-                status.as_u16()
-            )));
-        }
-        let bytes = response
-            .bytes()
-            .map_err(|e| TeacherError::Transport(format!("response body read failed: {e}")))?;
-        let value: Value = serde_json::from_slice(&bytes)
-            .map_err(|e| TeacherError::Parse(format!("invalid response JSON: {e}")))?;
+        let (request_path, response_path) = self.paths(request);
+        // Stage then rename: a pre-existing symlink at the request path is
+        // replaced by the rename, never followed to truncate its target.
+        // Per-process staging name: overlapping reruns never share a tmp file.
+        let tmp_path = request_path.with_extension(format!("request.{}.tmp", std::process::id()));
+        std::fs::write(&tmp_path, request_body_text(request))
+            .and_then(|()| std::fs::rename(&tmp_path, &request_path))
+            .map_err(|e| {
+                let _ = std::fs::remove_file(&tmp_path);
+                TeacherError::Transport(format!(
+                    "cannot write request file {}: {e}",
+                    request_path.display()
+                ))
+            })?;
+        let text = match std::fs::read_to_string(&response_path) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Err(TeacherError::Transport(format!(
+                    "no recorded response at {}; dispatch {} externally and drop the teacher's raw chat-completion JSON there",
+                    response_path.display(),
+                    request_path.display()
+                )));
+            }
+            Err(e) => {
+                return Err(TeacherError::Transport(format!(
+                    "cannot read response file {}: {e}",
+                    response_path.display()
+                )));
+            }
+        };
+        let value: Value = serde_json::from_str(&text).map_err(|e| {
+            TeacherError::Parse(format!(
+                "invalid response JSON in {}: {e}",
+                response_path.display()
+            ))
+        })?;
         parse_chat_completion(&value)
     }
 }
@@ -139,46 +186,28 @@ pub fn completion_tokens(content: &str) -> u32 {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Read, Write};
-    use std::net::TcpListener;
-
     use super::*;
 
-    fn serve_once(status: u16, body: String) -> (String, std::thread::JoinHandle<()>) {
-        serve(status, body.clone(), body.len())
+    struct FulfillmentDir {
+        path: PathBuf,
     }
 
-    /// Serve one response, declaring `declared_len` bytes in Content-Length
-    /// while actually sending `body` — a larger value simulates a connection
-    /// that closes mid-body.
-    fn serve(
-        status: u16,
-        body: String,
-        declared_len: usize,
-    ) -> (String, std::thread::JoinHandle<()>) {
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        let address = listener.local_addr().unwrap();
-        let handle = std::thread::spawn(move || {
-            let (mut stream, _) = listener.accept().unwrap();
-            // Drain the full request: reqwest sends headers plus the JSON
-            // body, which exceeds a single 8 KiB read. A truncated request
-            // makes the client reset the connection mid-write.
-            stream
-                .set_read_timeout(Some(std::time::Duration::from_millis(50)))
-                .unwrap();
-            let mut chunk = [0u8; 8192];
-            while let Ok(n) = stream.read(&mut chunk) {
-                if n == 0 {
-                    break;
-                }
-            }
-            let reason = if status == 200 { "OK" } else { "Error" };
-            let response = format!(
-                "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {declared_len}\r\nConnection: close\r\n\r\n{body}"
-            );
-            stream.write_all(response.as_bytes()).unwrap();
-        });
-        (format!("http://{address}/chat/completions"), handle)
+    impl FulfillmentDir {
+        fn new(name: &str) -> Self {
+            let path = std::env::temp_dir().join(format!(
+                "medsynth-fulfillment-{name}-{}",
+                std::process::id()
+            ));
+            let _ = std::fs::remove_dir_all(&path);
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for FulfillmentDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.path);
+        }
     }
 
     fn request() -> TeacherRequest {
@@ -188,50 +217,101 @@ mod tests {
             user: "user".to_owned(),
             max_tokens: 64,
             temperature: 0.2,
+            seed: 0,
+            batch_seed: 0,
+            pin_id: "deepseek-v4.1-flash".to_owned(),
+            pin_variant: "DeepSeek-V4.1-Flash-1017".to_owned(),
         }
     }
 
     #[test]
-    fn http_client_posts_and_parses_a_completion() {
-        let body = json!({
-            "choices": [{"message": {"content": "{\"ok\":true}"}}]
-        })
-        .to_string();
-        let (endpoint, handle) = serve_once(200, body);
-        let client = HttpTeacherClient::from_endpoint(endpoint, "test-key").unwrap();
-        let completion = client.complete(&request()).unwrap();
-        assert_eq!(completion.content, "{\"ok\":true}");
-        handle.join().unwrap();
-    }
-
-    #[test]
-    fn http_client_reports_status_without_the_body() {
-        let (endpoint, handle) = serve_once(500, "sensitive-body".to_owned());
-        let client = HttpTeacherClient::from_endpoint(endpoint, "test-key").unwrap();
-        let error = client.complete(&request()).unwrap_err();
-        let message = error.to_string();
-        assert!(message.contains("HTTP 500"));
-        assert!(!message.contains("sensitive-body"));
-        assert!(!message.contains("test-key"));
-        handle.join().unwrap();
-    }
-
-    #[test]
-    fn http_client_classifies_a_truncated_body_as_transport() {
-        let body = json!({"choices": [{"message": {"content": "{}"}}]}).to_string();
-        let (endpoint, handle) = serve(200, body, 999);
-        let client = HttpTeacherClient::from_endpoint(endpoint, "test-key").unwrap();
+    fn recorded_client_reads_the_response_file() {
+        let dir = FulfillmentDir::new("ok");
+        let client = RecordedTeacherClient::new(dir.path.clone()).unwrap();
+        // First call emits the request file and reports the missing response.
         let error = client.complete(&request()).unwrap_err();
         assert!(matches!(error, TeacherError::Transport(_)), "{error}");
-        handle.join().unwrap();
+        let request_path = dir
+            .path
+            .join(format!("{}.request.json", fulfillment_key(&request())));
+        assert!(request_path.exists());
+        let body: Value =
+            serde_json::from_str(&std::fs::read_to_string(&request_path).unwrap()).unwrap();
+        assert_eq!(body["model"], "deepseek-flash");
+        assert_eq!(body["response_format"]["type"], "json_object");
+        // The key a harness derives by hashing the request file itself.
+        assert_eq!(
+            fulfillment_key(&request()),
+            sha256_str(&std::fs::read_to_string(&request_path).unwrap())
+        );
+        // Harness fulfills: same stem, `.response.json`.
+        let response_path = dir
+            .path
+            .join(format!("{}.response.json", fulfillment_key(&request())));
+        std::fs::write(
+            &response_path,
+            json!({
+                "model": "deepseek-flash-1017",
+                "choices": [{"message": {"content": "{\"ok\":true}"}}]
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let completion = client.complete(&request()).unwrap();
+        assert_eq!(
+            (
+                completion.content.as_str(),
+                completion.served_model.as_deref()
+            ),
+            ("{\"ok\":true}", Some("deepseek-flash-1017"))
+        );
     }
 
     #[test]
-    fn http_client_classifies_malformed_json_as_parse() {
-        let (endpoint, handle) = serve_once(200, "not json".to_owned());
-        let client = HttpTeacherClient::from_endpoint(endpoint, "test-key").unwrap();
+    fn recorded_client_classifies_a_missing_response_as_transport() {
+        let dir = FulfillmentDir::new("missing");
+        let client = RecordedTeacherClient::new(dir.path.clone()).unwrap();
+        let error = client.complete(&request()).unwrap_err();
+        assert!(matches!(error, TeacherError::Transport(_)), "{error}");
+        assert!(error.to_string().contains("no recorded response"));
+    }
+
+    #[test]
+    fn fulfillment_key_changes_with_attempt_seed_and_pin() {
+        let base = fulfillment_key(&request());
+        let mut other = request();
+        other.seed = 1;
+        assert_ne!(
+            base,
+            fulfillment_key(&other),
+            "each attempt gets its own file"
+        );
+        let mut other = request();
+        other.batch_seed = 1 << 32;
+        assert_ne!(
+            base,
+            fulfillment_key(&other),
+            "a seed differing only above bit 31 still gets its own files"
+        );
+        let mut other = request();
+        other.pin_variant = "DeepSeek-V4.1-Flash-1024".to_owned();
+        assert_ne!(
+            base,
+            fulfillment_key(&other),
+            "a revised pin cannot reuse the old response"
+        );
+    }
+
+    #[test]
+    fn recorded_client_classifies_malformed_json_as_parse() {
+        let dir = FulfillmentDir::new("malformed");
+        let client = RecordedTeacherClient::new(dir.path.clone()).unwrap();
+        let _ = client.complete(&request());
+        let response_path = dir
+            .path
+            .join(format!("{}.response.json", fulfillment_key(&request())));
+        std::fs::write(&response_path, "not json").unwrap();
         let error = client.complete(&request()).unwrap_err();
         assert!(matches!(error, TeacherError::Parse(_)), "{error}");
-        handle.join().unwrap();
     }
 }

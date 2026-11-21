@@ -34,7 +34,7 @@ entry, so the basis is auditable without re-fetching the page.
 - **variant:** `DeepSeek-V4.1-Flash-1017`
 - **model_id:** `deepseek-flash`
 - **endpoint:** `https://api.deepseek.com/chat/completions`
-- **api_key_env:** `MEDSYNTH_TEACHER_DEEPSEEK_API_KEY`
+- **api_key_env:** `DEEPSEEK_API_KEY`
 - **lane:** `teacher`
 - **terms_document:** `DeepSeek Open Platform Terms of Service`
 - **terms_version:** `release 2026-04-22; effective 2026-04-29`
@@ -54,7 +54,7 @@ entry, so the basis is auditable without re-fetching the page.
 - **variant:** `NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4`
 - **model_id:** `nvidia/nemotron-3-ultra-550b-a55b`
 - **endpoint:** `https://integrate.api.nvidia.com/v1/chat/completions`
-- **api_key_env:** `MEDSYNTH_TEACHER_NEMOTRON_API_KEY`
+- **api_key_env:** `NVIDIA_API_KEY`
 - **lane:** `teacher`
 - **terms_document:** `NVIDIA Nemotron Open Model License`
 - **terms_version:** `v. December 15, 2025`
@@ -79,14 +79,22 @@ A pin entry whose `lane` is not `teacher`, or whose `family` is not `deepseek`
 or `nvidia-nemotron`, is rejected by the gate even if its terms look
 permissive. The gate also rejects an entry that omits any required field or
 that does not affirm both `permits_distillation` and
-`permits_synthetic_data`.
+`permits_synthetic_data`, and an entry whose `endpoint` is not an approved
+provider host (`api.deepseek.com`, `integrate.api.nvidia.com`) or whose
+`api_key_env` does not name a provider API-key variable — this document is
+what the harness dispatches on, so it must stay accurate.
 
 ## Fail-closed behavior
 
-`medsynth-generate` checks this file before it constructs a teacher client or
-dispatches a single teacher prompt. A missing file, missing pin, incomplete
-field set, research-only classification, unapproved family, or missing terms
-affirmation stops the teacher lane. The procedural lane does not depend on
-this file and runs fully offline. Credentials are read from the environment
-variable named in the pin entry and are never written to a record, manifest,
-log line, or error message.
+`medsynth-generate` checks this file before it emits a single teacher
+request. A missing file, missing pin, incomplete field set, research-only
+classification, unapproved family, or missing terms affirmation stops the
+teacher lane. The procedural lane does not depend on this file and runs
+fully offline.
+
+The pipeline never calls a teacher API itself. Each request is written to
+the `--teacher-responses` fulfillment directory as `<key>.request.json`;
+an external harness dispatches it to the pinned endpoint and drops the
+teacher's raw chat-completion JSON at `<key>.response.json`. Credentials
+live only in that harness, under the env var named in the pin entry for
+documentation — the pipeline never reads, holds, or logs them.

@@ -302,12 +302,24 @@ fn request_completion(
     ctx: &AttemptCtx<'_>,
     id_text: &str,
 ) -> Result<TeacherCompletion, FailedAttempt> {
+    let pin = ctx.teacher.prepared.pin();
     let request = TeacherRequest {
-        model: ctx.teacher.prepared.pin().model_id.clone(),
+        model: pin.model_id.clone(),
         system: ctx.prompt.system.clone(),
         user: ctx.prompt.user.clone(),
         max_tokens: ctx.selection.max_output_tokens,
         temperature: ctx.selection.temperature,
+        // Fold every batch-seed bit into the API seed so a new --seed also
+        // asks the teacher for a fresh sample, not a replayed one. The fold
+        // needn't be injective — the fulfillment key is unique via
+        // metadata.batch_seed; only the sampling varies here.
+        seed: ((ctx.cell_ctx.plan.config.seed ^ (ctx.cell_ctx.plan.config.seed >> 32)) as u32)
+            .wrapping_add(ctx.attempt),
+        // Carried in `metadata` so a shared fulfillment directory serves
+        // fresh samples per batch, not cross-batch dupes.
+        batch_seed: ctx.cell_ctx.plan.config.seed,
+        pin_id: pin.pin_id.clone(),
+        pin_variant: pin.variant.clone(),
     };
     let completion = ctx.teacher.client.complete(&request).map_err(|e| {
         let stage = if matches!(e, TeacherError::Transport(_)) {

@@ -363,6 +363,31 @@ fn custom_data_dir_still_protects_workspace_data_tree() {
 }
 
 #[test]
+fn parent_relative_out_dir_leaving_data_is_allowed() {
+    // Anchor the scenario in a temp workspace so the assertions hold whatever
+    // directory the test binary runs from.
+    let ws = TempDir::new("ws");
+    let mut paths = plan_paths(&sample_config());
+    paths.gold = ws.path().join("data").join("gold");
+    paths.data = ws.path().join("data");
+
+    // `drafts/../outside/mcq` resolves outside `data/`; a `..` must not be
+    // kept against nothing and falsely refused.
+    let result = check_output_dir(&paths, &ws.path().join("drafts/../outside/mcq"));
+    assert!(result.is_ok(), "unexpected refusal: {result:?}");
+
+    // Stacked traversals keep every `..`: `crates/gen/../../data/mcq` must
+    // resolve back into the data tree and be refused — a normalization that
+    // drops a `..` would land it outside and wrongly allow it.
+    let err = check_output_dir(&paths, &ws.path().join("crates/gen/../../data/mcq")).unwrap_err();
+    assert!(err.to_string().contains("refusing to write drafts under"));
+
+    // A `..` that re-enters the tree still resolves to a refusal.
+    let err = check_output_dir(&paths, &ws.path().join("data/../data/mcq")).unwrap_err();
+    assert!(err.to_string().contains("refusing to write drafts under"));
+}
+
+#[test]
 fn gold_inside_a_data_tree_protects_that_tree_at_any_cwd() {
     // The process may run outside the workspace root; an absolute `--gold`
     // inside `<ws>/data/` still protects `<ws>/data` with `--data` elsewhere.

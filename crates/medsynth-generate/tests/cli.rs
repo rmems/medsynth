@@ -98,9 +98,8 @@ fn run_command_writes_a_batch_and_refuses_data_directory() {
     assert!(stderr(&output).contains("refusing to write drafts under"));
 }
 
-#[test]
-fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
-    let config = json!({
+fn teacher_cell_config() -> Value {
+    json!({
         "seed": 10u64,
         "cells": [
             {
@@ -122,13 +121,18 @@ fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
             }
         ],
         "teacher": {"pin_id": "deepseek-v4.1-flash"}
-    });
+    })
+}
+
+#[test]
+fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
+    let config = teacher_cell_config();
     let config_dir = TempDir::new("cli-teacher-config");
     let config_path = write_config(&config_dir, &config);
     let out = TempDir::new("cli-teacher-out");
+    // No --teacher-responses: the teacher lane must refuse — the pipeline
+    // never calls teacher APIs itself.
     let output = command()
-        .env_remove("MEDSYNTH_TEACHER_DEEPSEEK_API_KEY")
-        .env_remove("MEDSYNTH_TEACHER_NEMOTRON_API_KEY")
         .args([
             "run",
             "--config",
@@ -141,14 +145,58 @@ fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
     assert!(!output.status.success());
     let error = stderr(&output);
     assert!(error.contains("teacher lane did not run"), "{error}");
-    assert!(
-        error.contains("MEDSYNTH_TEACHER_DEEPSEEK_API_KEY"),
-        "{error}"
-    );
+    assert!(error.contains("fulfillment directory"), "{error}");
     assert!(out.path().join("mcq.jsonl").exists());
     let manifest: Value =
         serde_json::from_str(&std::fs::read_to_string(out.path().join("manifest.json")).unwrap())
             .unwrap();
     assert_eq!(manifest["teacher_lane"]["status"], "refused");
     assert_eq!(manifest["totals"]["produced"], 1);
+}
+
+#[test]
+fn teacher_responses_data_guard_tracks_the_lane() {
+    // The fulfillment directory is held to the same `data/` restriction.
+    let config = teacher_cell_config();
+    let config_dir = TempDir::new("cli-teacher-config2");
+    let config_path = write_config(&config_dir, &config);
+    let out2 = TempDir::new("cli-teacher-out2");
+    let output = command()
+        .args([
+            "run",
+            "--config",
+            config_path.to_str().unwrap(),
+            "--out",
+            out2.path().to_str().unwrap(),
+            "--teacher-responses",
+            workspace_root().join("data/fulfill").to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(
+        stderr(&output).contains("refusing to write drafts under"),
+        "{}",
+        stderr(&output)
+    );
+
+    // A `--lane procedural` run never touches the fulfillment directory, so
+    // the same `data/` path must not block it.
+    let out3 = TempDir::new("cli-procedural-out");
+    let output = command()
+        .args([
+            "run",
+            "--config",
+            config_path.to_str().unwrap(),
+            "--out",
+            out3.path().to_str().unwrap(),
+            "--lane",
+            "procedural",
+            "--teacher-responses",
+            workspace_root().join("data/fulfill").to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{}", stderr(&output));
+    assert!(out3.path().join("mcq.jsonl").exists());
 }

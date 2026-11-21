@@ -158,7 +158,16 @@ fn normalize_path(path: &Path) -> PathBuf {
         match component {
             Component::CurDir => {}
             Component::ParentDir => {
-                normalized.pop();
+                // Cancel a normal component; keep the `..` otherwise (leading
+                // or consecutive `..`) so `../../x` keeps both traversals.
+                if matches!(
+                    normalized.components().next_back(),
+                    Some(Component::Normal(_))
+                ) {
+                    normalized.pop();
+                } else {
+                    normalized.push(Component::ParentDir.as_os_str());
+                }
             }
             other => normalized.push(other.as_os_str()),
         }
@@ -175,4 +184,26 @@ fn atomic_write(path: &Path, text: &str) -> Result<(), GenerateError> {
     let tmp = path.with_extension("tmp");
     std::fs::write(&tmp, text).map_err(|e| GenerateError::io(tmp.clone(), e))?;
     std::fs::rename(&tmp, path).map_err(|e| GenerateError::io(tmp.clone(), e))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_path;
+    use std::path::{Component, Path};
+
+    #[test]
+    fn normalize_keeps_leading_and_stacked_parent_dirs() {
+        // A `..` with no normal component to cancel must survive —
+        // collapsing it would resolve the path somewhere it never pointed.
+        let normalized = normalize_path(Path::new("../x"));
+        assert_eq!(normalized.components().next(), Some(Component::ParentDir));
+        let normalized = normalize_path(Path::new("a/../../x"));
+        assert_eq!(
+            normalized
+                .components()
+                .filter(|c| matches!(c, Component::ParentDir))
+                .count(),
+            1
+        );
+    }
 }

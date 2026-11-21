@@ -56,7 +56,7 @@ fn pin_markdown(pin_id: &str, family: &str, lane: &str, permits_distillation: &s
 - **variant:** `Test-Variant-1`\n\
 - **model_id:** `test-model`\n\
 - **endpoint:** `https://api.deepseek.com/chat/completions`\n\
-- **api_key_env:** `MEDSYNTH_TEACHER_TEST_KEY`\n\
+- **api_key_env:** `TEST_TEACHER_API_KEY`\n\
 - **lane:** `{lane}`\n\
 - **terms_document:** `Test Terms`\n\
 - **terms_version:** `v1`\n\
@@ -118,7 +118,7 @@ fn pin_registry_parses_both_teachers() {
         (
             "DeepSeek-V4.1-Flash-1017",
             "deepseek-flash",
-            "MEDSYNTH_TEACHER_DEEPSEEK_API_KEY",
+            "DEEPSEEK_API_KEY",
         )
     );
     assert!(
@@ -181,7 +181,9 @@ fn teacher_lane_refuses_research_only_and_ineligible_families() {
 }
 
 #[test]
-fn teacher_lane_refuses_untrusted_endpoints_and_foreign_credentials() {
+fn teacher_lane_refuses_untrusted_endpoints_and_foreign_env_names() {
+    // The repo never calls the API, but the pin document is what the harness
+    // dispatches on — an untrusted host or foreign credential name is refused.
     let text = pin_markdown("bad-endpoint", "deepseek", "teacher", "yes").replace(
         "https://api.deepseek.com/chat/completions",
         "https://attacker.example/collect",
@@ -191,7 +193,7 @@ fn teacher_lane_refuses_untrusted_endpoints_and_foreign_credentials() {
     assert!(matches!(error, TeacherError::UntrustedEndpoint { .. }));
 
     let text = pin_markdown("bad-env", "deepseek", "teacher", "yes")
-        .replace("MEDSYNTH_TEACHER_TEST_KEY", "AWS_SECRET_ACCESS_KEY");
+        .replace("TEST_TEACHER_API_KEY", "AWS_SECRET_ACCESS_KEY");
     let pins = load_pin_text(&text);
     let error = pins.ensure_teacher("bad-env").unwrap_err();
     assert!(matches!(error, TeacherError::InvalidCredentialEnv { .. }));
@@ -210,32 +212,15 @@ fn teacher_lane_refuses_pins_without_synthetic_data_terms() {
 }
 
 #[test]
-fn teacher_lane_checks_the_pin_before_credentials() {
+fn teacher_lane_checks_the_pin_and_needs_no_credentials() {
     let pins = docs_pins();
-    let lookups = std::cell::Cell::new(0usize);
-    let env = |_: &str| {
-        lookups.set(lookups.get() + 1);
-        Some("should-not-be-read".to_owned())
-    };
-    let error = prepare(&pins, "missing-pin", &env).unwrap_err();
+    let error = prepare(&pins, "missing-pin").unwrap_err();
     assert!(matches!(error, TeacherError::Unpinned(_)));
-    assert_eq!(
-        lookups.get(),
-        0,
-        "credentials must not be read before the pin gate"
-    );
-}
 
-#[test]
-fn teacher_lane_refuses_without_credentials() {
-    let pins = docs_pins();
-    let error = prepare(&pins, "deepseek-v4.1-flash", &|_| None).unwrap_err();
-    match error {
-        TeacherError::MissingCredentials { env_var, .. } => {
-            assert_eq!(env_var, "MEDSYNTH_TEACHER_DEEPSEEK_API_KEY");
-        }
-        other => panic!("expected MissingCredentials, got {other}"),
-    }
+    // A pinned teacher prepares with no credential lookup at all — the
+    // external fulfillment harness owns the key.
+    let prepared = prepare(&pins, "deepseek-v4.1-flash").unwrap();
+    assert_eq!(prepared.pin().pin_id, "deepseek-v4.1-flash");
 }
 
 /// Inputs for one recorded-completion test.
@@ -490,8 +475,6 @@ fn teacher_batch_writes_an_enveloped_unverified_draft_from_a_recorded_response()
     let plan = load_plan(&plan_paths(&config_path), None).unwrap();
 
     let content = fixture_content("mcq_response.json");
-    let env =
-        |name: &str| (name == "MEDSYNTH_TEACHER_DEEPSEEK_API_KEY").then(|| "test-key".to_owned());
     let factory = move |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
         Ok(Box::new(FakeTeacher {
             content: content.clone(),
@@ -499,7 +482,6 @@ fn teacher_batch_writes_an_enveloped_unverified_draft_from_a_recorded_response()
     };
     let options = ExecuteOptions {
         lane_filter: LaneFilter::All,
-        env: &env,
         teacher_client_factory: &factory,
     };
     let output = execute(&plan, &options).unwrap();
@@ -572,8 +554,6 @@ fn batch_drops_a_draft_with_an_incomplete_rights_envelope() {
         Some(TeacherPinRegistry::from_pins(plan.paths.teachers.clone(), vec![pin]).unwrap());
 
     let content = fixture_content("mcq_response.json");
-    let env =
-        |name: &str| (name == "MEDSYNTH_TEACHER_DEEPSEEK_API_KEY").then(|| "test-key".to_owned());
     let factory = move |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
         Ok(Box::new(FakeTeacher {
             content: content.clone(),
@@ -581,7 +561,6 @@ fn batch_drops_a_draft_with_an_incomplete_rights_envelope() {
     };
     let options = ExecuteOptions {
         lane_filter: LaneFilter::All,
-        env: &env,
         teacher_client_factory: &factory,
     };
     let output = execute(&plan, &options).unwrap();
@@ -619,8 +598,6 @@ fn teacher_batch_drops_an_over_budget_completion() {
     let config_path = write_config(&dir, &config);
     let plan = load_plan(&plan_paths(&config_path), None).unwrap();
 
-    let env =
-        |name: &str| (name == "MEDSYNTH_TEACHER_DEEPSEEK_API_KEY").then(|| "test-key".to_owned());
     let factory = |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
         Ok(Box::new(FakeTeacher {
             content: "x ".repeat(20_000),
@@ -628,7 +605,6 @@ fn teacher_batch_drops_an_over_budget_completion() {
     };
     let options = ExecuteOptions {
         lane_filter: LaneFilter::All,
-        env: &env,
         teacher_client_factory: &factory,
     };
     let output = execute(&plan, &options).unwrap();
@@ -658,8 +634,6 @@ fn teacher_batch_drops_a_draft_with_an_unapproved_anchor() {
     let plan = load_plan(&plan_paths(&config_path), None).unwrap();
 
     let content = fixture_content("mcq_response.json");
-    let env =
-        |name: &str| (name == "MEDSYNTH_TEACHER_DEEPSEEK_API_KEY").then(|| "test-key".to_owned());
     let factory = move |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
         Ok(Box::new(FakeTeacher {
             content: content.clone(),
@@ -667,7 +641,6 @@ fn teacher_batch_drops_a_draft_with_an_unapproved_anchor() {
     };
     let options = ExecuteOptions {
         lane_filter: LaneFilter::All,
-        env: &env,
         teacher_client_factory: &factory,
     };
     let output = execute(&plan, &options).unwrap();
@@ -697,14 +670,11 @@ fn missing_pin_file_refuses_the_teacher_lane_and_keeps_procedural_output() {
     let plan = load_plan(&paths, None).unwrap();
     assert!(plan.pins.is_none());
 
-    let env =
-        |name: &str| (name == "MEDSYNTH_TEACHER_DEEPSEEK_API_KEY").then(|| "test-key".to_owned());
     let factory = |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
         panic!("teacher client must not be constructed without a pin file")
     };
     let options = ExecuteOptions {
         lane_filter: LaneFilter::All,
-        env: &env,
         teacher_client_factory: &factory,
     };
     let output = execute(&plan, &options).unwrap();
@@ -734,13 +704,11 @@ fn refused_teacher_lane_still_runs_the_procedural_lane() {
     let config_path = write_config(&dir, &config);
     let plan = load_plan(&plan_paths(&config_path), None).unwrap();
 
-    let env = |_: &str| None;
     let factory = |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
-        panic!("teacher client must not be constructed without credentials")
+        Err(TeacherError::MissingFulfillmentDir)
     };
     let options = ExecuteOptions {
         lane_filter: LaneFilter::All,
-        env: &env,
         teacher_client_factory: &factory,
     };
     let output = execute(&plan, &options).unwrap();
@@ -759,7 +727,7 @@ fn refused_teacher_lane_still_runs_the_procedural_lane() {
             .error
             .as_deref()
             .unwrap()
-            .contains("MEDSYNTH_TEACHER_DEEPSEEK_API_KEY")
+            .contains("fulfillment directory")
     );
     let teacher_cell = output
         .manifest

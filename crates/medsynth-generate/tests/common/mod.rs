@@ -72,7 +72,6 @@ pub fn write_config(dir: &TempDir, value: &Value) -> PathBuf {
 }
 
 pub fn run_all(plan: &medsynth_generate::BatchPlan) -> BatchOutput {
-    let env = |_: &str| None;
     let factory = |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
         Err(TeacherError::Parse(
             "tests must inject a fake teacher client".into(),
@@ -80,7 +79,6 @@ pub fn run_all(plan: &medsynth_generate::BatchPlan) -> BatchOutput {
     };
     let options = ExecuteOptions {
         lane_filter: LaneFilter::All,
-        env: &env,
         teacher_client_factory: &factory,
     };
     execute(plan, &options).unwrap()

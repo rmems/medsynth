@@ -43,16 +43,17 @@ The teacher lane is **fail-closed**:
    the DeepSeek or Nemotron 3 family, and affirm both `permits_distillation`
    and `permits_synthetic_data`. Missing or research-only pins (Claude, Grok)
    refuse the lane.
-3. Only after the pin gate does it read the credential from the environment
-   variable named in the pin. Credentials are never written to a record,
-   manifest, log line, or error.
-4. With no credential, the teacher lane fails with a clear error and the
-   procedural lane still writes its output.
-
-Credentials are read from the env var named in the selected pin:
-`MEDSYNTH_TEACHER_DEEPSEEK_API_KEY` for `deepseek-v4.1-flash` and
-`MEDSYNTH_TEACHER_NEMOTRON_API_KEY` for `nemotron-3-ultra`. Never commit them
-and never pass them as CLI arguments (they would land in shell history).
+3. The teacher lane never calls a teacher API itself. It writes each
+   request to the `--teacher-responses` fulfillment directory as
+   `<key>.request.json` — an OpenAI-compatible chat-completion body — and
+   reads the response the external harness drops at `<key>.response.json`.
+   The key is a hash of the exact request body, so fulfillments cannot be
+   mixed up. A missing response drops the attempt; when every attempt is
+   unfulfilled the lane reports an error, and the procedural lane still
+   writes its output.
+4. Credentials live only in the external harness, under the env var named
+   in the pin entry (`DEEPSEEK_API_KEY`, `NVIDIA_API_KEY` — informational
+   fields). The repo holds, reads, and logs no API keys.
 
 Prompts and completions are budgeted with `tiktoken-rs` (cl100k_base as the
 budgeting tokenizer). The system prompt forbids reproducing or paraphrasing
@@ -73,9 +74,12 @@ cargo run -p medsynth-generate -- run \
   --out drafts/sample-batch
 ```
 
-`run` accepts `--seed` to override the config seed and `--lane
-all|procedural|teacher` to restrict the run. Defaults are `docs/taxonomy.md`,
-`docs/sources.json`, `docs/teachers.md`, `schemas/`, and `data/gold/`.
+`run` accepts `--seed` to override the config seed, `--lane
+all|procedural|teacher` to restrict the run, and `--teacher-responses <dir>`
+to point at the fulfillment directory shared with the external harness
+(required when any cell uses the teacher lane). Defaults are
+`docs/taxonomy.md`, `docs/sources.json`, `docs/teachers.md`, `schemas/`, and
+`data/gold/`.
 
 The output directory **must not be under `data/`**. Admitted records belong in
 `data/<format>/` only after #9 admission; drafts must never enter `data/gold/`.
@@ -166,15 +170,16 @@ cargo test -p medsynth-generate
 The suite covers procedural byte reproducibility, independent recomputation of
 each sampled calculation key, fact-key derivation, provenance/receipt
 completeness, the 3× budget, the safe output directory, pin refusal
-(unpinned/incomplete/research-only/terms), credential refusal with the
-procedural lane still running, rights-envelope drops, and teacher-response
-parsing against the recorded fixtures under `tests/fixtures/teacher/`. No test
-makes a live API call.
+(unpinned/incomplete/research-only/terms), teacher-lane refusal without a
+fulfillment directory while the procedural lane still runs, recorded-client
+request/response file round-trips, rights-envelope drops, and
+teacher-response parsing against the recorded fixtures under
+`tests/fixtures/teacher/`. No test makes a live API call.
 
 ## Dependencies
 
 The crate uses the workspace's existing stack. `rand_core 0.6` is added as a
 direct dependency because `rand_pcg 0.3` implements that crate's `RngCore` and
 `SeedableRng` traits; the traits must be in scope to drive the seeded PCG
-stream. No other new dependency is introduced. `reqwest`'s `blocking` and
-`json` features are enabled for the teacher transport.
+stream. No other new dependency is introduced, and the crate carries no HTTP
+client — teacher fulfillment is file-based.
