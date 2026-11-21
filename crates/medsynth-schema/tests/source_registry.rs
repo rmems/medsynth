@@ -333,12 +333,19 @@ fn every_subdomain_has_a_current_source() {
             covered.extend(entry.coverage.iter().cloned());
         }
     }
-    let all = taxonomy_subdomains();
-    assert!(
-        !all.is_empty(),
-        "parsed no taxonomy §3.2 subdomains from docs/taxonomy.md"
+    let doc_slugs = taxonomy_subdomains();
+    let enum_slugs: BTreeSet<String> = Subdomain::ALL
+        .iter()
+        .map(|s| match serde_json::to_value(s).unwrap() {
+            Value::String(slug) => slug,
+            _ => panic!("Subdomain serializes to a string"),
+        })
+        .collect();
+    assert_eq!(
+        doc_slugs, enum_slugs,
+        "docs/taxonomy.md §3.2 subdomains and the Subdomain enum disagree"
     );
-    for slug in &all {
+    for slug in &enum_slugs {
         assert!(
             covered.contains(slug),
             "taxonomy subdomain `{slug}` has no current approved source in docs/sources.json"
