@@ -219,6 +219,9 @@ pub fn record_files(root: &Path) -> (Vec<PathBuf>, Vec<Finding>) {
         !path.starts_with(root.join("data/gold/near-miss"))
             && path != &root.join("data/gold/review-manifest.json")
     });
+    // The near-miss subtree is excluded above, so traversal errors inside
+    // it must not poison the corpus findings either.
+    findings.retain(|f| !f.path.starts_with(root.join("data/gold/near-miss")));
     collect(
         root.join("fixtures"),
         Some("valid-"),
@@ -329,9 +332,12 @@ fn collect(
 }
 
 /// The format slug carried by a record path: the first directory component
-/// equal to a format slug. Always called on the corpus-relative display
-/// path (`data/mcq/…`, `fixtures/case_vignette/…`, `data/gold/tutoring_example/…`)
-/// so ancestor directories outside the corpus cannot misclassify records.
+/// equal to a format slug. Callers must pass the corpus-relative display
+/// path (`data/mcq/…`, `fixtures/case_vignette/…`, `data/gold/tutoring_example/…`),
+/// as `load_corpus` does — a debug_assert enforces this, and in release
+/// builds an absolute path simply returns `None` when it lacks a format
+/// component. Ancestor directories outside the corpus cannot misclassify
+/// records under that precondition.
 pub fn format_of(path: &Path) -> Option<Format> {
     let directory_format = path.components().find_map(|c| {
         Format::all()

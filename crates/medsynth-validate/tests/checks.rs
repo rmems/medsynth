@@ -125,8 +125,19 @@ fn gold_short_and_numeric_choices_use_explicit_labels_on_overlap_ties() {
         .lines()
         .map(|line| serde_json::from_str(line).unwrap())
         .collect();
-    for index in [0, 2, 3] {
-        let seed = &seeds[index];
+    // The tie-override property holds for these records with short or
+    // numeric options; pin them by id so shard reordering cannot silently
+    // change what this test exercises.
+    let ids = [
+        "gold-mcq-bbf-0001",
+        "gold-mcq-cpf-0001",
+        "gold-mcq-cpf-0002",
+    ];
+    for id in ids {
+        let seed = seeds
+            .iter()
+            .find(|s| s["id"] == id)
+            .unwrap_or_else(|| panic!("{id}: not found in mcq.jsonl"));
         let findings = findings_for(&[record(Format::Mcq, "tied-gold", seed.clone())]);
         assert!(findings.is_empty(), "gold tie must pass: {findings:?}");
         for option in seed["options"].as_array().unwrap() {

@@ -88,26 +88,31 @@ fn key_references_option(
         && !scores
             .keys()
             .any(|label| *label != key && references_label(explanation, label));
-    if let Some(detail) = key_verdict(key, own, best_other, explicit_key, unambiguous_label) {
+    let labels = LabelSignal {
+        explicit_key,
+        unambiguous_label,
+    };
+    if let Some(detail) = key_verdict(key, own, best_other, &labels) {
         push_lint(record, findings, detail);
     }
 }
 
-/// `None` when the rationale adequately references the key; `Some(detail)`
-/// describes why it does not.
-fn key_verdict(
-    key: &str,
-    own: usize,
-    best_other: usize,
+/// Label-reference signals for `key_verdict`: whether the rationale names
+/// the keyed label explicitly and whether it names no other label.
+struct LabelSignal {
     explicit_key: bool,
     unambiguous_label: bool,
-) -> Option<String> {
+}
+
+/// `None` when the rationale adequately references the key; `Some(detail)`
+/// describes why it does not.
+fn key_verdict(key: &str, own: usize, best_other: usize, labels: &LabelSignal) -> Option<String> {
     if own == 0 && best_other == 0 {
         // Preserve the existing all-short-option fallback, including a
         // rationale which names a wrong option while refuting it.
-        return (!explicit_key).then(|| format!("rationale does not reference key `{key}`"));
+        return (!labels.explicit_key).then(|| format!("rationale does not reference key `{key}`"));
     }
-    if own == best_other && unambiguous_label {
+    if own == best_other && labels.unambiguous_label {
         return None;
     }
     if own <= best_other {

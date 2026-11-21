@@ -261,41 +261,7 @@ fn near_misses_are_schema_valid_and_manifested() {
         assert!(ids.insert(id.to_owned()));
         let defect = entry["defect"].as_str().unwrap();
         *counts.entry(defect.to_owned()).or_default() += 1;
-        match defect {
-            "wrong_key" => {
-                assert_eq!(entry["verification_stage"], 2);
-                assert_ne!(value["key"], entry["expected_answer"]);
-            }
-            "missing_anchor" => {
-                assert_eq!(entry["verification_stage"], 3);
-                assert_eq!(
-                    value
-                        .pointer(entry["defect_path"].as_str().unwrap())
-                        .unwrap(),
-                    &serde_json::json!([])
-                );
-            }
-            "unanchored_claim" => {
-                assert_eq!(entry["verification_stage"], 3);
-                assert!(
-                    !value["tutor_response"]["anchors"]
-                        .as_array()
-                        .unwrap()
-                        .is_empty(),
-                    "{file}: partial support must not become an empty-anchor defect"
-                );
-                assert!(
-                    value
-                        .pointer(entry["defect_path"].as_str().unwrap())
-                        .unwrap()
-                        .as_str()
-                        .unwrap()
-                        .to_lowercase()
-                        .contains(&entry["unsupported_claim"].as_str().unwrap().to_lowercase())
-                );
-            }
-            _ => panic!("{file}: unknown defect {defect}"),
-        }
+        assert_probe_defect(entry, &value, defect, file);
     }
     for defect in ["wrong_key", "missing_anchor", "unanchored_claim"] {
         assert!(
@@ -309,15 +275,60 @@ fn near_misses_are_schema_valid_and_manifested() {
     assert_eq!(files, actual, "every near-miss must be in the manifest");
 }
 
+/// Per-probe planted-defect verification: the manifest's declared defect
+/// must be present at its declared path and stage, with no extras here.
+fn assert_probe_defect(entry: &Value, value: &Value, defect: &str, file: &str) {
+    match defect {
+        "wrong_key" => {
+            assert_eq!(entry["verification_stage"], 2);
+            assert_ne!(value["key"], entry["expected_answer"]);
+        }
+        "missing_anchor" => {
+            assert_eq!(entry["verification_stage"], 3);
+            assert_eq!(
+                value
+                    .pointer(entry["defect_path"].as_str().unwrap())
+                    .unwrap(),
+                &serde_json::json!([])
+            );
+        }
+        "unanchored_claim" => {
+            assert_eq!(entry["verification_stage"], 3);
+            assert!(
+                !value["tutor_response"]["anchors"]
+                    .as_array()
+                    .unwrap()
+                    .is_empty(),
+                "{file}: partial support must not become an empty-anchor defect"
+            );
+            assert!(
+                value
+                    .pointer(entry["defect_path"].as_str().unwrap())
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .to_lowercase()
+                    .contains(&entry["unsupported_claim"].as_str().unwrap().to_lowercase())
+            );
+        }
+        _ => panic!("{file}: unknown defect {defect}"),
+    }
+}
+
 /// Recursively collect probe files under the near-miss root, rejecting
 /// anything that is not manifest.json, README.md, or a .json probe inside
 /// a format directory — a probe the sweep cannot see must not be able to
 /// hide from the completeness check above.
 fn collect_probes(root_dir: &Path, dir: &Path, actual: &mut BTreeSet<String>) {
     for entry in fs::read_dir(dir).unwrap() {
-        let path = entry.unwrap().path();
+        let entry = entry.unwrap();
+        let path = entry.path();
+        // file_type from the dirent does not follow symlinks; a symlinked
+        // directory would recurse forever, so it falls through to the
+        // non-directory branch and is rejected as an unexpected file.
+        let file_type = entry.file_type().unwrap();
         let name = path.file_name().unwrap().to_str().unwrap().to_owned();
-        if path.is_dir() {
+        if file_type.is_dir() {
             assert!(
                 FORMATS.contains(&name.as_str()),
                 "unexpected near-miss directory: {}",
@@ -429,6 +440,12 @@ fn independent_review_covers_the_exact_records() {
             );
         }
     }
+    assert_near_miss_reviews(&manifest, &reviewers);
+}
+
+/// Every near-miss probe must carry a passing planted-defect review from a
+/// listed run, with evidence, pinned to the probe file's live digest.
+fn assert_near_miss_reviews(manifest: &Value, reviewers: &[&str]) {
     let mut reviewed_near = BTreeMap::new();
     for entry in manifest["near_misses"].as_array().unwrap() {
         let id = entry["record_id"].as_str().unwrap();
@@ -445,7 +462,7 @@ fn independent_review_covers_the_exact_records() {
         let path = root()
             .join("data/gold/near-miss")
             .join(probe["file"].as_str().unwrap());
-        assert_review(entry, &reviewers, &fs::read(path).unwrap());
+        assert_review(entry, reviewers, &fs::read(path).unwrap());
         assert_eq!(entry["planted_defect_check"]["outcome"], "pass", "{id}");
         assert!(
             entry["planted_defect_check"]["evidence"]
