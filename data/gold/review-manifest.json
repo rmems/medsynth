@@ -1,13 +1,13 @@
 {
   "checklist_id": "gold-review-v1",
   "drafting_run_id": "factory-droid-draft-rm2522-v1",
-  "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
-  "review_status": "changes_requested",
-  "method": "Separate reviewer session: Factory worker session 35c4494a-0629-401b-9a98-63dae38ec63e, started by calling session c7aafd01-98d8-490e-bb97-8c5975fd3497. The id was read from this session's script-log directory and confirmed against the session_start line of its session file. Step 1, blind solve: read only target/gold-review-stems.md, docs/contract.md, docs/taxonomy.md and docs/sources.json, solved all 8 MCQ and 8 vignette stems from subject knowledge, and wrote the answers with reasons to target/gold-blind-solutions.md (SHA-256 a0fce6d46ae5b996149bc486c661b4a43f9a14da9cef03b845b298d8384f3a36, written 2026-11-21T04:47:25Z) before opening any gold JSONL file, near-miss file, key, rationale or review table. The blind input was afterwards confirmed to contain every stem, option, presentation, finding and question of the 16 records. Step 2, comparison: read the 24 records and compared each key or expected answer with the blind answer. Step 3, passage check: fetched all 17 distinct cited OpenStax sections from openstax.org with FetchUrl on 2026-11-21 (UTC), HTTP 200 for each, located each section body under its heading, and checked every factual sentence of every stem, answer, reasoning step, teaching point, tutor response, distractor refutation and stated model limit against the section text. Each passage quoted in the evidence fields was string-matched against the fetched text, and each stated absence was confirmed by searching the section body. A claim passed if the cited section states it, or if it follows in one logical or arithmetic step from what the section states plus the record's own stipulations; invented patient observations and stipulated model values were treated as exempt under contract section 4. Step 4, tier and taxonomy: compared each tier with taxonomy section 4 for its format, and each domain/subdomain pair and source coverage with taxonomy section 3.2 and docs/sources.json. Step 5, near-misses: read the six probes together with their manifest (not blind), re-derived each correct answer from the stem and the cited passage, and looked for any defect other than the planted one. Structural check: all 30 records were checked inline against the keywords of schemas/*.v1.json, the domain/subdomain mapping, option-label and key rules, registry status and locator syntax, and duplicate JSON keys; no cargo command was run. Not done: no originality or contamination audit (no question bank or exam item was consulted), no dataset admission; verification_status was left at unverified and no record or code was edited. record_sha256 is the SHA-256 of each JSONL line's UTF-8 bytes without the line terminator, or of the whole file for near-miss probes. Outcome: 22 records pass every applicable check; gold-cv-preclinical-0001 (key_check, rationale_check) and gold-tut-preclinical-0002 (anchor_check) need the edits described in their failed checks and must be re-reviewed after editing; all six planted defects were confirmed with no second defect found.",
+  "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
+  "review_status": "passed",
+  "method": "Separate reviewer session: Factory worker session 35c4494a-0629-401b-9a98-63dae38ec63e, started by calling session c7aafd01-98d8-490e-bb97-8c5975fd3497. The id was read from this session's script-log directory and confirmed against the session_start line of its session file. Step 1, blind solve: read only target/gold-review-stems.md, docs/contract.md, docs/taxonomy.md and docs/sources.json, solved all 8 MCQ and 8 vignette stems from subject knowledge, and wrote the answers with reasons to target/gold-blind-solutions.md (SHA-256 a0fce6d46ae5b996149bc486c661b4a43f9a14da9cef03b845b298d8384f3a36, written 2026-11-21T04:47:25Z) before opening any gold JSONL file, near-miss file, key, rationale or review table. The blind input was afterwards confirmed to contain every stem, option, presentation, finding and question of the 16 records. Step 2, comparison: read the 24 records and compared each key or expected answer with the blind answer. Step 3, passage check: fetched all 17 distinct cited OpenStax sections from openstax.org with FetchUrl on 2026-11-21 (UTC), HTTP 200 for each, located each section body under its heading, and checked every factual sentence of every stem, answer, reasoning step, teaching point, tutor response, distractor refutation and stated model limit against the section text. Each passage quoted in the evidence fields was string-matched against the fetched text, and each stated absence was confirmed by searching the section body. A claim passed if the cited section states it, or if it follows in one logical or arithmetic step from what the section states plus the record's own stipulations; invented patient observations and stipulated model values were treated as exempt under contract section 4. Step 4, tier and taxonomy: compared each tier with taxonomy section 4 for its format, and each domain/subdomain pair and source coverage with taxonomy section 3.2 and docs/sources.json. Step 5, near-misses: read the six probes together with their manifest (not blind), re-derived each correct answer from the stem and the cited passage, and looked for any defect other than the planted one. Structural check: all 30 records were checked inline against the keywords of schemas/*.v1.json, the domain/subdomain mapping, option-label and key rules, registry status and locator syntax, and duplicate JSON keys; no cargo command was run. Not done: no originality or contamination audit (no question bank or exam item was consulted), no dataset admission; verification_status was left at unverified and no record or code was edited. record_sha256 is the SHA-256 of each JSONL line's UTF-8 bytes without the line terminator, or of the whole file for near-miss probes. Outcome: 22 records pass every applicable check; gold-cv-preclinical-0001 (key_check, rationale_check) and gold-tut-preclinical-0002 (anchor_check) need the edits described in their failed checks and must be re-reviewed after editing; all six planted defects were confirmed with no second defect found. Re-review 2026-11-21 (UTC): after the drafting run edited the two failed records (gold-cv-preclinical-0001 now asks for both bile-salt functions; gold-tut-preclinical-0002 was reworded to what sec20.2 states), a second separate reviewer session, Devin subagent session 59eb4828 spawned from a local Devin Desktop session in rmems/medsynth, re-ran the checklist on those two records only, without reading this manifest, the review table in data/gold/README.md, or the first run's artifacts under target/. Step 1, blind solve: it read only target/rereview-stems.md (presentation, findings and question only), docs/contract.md, docs/taxonomy.md and docs/sources.json, and wrote its answer with reasons to target/rereview-blind-solutions.md (SHA-256 d065c12229e9d1a12f8f0b1c5878253dfb967bf6697e0c376119a6c2bb25f886, written 2026-11-21T05:17:26Z) before opening any gold JSONL file or fetching any source. Steps 2-4 followed the first run's method: compared the blind answer with the record's answer; fetched openstax-anatomy-physiology-2e sec23.7 and sec20.2 live from openstax.org (HTTP 200 each) and checked every factual sentence of both records against the section text, string-matching quoted passages; checked each tier, domain/subdomain pair and locator convention against taxonomy sections 3.2 and 4 and docs/sources.json. Outcome: both edited records pass every applicable check, and the first run's two required edits are confirmed addressed. The 22 unchanged record entries and 6 near-miss entries carry the first run's evidence verbatim; their record_sha256 pins certify the records are byte-identical to the ones that run reviewed. reviewer_run_id names both reviewing runs because this manifest aggregates their evidence: the first run reviewed all 24 records and 6 near-misses, the re-review run reviewed the two edited records and completed the manifest to passed.",
   "records": [
     {
       "record_id": "gold-mcq-bbf-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "d9504ddd5844a34afe116c19d56d18ab37409344f61d5db73f653f3509ea6c6f",
       "anchor_check": {
         "outcome": "pass",
@@ -33,7 +33,7 @@
     },
     {
       "record_id": "gold-mcq-bbf-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "7059b14e105d951716a91ef7bd13827801f605bca26f33e11ab6341a38f0a50d",
       "anchor_check": {
         "outcome": "pass",
@@ -59,7 +59,7 @@
     },
     {
       "record_id": "gold-mcq-cpf-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "88f095664be0582648b5af13dec134af679d105d45200c34320706967e6eaa3d",
       "anchor_check": {
         "outcome": "pass",
@@ -85,7 +85,7 @@
     },
     {
       "record_id": "gold-mcq-cpf-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "69d7f66dbcf68d91d2e78ac1b90510064267a3bfae201fd783a2340201ce2132",
       "anchor_check": {
         "outcome": "pass",
@@ -111,7 +111,7 @@
     },
     {
       "record_id": "gold-mcq-psb-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "0f1fb0a684588cd54a5d180e0c9a6ee6d7e1523d3212a8032310207849836cae",
       "anchor_check": {
         "outcome": "pass",
@@ -137,7 +137,7 @@
     },
     {
       "record_id": "gold-mcq-psb-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "6e7fb05895ad7a536943cb83a23f3fd1c70ba33d5ea524cb5f76c87e01ca67ca",
       "anchor_check": {
         "outcome": "pass",
@@ -163,7 +163,7 @@
     },
     {
       "record_id": "gold-mcq-preclinical-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "6c103db59a07f2a7016b41f3d565c9f0286013292ffd13e9171a75b9c50e9516",
       "anchor_check": {
         "outcome": "pass",
@@ -189,7 +189,7 @@
     },
     {
       "record_id": "gold-mcq-preclinical-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "bafd4cde54c3f5dffbcb1d387dd761c69493a2ccf9b8a5ab5ea90c036d197b0b",
       "anchor_check": {
         "outcome": "pass",
@@ -215,7 +215,7 @@
     },
     {
       "record_id": "gold-cv-bbf-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "497e27e7252dfe589ea6832f69270b5ef1be4df188332f89e814d8bd1817985a",
       "anchor_check": {
         "outcome": "pass",
@@ -241,7 +241,7 @@
     },
     {
       "record_id": "gold-cv-bbf-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "ecca96383cf4c4317f5e2e2cd1ddefefd85a73c92e567866a4579e608418a760",
       "anchor_check": {
         "outcome": "pass",
@@ -267,7 +267,7 @@
     },
     {
       "record_id": "gold-cv-cpf-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "09194b619b31efbef42eb97b54ab8bd0916bf11764ff907b7a3d166edc103271",
       "anchor_check": {
         "outcome": "pass",
@@ -293,7 +293,7 @@
     },
     {
       "record_id": "gold-cv-cpf-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "bb0c0dde77bddf6ad3e2f9c2362725750c79fb3d6570b7c61e9e61cc727b9488",
       "anchor_check": {
         "outcome": "pass",
@@ -319,7 +319,7 @@
     },
     {
       "record_id": "gold-cv-psb-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "e1e53f8e8120a0a514f9426fd41fe9c1aa917924ac2dc97cace66a515562d753",
       "anchor_check": {
         "outcome": "pass",
@@ -345,7 +345,7 @@
     },
     {
       "record_id": "gold-cv-psb-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "c35b85ca95899a87be6f8ef7bb57d26fbf1af06f3cb2ee0a642252939498962c",
       "anchor_check": {
         "outcome": "pass",
@@ -371,33 +371,33 @@
     },
     {
       "record_id": "gold-cv-preclinical-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
-      "record_sha256": "fa6cc6bd70269c86a9b21db230c1a0ec6730d6ad81b18db67925b66971b40a7a",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
+      "record_sha256": "49ed9b83bac73b5d2b5860b944f29ccd1c5774be715c2ad59b7f7bf634754cbe",
       "anchor_check": {
         "outcome": "pass",
-        "evidence": "openstax-anatomy-physiology-2e sec23.7:chemical-digestion-and-absorption-a-closer-look, \"Lipid Absorption\": \"bile salts and lecithin resolve this issue by enclosing them in a micelle\"; \"Without micelles, lipids would sit on the surface of chyme and never come in contact with the absorptive surfaces of the epithelial cells\"; \"Micelles can easily squeeze between microvilli and get very near the luminal cell surface\". Every statement the record makes is supported. Findings are invented observations."
+        "evidence": "Re-review, Devin session 59eb4828. source_id 'openstax-anatomy-physiology-2e' exists in docs/sources.json with status 'current'; locator 'sec23.7:chemical-digestion-and-absorption-a-closer-look' matches locator_convention 'sec<N>.<M>:<section-slug>' and resolves live (HTTP 200) to '23.7 Chemical Digestion and Absorption: A Closer Look'. Every factual sentence is supported by the cited section: 'Bile salts not only speed up lipid digestion, they are also essential to the absorption of the end products of lipid digestion' (Lipid Absorption); Table 23.8 lists the pancreatic lipase substrate as 'Triglycerides that have been emulsified by bile salts'; 'bile salts and lecithin resolve this issue by enclosing them in a micelle'; 'Without micelles, lipids would sit on the surface of chyme and never come in contact with the absorptive surfaces of the epithelial cells. Micelles can easily squeeze between microvilli and get very near the luminal cell surface. At this point, lipid substances exit the micelle and are absorbed via simple diffusion.' The invented stool finding, the stipulated reduced bile-salt delivery, and the stipulated intact pancreatic enzymes are invented observations/model stipulations exempt under contract section 4."
       },
       "key_check": {
-        "outcome": "fail",
-        "blind_answer": "Emulsification of dietary lipid by bile salts (given first), together with micelle formation that carries fatty acids and monoglycerides to the absorptive surface (given second).",
-        "evidence": "Not uniquely re-derivable. The record's answer names micelle formation only; the blind answer led with emulsification and gave micelle formation second. The cited section assigns bile salts both roles: Table 23.8 gives the pancreatic lipase substrate as \"Triglycerides that have been emulsified by bile salts\", and \"Lipid Absorption\" says \"Bile salts not only speed up lipid digestion, they are also essential to the absorption of the end products of lipid digestion\". Reduced bile-salt delivery reduces both roles and both raise stool fat, so the question \"Which bile-salt function is reduced\" has two supported answers and a correct solver can be marked wrong. The key is factually supported; the defect is under-determination. Required edit, one of: (a) ask for both functions and give both in the answer and reasoning chain; (b) narrow the question to the step after pancreatic lipase has acted (delivery of digestion products to the absorptive surface) and add a reasoning sentence that bile salts also speed lipid digestion by emulsification, which is a separate step."
+        "outcome": "pass",
+        "blind_answer": "Two reduced bile-salt functions: (1) emulsification of dietary fat droplets, which increases surface area so pancreatic lipase can digest triglycerides efficiently; (2) micelle formation, which solubilizes and carries lipid digestion products (fatty acids, monoacylglycerides) to the enterocyte brush border for absorption.",
+        "evidence": "Re-review, Devin session 59eb4828. Record answer.text ('emulsification of triglycerides, which speeds their digestion by pancreatic lipase, and micelle formation, which carries lipid digestion products to the absorptive epithelial surface') matches the blind answer exactly. It is the unique correct pair as worded: sec23.7 assigns bile salts precisely two roles in lipid handling - 'Bile salts not only speed up lipid digestion' (via the emulsified-triglyceride substrate listed for pancreatic lipase in Table 23.8) 'they are also essential to the absorption of the end products of lipid digestion' (via micelles, without which lipids 'never come in contact with the absorptive surfaces of the epithelial cells')."
       },
       "rationale_check": {
-        "outcome": "fail",
-        "evidence": "Same root cause as key_check. Reasoning step 2 concludes that the bile-salt reduction \"identifies the micellar delivery step\" after ruling out only a missing pancreatic enzyme. It never addresses the emulsification role that the cited section also gives bile salts, so the chain does not justify naming micelle formation without emulsification. The individual statements are true; the chain is incomplete. The edit required under key_check fixes this."
+        "outcome": "pass",
+        "evidence": "Re-review, Devin session 59eb4828. reasoning_chain supports the answer and is internally correct. Step 1 ('Bile salts emulsify dietary triglycerides, and pancreatic lipase acts on these emulsified triglycerides, so bile salts speed up lipid digestion') matches Table 23.8 ('Triglycerides that have been emulsified by bile salts' as pancreatic lipase substrate) and 'Bile salts not only speed up lipid digestion'. Step 2 ('they form micelles that carry the end products of lipid digestion to the intestinal absorptive surface') matches 'bile salts and lecithin resolve this issue by enclosing them in a micelle' and 'essential to the absorption of the end products of lipid digestion'. Step 3 correctly reasons from the stipulations (intact pancreatic enzymes, reduced bile salts) that both the emulsification and micellar delivery steps are impaired and that neither function alone explains the added stool fat - sound internal logic over exempt stipulations. teaching_points entry ('emulsification before lipase acts and micelle formation afterward; bile salts are not themselves pancreatic lipase') is correct: sec23.7 treats emulsification by bile salts and the pancreatic acinar-cell enzyme lipase as distinct entities."
       },
       "distractor_check": {
         "outcome": "not_applicable",
-        "evidence": "No answer options. The only alternative the record addresses is a missing pancreatic enzyme."
+        "evidence": "Re-review, Devin session 59eb4828. Case vignette has no options. Competing interpretations are addressed: the question wording fixes the canonical two bile-salt functions (sec23.7 names exactly two roles - speeding lipid digestion and enabling absorption of its end products), and reasoning_chain step 3 explicitly states neither function alone explains the added stool fat, foreclosing a single-function reading. No unaddressed competing factual claim found."
       },
       "tier_check": {
         "outcome": "pass",
-        "evidence": "Case vignette foundation fits the intended demand: one basic identification from a short vignette. The label is right once the question resolves to a single teaching point."
+        "evidence": "Re-review, Devin session 59eb4828. tier 'foundation' matches taxonomy section 4.2 for case_vignette: 'a short vignette presenting an uncomplicated fictional patient; the question asks for a basic identification ... resolvable by pattern-matching to one anchored teaching point.' The record is a 'simplified digestion teaching case' asking identification of the two bile-salt functions - exactly its single teaching_point - with stipulated findings and no competing interpretations. domain 'pre_clinical' / subdomain 'gastrointestinal' is a valid section 3.2 pair, and 'gastrointestinal' is in the openstax-anatomy-physiology-2e coverage list in docs/sources.json."
       }
     },
     {
       "record_id": "gold-cv-preclinical-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "b21f50c5f34755ca233e739f9cac817a193c52806db1208b9e0e1af6243c0d3e",
       "anchor_check": {
         "outcome": "pass",
@@ -423,7 +423,7 @@
     },
     {
       "record_id": "gold-tut-bbf-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "8a7c56641affd2f1797e074555ee8ccb2fd5d4c18e0a6c889672d5afb28f6b2a",
       "anchor_check": {
         "outcome": "pass",
@@ -449,7 +449,7 @@
     },
     {
       "record_id": "gold-tut-bbf-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "b2a1763ff80d02b03a4af2e6d9b8b56dbc93fbc742eae475ee6bf1047a21919e",
       "anchor_check": {
         "outcome": "pass",
@@ -475,7 +475,7 @@
     },
     {
       "record_id": "gold-tut-cpf-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "1f2fe26214dd6f7ec4de8613160862ede39cd87a93313089c01281f954d408e2",
       "anchor_check": {
         "outcome": "pass",
@@ -501,7 +501,7 @@
     },
     {
       "record_id": "gold-tut-cpf-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "f7fbe1cfe2f457bafc51d769c9ab72ca600eb708eb967fdf471e2e4adb5147c7",
       "anchor_check": {
         "outcome": "pass",
@@ -527,7 +527,7 @@
     },
     {
       "record_id": "gold-tut-psb-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "54851b3648aba1b5bdb5a094b14eb602fb639dd361359e1fba48c06c2958898d",
       "anchor_check": {
         "outcome": "pass",
@@ -553,7 +553,7 @@
     },
     {
       "record_id": "gold-tut-psb-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "deeabe704715813904ce63dd9aa28c11cdb150756d030b385325e1a5093fe3c8",
       "anchor_check": {
         "outcome": "pass",
@@ -579,7 +579,7 @@
     },
     {
       "record_id": "gold-tut-preclinical-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "5ae82a3876dc2bfee85e8772da6bfeeacef11d53523f894cde104197fb272465",
       "anchor_check": {
         "outcome": "pass",
@@ -605,11 +605,11 @@
     },
     {
       "record_id": "gold-tut-preclinical-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
-      "record_sha256": "a7aba6de5dd173f3df5d7cf5e08fbb5bcb8df017bf056722f92ab2f8c8b68e2b",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
+      "record_sha256": "d2d2384735eb536e32407de348ecac5151dabbff9bb88880b82e47bba2a45e1d",
       "anchor_check": {
-        "outcome": "fail",
-        "evidence": "openstax-anatomy-physiology-2e sec20.2:blood-flow-blood-pressure-and-resistance supports part of the response: Poiseuille's equation with pressure difference, radius to the fourth power, viscosity and length; \"small changes in the radius will greatly affect flow, since it is raised to the fourth power in the equation\"; \"if an artery or arteriole dilates to twice its initial radius, then resistance in the vessel will decrease to 1/16 of its original value and flow will increase 16 times\"; and compliance as a variable affecting flow. Not supported: the fetched section text contains none of the words laminar, steady, Newtonian, ideal or branch, and its only non-ideal-flow content is two mentions of turbulence. So \"For steady laminar flow through an ideal cylindrical vessel\" and \"Real circulation also contains branching ... and nonideal blood behavior\" assert facts the cited passage does not state. Required edit, either: (a) reword to what sec20.2 states, for example \"Poiseuille's equation makes flow proportional to the pressure difference and to the fourth power of radius, and inversely proportional to viscosity and vessel length\" and \"In the body, blood flow also depends on cardiac output, vessel compliance, and blood volume, and flow can become turbulent, so ...\"; or (b) keep the laminar-flow condition and add an anchor that states it (openstax-university-physics-2016 vol1:ch14:viscosity-and-turbulence was fetched and says Poiseuille's law \"applies to laminar flow of an incompressible fluid\"), while still rewording \"branching\" and \"nonideal blood behavior\", which neither section supports."
+        "outcome": "pass",
+        "evidence": "Re-review, Devin session 59eb4828. source_id 'openstax-anatomy-physiology-2e' exists in docs/sources.json with status 'current'; locator 'sec20.2:blood-flow-blood-pressure-and-resistance' matches locator_convention 'sec<N>.<M>:<section-slug>' and resolves live (HTTP 200) to '20.2 Blood Flow, Blood Pressure, and Resistance'. Every factual sentence is supported: Poiseuille's equation 'Blood flow = pi * deltaP * r^4 / (8 * eta * lambda)' with 'r^4 is the radius (one-half of the diameter) of the vessel to the fourth power', 'eta ... represents the viscosity of the blood', 'lambda ... represents the length of a blood vessel', 'deltaP represents the difference in pressure' (A Mathematical Approach to Factors Affecting Blood Flow); 'if an artery or arteriole dilates to twice its initial radius, then resistance in the vessel will decrease to 1/16 of its original value and flow will increase 16 times' (Vessel Length and Diameter); 'small changes in the radius will greatly affect flow, since it is raised to the fourth power in the equation'; the five variables list includes 'Cardiac output', 'Compliance', 'Volume of the blood' (Variables Affecting Blood Flow and Blood Pressure); 'Turbulent blood flow through the vessels can be heard' and reduced compliance yields 'more turbulence' (Compliance). The equal lengths, viscosities, pressure differences, and doubled radius are stipulated model values exempt under contract section 4."
       },
       "key_check": {
         "outcome": "not_applicable",
@@ -618,22 +618,22 @@
       },
       "rationale_check": {
         "outcome": "pass",
-        "evidence": "The correction is right: with pressure difference, viscosity and length fixed, doubling the radius multiplies flow by 2^4 = 16, which matches the section's own example; the caveat about pressure difference and viscosity follows from the equation."
+        "evidence": "Re-review, Devin session 59eb4828. tutor_response reasoning is correct and internally consistent. 'flow proportional to the pressure difference and to the fourth power of radius, and inversely proportional to viscosity and vessel length' restates Blood flow = pi * deltaP * r^4 / (8 * eta * lambda). 'The flow ratio is therefore 2 to the fourth power, or 16' is correct arithmetic with length, viscosity, and deltaP held equal. 'doubling the radius cuts resistance to 1/16 and raises flow 16 times' matches the section verbatim ('resistance ... will decrease to 1/16 of its original value and flow will increase 16 times'). The correction of the learner's linear prediction is sound ('it is raised to the fourth power in the equation'). 'if the pressure difference or viscosity changed, radius alone would not determine the ratio' follows in one step from the equation. 'blood flow also depends on factors such as cardiac output, vessel compliance, and blood volume, and flow can become turbulent' matches the five-variables list and the turbulence passages; the closing 'conceptual relationship, not a numerical prediction' is pedagogical framing consistent with the section's descriptive treatment."
       },
       "distractor_check": {
         "outcome": "not_applicable",
-        "evidence": "No answer options. The learner's linear prediction is analyzed as the wrong turn."
+        "evidence": "Re-review, Devin session 59eb4828. Tutoring example has no options. The record explicitly analyzes the plausible wrong turn - the learner's linear 'twice the radius predicts twice the flow' - and explains why it fails (radius enters to the fourth power), then states the comparison's limits (fixed deltaP, viscosity, length; in-body factors such as cardiac output, compliance, blood volume; turbulence). No unaddressed competing interpretation found."
       },
       "tier_check": {
         "outcome": "pass",
-        "evidence": "Tutoring reasoning: corrects a plausible wrong turn and discusses the model's limits."
+        "evidence": "Re-review, Devin session 59eb4828. tier 'reasoning' matches taxonomy section 4.3 for tutoring_example: 'Models multi-step reasoning on a non-trivial problem: comparing competing hypotheses, analyzing a plausible wrong turn, or extending a principle to an edge case - including where the reasoning could go wrong and why.' The record models exactly that: it dissects a plausible linear-scaling wrong turn, derives the r^4 ratio step by step, and names where the comparison breaks down. domain 'pre_clinical' / subdomain 'cardiovascular' is a valid section 3.2 pair, and 'cardiovascular' is in the openstax-anatomy-physiology-2e coverage list in docs/sources.json."
       }
     }
   ],
   "near_misses": [
     {
       "record_id": "near-miss-mcq-wrong-key-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "081712fe25ae27be181b6954eb6bdfa98ca20daf25556e275ea6017a30e7c213",
       "planted_defect_check": {
         "outcome": "pass",
@@ -642,7 +642,7 @@
     },
     {
       "record_id": "near-miss-mcq-wrong-key-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "d45e8254070d2c48cdd7b51c4bd5bf4c10d39605461cb879d066c8eb06d3604f",
       "planted_defect_check": {
         "outcome": "pass",
@@ -651,7 +651,7 @@
     },
     {
       "record_id": "near-miss-mcq-missing-anchor-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "d932bd1e22bd26320f6cc9c628c8250579995582177b6ef9809fe9456e55832e",
       "planted_defect_check": {
         "outcome": "pass",
@@ -660,7 +660,7 @@
     },
     {
       "record_id": "near-miss-mcq-missing-anchor-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "a544e3b66bdf9a45a3dea808380e1fce182a4b34ed15e2753a1854bf3490c058",
       "planted_defect_check": {
         "outcome": "pass",
@@ -669,7 +669,7 @@
     },
     {
       "record_id": "near-miss-tut-unanchored-claim-0001",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "368cd1ab615249843170e0eb8705c4382c1bed6c364bf769fb5bfb2ebc062d7b",
       "planted_defect_check": {
         "outcome": "pass",
@@ -678,7 +678,7 @@
     },
     {
       "record_id": "near-miss-tut-unanchored-claim-0002",
-      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
       "record_sha256": "3ffa69ccf740087ba113f4844fe239a6df3dd8e9d225038c3a98da6c52a33ac8",
       "planted_defect_check": {
         "outcome": "pass",
