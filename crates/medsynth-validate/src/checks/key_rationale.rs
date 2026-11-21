@@ -175,9 +175,19 @@ fn names_option(explanation: &str, key: &str) -> bool {
             if marked {
                 // A lowercase label must be enclosed — "(a)" or `"a"`
                 // count, "(a nucleotide" does not: the article stays
-                // rejected.
+                // rejected. Whitespace may precede the closer ("( a )"),
+                // and a colon may introduce the option text for an
+                // uppercase label ("(A: ATP)").
                 const CLOSERS: &[char] = &[')', '"', '\'', '’', '”'];
-                return after.is_some_and(|c| CLOSERS.contains(&c));
+                let next = candidate[key_cmp.len()..]
+                    .trim_start_matches(|c: char| c.is_whitespace())
+                    .chars()
+                    .next();
+                return match next {
+                    Some(c) if CLOSERS.contains(&c) => true,
+                    Some(':') => trimmed.chars().next().is_some_and(|c| c.is_uppercase()),
+                    _ => false,
+                };
             }
             after.is_none_or(|c| !c.is_alphanumeric())
         })

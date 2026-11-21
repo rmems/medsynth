@@ -290,6 +290,23 @@ fn key_rationale_label_fallback_boundaries() {
             "The best answer (a nucleotide with two phosphate groups) is ADP.",
             false,
         ),
+        // Whitespace may precede the closer; a colon may introduce the
+        // option text for an uppercase label.
+        (
+            "A",
+            "Option ( A ) is correct because ATP is the product.",
+            true,
+        ),
+        (
+            "A",
+            "Option (A: ATP) is correct because oxidative phosphorylation produces it.",
+            true,
+        ),
+        (
+            "A",
+            "Option (a: nucleotide) is correct because ADP is the product.",
+            false,
+        ),
     ];
     for (key, explanation, expect_pass) in cases {
         let findings = label_fallback_findings(key, explanation);
