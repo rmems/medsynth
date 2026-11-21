@@ -85,35 +85,6 @@ pub enum Subdomain {
 }
 
 impl Subdomain {
-    /// All subdomain variants, in taxonomy §3.2 order.
-    pub const ALL: [Subdomain; 25] = [
-        Subdomain::BioPhysicalFoundations,
-        Subdomain::Macromolecules,
-        Subdomain::CellFunction,
-        Subdomain::CellProcesses,
-        Subdomain::SystemInteractions,
-        Subdomain::AnimalStructure,
-        Subdomain::Translation,
-        Subdomain::PropertiesOfMatter,
-        Subdomain::Transmission,
-        Subdomain::Mechanics,
-        Subdomain::Development,
-        Subdomain::Socioeconomic,
-        Subdomain::CultureIdentity,
-        Subdomain::Psychology,
-        Subdomain::Environment,
-        Subdomain::Cardiovascular,
-        Subdomain::Respiratory,
-        Subdomain::Renal,
-        Subdomain::Gastrointestinal,
-        Subdomain::Endocrine,
-        Subdomain::Neurology,
-        Subdomain::Musculoskeletal,
-        Subdomain::HematologyOncology,
-        Subdomain::InfectiousDisease,
-        Subdomain::PharmacologyPrinciples,
-    ];
-
     /// The parent `domain` of this subdomain (taxonomy §3.2 mapping table).
     pub fn parent_domain(self) -> Domain {
         use Subdomain::*;

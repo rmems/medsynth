@@ -204,6 +204,36 @@ fn fixture_source_ids() -> BTreeMap<String, BTreeSet<String>> {
         .collect()
 }
 
+/// The subdomain slugs declared by the `Subdomain` enum, read from the
+/// generated JSON schema so they track the enum itself rather than a
+/// hand-maintained list.
+fn schema_subdomains() -> BTreeSet<String> {
+    let path = workspace_root().join("schemas").join("mcq.v1.json");
+    let schema: Value = serde_json::from_str(&read_text(&path)).expect("parse mcq.v1.json schema");
+    schema["$defs"]["Subdomain"]["oneOf"]
+        .as_array()
+        .expect("Subdomain schema has oneOf groups")
+        .iter()
+        .flat_map(|group| {
+            // Groups render either as a shared `enum` or per-variant `const`.
+            group["enum"]
+                .as_array()
+                .map(|values| {
+                    values
+                        .iter()
+                        .filter_map(|v| v.as_str().map(str::to_string))
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|| {
+                    group["const"]
+                        .as_str()
+                        .map(|c| vec![c.to_string()])
+                        .unwrap_or_default()
+                })
+        })
+        .collect()
+}
+
 /// The taxonomy §3.2 subdomain slugs, read from the `subdomain:` YAML block
 /// in `docs/taxonomy.md` so amendments are picked up without touching this
 /// test.
@@ -334,16 +364,10 @@ fn every_subdomain_has_a_current_source() {
         }
     }
     let doc_slugs = taxonomy_subdomains();
-    let enum_slugs: BTreeSet<String> = Subdomain::ALL
-        .iter()
-        .map(|s| match serde_json::to_value(s).unwrap() {
-            Value::String(slug) => slug,
-            _ => panic!("Subdomain serializes to a string"),
-        })
-        .collect();
+    let enum_slugs = schema_subdomains();
     assert_eq!(
         doc_slugs, enum_slugs,
-        "docs/taxonomy.md §3.2 subdomains and the Subdomain enum disagree"
+        "docs/taxonomy.md §3.2 subdomains and the generated Subdomain schema disagree"
     );
     for slug in &enum_slugs {
         assert!(
