@@ -9,7 +9,7 @@ use medsynth_generate::format::Format;
 use medsynth_generate::hash::sha256_str;
 use medsynth_generate::manifest::RightsEnvelope;
 use medsynth_generate::teacher::{
-    AnchorPoint, PreparedTeacher, TeacherClient, TeacherCompletion, TeacherError,
+    AnchorPoint, PreparedTeacher, RecordStamp, TeacherClient, TeacherCompletion, TeacherError,
     TeacherPinRegistry, TeacherRequest, build_prompt, build_record, parse_chat_completion,
     parse_completion_json, prepare,
 };
@@ -55,8 +55,8 @@ fn pin_markdown(pin_id: &str, family: &str, lane: &str, permits_distillation: &s
 - **family:** `{family}`\n\
 - **variant:** `Test-Variant-1`\n\
 - **model_id:** `test-model`\n\
-- **endpoint:** `https://example.invalid/chat`\n\
-- **api_key_env:** `MEDSYNTH_TEST_KEY`\n\
+- **endpoint:** `https://api.deepseek.com/chat/completions`\n\
+- **api_key_env:** `MEDSYNTH_TEACHER_TEST_KEY`\n\
 - **lane:** `{lane}`\n\
 - **terms_document:** `Test Terms`\n\
 - **terms_version:** `v1`\n\
@@ -170,6 +170,23 @@ fn teacher_lane_refuses_research_only_and_ineligible_families() {
 }
 
 #[test]
+fn teacher_lane_refuses_untrusted_endpoints_and_foreign_credentials() {
+    let text = pin_markdown("bad-endpoint", "deepseek", "teacher", "yes").replace(
+        "https://api.deepseek.com/chat/completions",
+        "https://attacker.example/collect",
+    );
+    let pins = load_pin_text(&text);
+    let error = pins.ensure_teacher("bad-endpoint").unwrap_err();
+    assert!(matches!(error, TeacherError::UntrustedEndpoint { .. }));
+
+    let text = pin_markdown("bad-env", "deepseek", "teacher", "yes")
+        .replace("MEDSYNTH_TEACHER_TEST_KEY", "AWS_SECRET_ACCESS_KEY");
+    let pins = load_pin_text(&text);
+    let error = pins.ensure_teacher("bad-env").unwrap_err();
+    assert!(matches!(error, TeacherError::InvalidCredentialEnv { .. }));
+}
+
+#[test]
 fn teacher_lane_refuses_pins_without_synthetic_data_terms() {
     let pins = load_pin_text(&pin_markdown(
         "no-distillation",
@@ -263,7 +280,12 @@ fn recorded_fixtures_parse_into_valid_unverified_records() {
     for (index, (format, fixture, cell, allow)) in cases.into_iter().enumerate() {
         let content = parse_completion_json(format, &fixture_content(fixture)).unwrap();
         let id = RecordId::new(format!("draft-fixture-{index}-000")).unwrap();
-        let record = build_record(format, content, &cell, id, pin, "teacher-draft-v1").unwrap();
+        let stamp = RecordStamp {
+            id,
+            pin,
+            prompt_version: "teacher-draft-v1",
+        };
+        let record = build_record(format, content, &cell, &stamp).unwrap();
         assert_eq!(
             record.verification_status(),
             medsynth_schema::VerificationStatus::Unverified
@@ -295,17 +317,17 @@ fn rights_envelope_requires_every_piece() {
     let pins = docs_pins();
     let mut pin = pins.ensure_teacher("deepseek-v4.1-flash").unwrap().clone();
     let raw = "{\"id\":\"draft-test-000\"}";
-    let envelope = RightsEnvelope::build("draft-test-000", raw, &pin).unwrap();
+    let envelope = RightsEnvelope::build("draft-test-000", raw, &pin, None).unwrap();
     assert_eq!(envelope.content_sha256, sha256_str(raw));
     assert!(envelope.pin_entry.starts_with("### Pin:"));
     assert_eq!(envelope.pin_entry_sha256, pin.entry_sha256);
 
     pin.variant.clear();
-    assert!(RightsEnvelope::build("draft-test-000", raw, &pin).is_err());
+    assert!(RightsEnvelope::build("draft-test-000", raw, &pin, None).is_err());
 
     let mut pin = pins.ensure_teacher("deepseek-v4.1-flash").unwrap().clone();
     pin.entry_text.clear();
-    assert!(RightsEnvelope::build("draft-test-000", raw, &pin).is_err());
+    assert!(RightsEnvelope::build("draft-test-000", raw, &pin, None).is_err());
 }
 
 #[test]
@@ -344,6 +366,7 @@ impl TeacherClient for FakeTeacher {
     fn complete(&self, _: &TeacherRequest) -> Result<TeacherCompletion, TeacherError> {
         Ok(TeacherCompletion {
             content: self.content.clone(),
+            served_model: Some("deepseek-flash".to_owned()),
         })
     }
 }

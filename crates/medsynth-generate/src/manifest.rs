@@ -155,6 +155,10 @@ pub struct RightsEnvelope {
     pub record_id: String,
     pub teacher_variant: String,
     pub model_id: String,
+    /// The `model` value the endpoint actually returned, when it reported
+    /// one. Pinned variants use dated names while providers answer with an
+    /// alias; recording it keeps the two linked.
+    pub served_model: Option<String>,
     pub pin_id: String,
     /// Exact `docs/teachers.md` pin entry the output was generated under.
     pub pin_entry: String,
@@ -166,7 +170,12 @@ pub struct RightsEnvelope {
 impl RightsEnvelope {
     /// Build an envelope, or fail if any piece is missing. A draft whose
     /// envelope would be incomplete is dropped rather than written.
-    pub fn build(record_id: &str, raw: &str, pin: &TeacherPin) -> Result<Self, String> {
+    pub fn build(
+        record_id: &str,
+        raw: &str,
+        pin: &TeacherPin,
+        served_model: Option<&str>,
+    ) -> Result<Self, String> {
         if record_id.trim().is_empty() {
             return Err("rights envelope: blank record id".to_owned());
         }
@@ -183,6 +192,7 @@ impl RightsEnvelope {
             record_id: record_id.to_owned(),
             teacher_variant: pin.variant.clone(),
             model_id: pin.model_id.clone(),
+            served_model: served_model.map(str::to_owned),
             pin_id: pin.pin_id.clone(),
             pin_entry: pin.entry_text.clone(),
             pin_entry_sha256: pin.entry_sha256.clone(),
@@ -212,6 +222,9 @@ pub struct BatchManifest {
     pub config: Value,
     pub taxonomy: DocumentRef,
     pub sources: DocumentRef,
+    /// The gold corpus used for anchor harvesting and few-shot exemplars, so
+    /// a batch is reproducible against the exact exemplar inputs.
+    pub gold: DocumentRef,
     pub teachers: TeachersRef,
     pub teacher_pin: Option<TeacherPinRef>,
     pub teacher_lane: TeacherLaneReport,
@@ -233,17 +246,28 @@ impl BatchManifest {
     }
 }
 
+/// The pinned inputs a batch id is derived from.
+pub struct BatchIdInputs<'a> {
+    pub seed: u64,
+    pub config_sha256: &'a str,
+    pub taxonomy_sha256: &'a str,
+    pub sources_sha256: &'a str,
+    /// SHA-256 of the gold corpus, so a batch id changes when the exemplar
+    /// inputs that shaped its drafts change.
+    pub gold_sha256: &'a str,
+    pub pin_entry_sha256: Option<&'a str>,
+}
+
 /// Deterministic batch id: seed plus the pinned input documents.
-pub fn batch_id(
-    seed: u64,
-    config_sha256: &str,
-    taxonomy_sha256: &str,
-    sources_sha256: &str,
-    pin_entry_sha256: Option<&str>,
-) -> String {
+pub fn batch_id(inputs: &BatchIdInputs<'_>) -> String {
     let material = format!(
-        "v{MANIFEST_VERSION}\nseed={seed}\nconfig={config_sha256}\ntaxonomy={taxonomy_sha256}\nsources={sources_sha256}\npin={}\n",
-        pin_entry_sha256.unwrap_or("-")
+        "v{MANIFEST_VERSION}\nseed={}\nconfig={}\ntaxonomy={}\nsources={}\ngold={}\npin={}\n",
+        inputs.seed,
+        inputs.config_sha256,
+        inputs.taxonomy_sha256,
+        inputs.sources_sha256,
+        inputs.gold_sha256,
+        inputs.pin_entry_sha256.unwrap_or("-")
     );
     format!("batch-{}", &sha256_hex(material.as_bytes())[..16])
 }

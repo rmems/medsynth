@@ -10,7 +10,7 @@ pub use client::{
     HttpTeacherClient, TeacherClient, TeacherCompletion, TeacherRequest, completion_tokens,
     parse_chat_completion,
 };
-pub use parse::{TeacherContent, build_record, parse_completion_json};
+pub use parse::{RecordStamp, TeacherContent, build_record, parse_completion_json};
 pub use pin::{PinLane, TeacherPin, TeacherPinRegistry};
 pub use prompt::{AnchorPoint, BuiltPrompt, build_prompt};
 
@@ -40,6 +40,14 @@ pub enum TeacherError {
     TermsDoNotPermit { pin_id: String },
     #[error("teacher lane refused: teachers pin file error: {0}")]
     PinParse(String),
+    #[error(
+        "teacher lane refused: pin `{pin_id}` endpoint `{endpoint}` is not the approved HTTPS host for its family"
+    )]
+    UntrustedEndpoint { pin_id: String, endpoint: String },
+    #[error(
+        "teacher lane refused: pin `{pin_id}` api_key_env `{env_var}` must be a MEDSYNTH_TEACHER_* variable"
+    )]
+    InvalidCredentialEnv { pin_id: String, env_var: String },
     #[error(
         "teacher lane cannot start: credential env var `{env_var}` is not set for pin `{pin_id}`"
     )]

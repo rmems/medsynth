@@ -54,55 +54,9 @@ pub fn build_prompt(
     exemplars: &[&Value],
     teacher: &TeacherSelection,
 ) -> Result<BuiltPrompt, TeacherError> {
-    let mut user = String::new();
-    user.push_str("## Taxonomy cell\n\n");
-    user.push_str(&format!(
-        "- domain: {}\n- subdomain: {}\n- format: {}\n- tier: {}\n",
-        domain_slug(cell),
-        cell.subdomain_slug(),
-        cell.format.slug(),
-        tier_slug(cell.tier)
-    ));
-    user.push_str(&format!(
-        "- tier definition: {}\n\n",
-        tier_definition(cell.format, cell.tier)
-    ));
-
-    user.push_str("## Approved anchor points\n\n");
-    user.push_str(
-        "Cite only these exact pairs. Use an anchor only when it supports the attached claim; \
-         if no supplied anchor supports a claim, omit the claim rather than invent a citation.\n\n",
-    );
-    for anchor in anchors {
-        if anchor.fact.trim().is_empty() {
-            user.push_str(&format!(
-                "- source_id: {} | locator: {} | fact: (registry-approved locator; use only if it supports the claim)\n",
-                anchor.source_id, anchor.locator
-            ));
-        } else {
-            user.push_str(&format!(
-                "- source_id: {} | locator: {} | fact: {}\n",
-                anchor.source_id, anchor.locator, anchor.fact
-            ));
-        }
-    }
-    if anchors.is_empty() {
-        user.push_str("- (none supplied; do not make clinical claims)\n");
-    }
-    user.push('\n');
-
-    if !exemplars.is_empty() {
-        user.push_str("## Gold exemplars (style and structure only — do not copy content)\n\n");
-        for exemplar in exemplars {
-            let id = exemplar
-                .get("id")
-                .and_then(Value::as_str)
-                .unwrap_or("<gold>");
-            user.push_str(&format!("### {id}\n"));
-            user.push_str(&serde_json::to_string(exemplar).unwrap_or_default());
-            user.push_str("\n\n");
-        }
-    }
+    let mut user = cell_section(cell);
+    user.push_str(&anchor_section(anchors));
+    user.push_str(&exemplar_section(exemplars));
 
     user.push_str("## Output shape\n\n");
     user.push_str(output_shape(cell.format));
@@ -133,6 +87,63 @@ pub fn build_prompt(
         prompt_version: teacher.prompt_version.clone(),
         token_count,
     })
+}
+
+fn cell_section(cell: &TargetCell) -> String {
+    format!(
+        "## Taxonomy cell\n\n\
+         - domain: {}\n- subdomain: {}\n- format: {}\n- tier: {}\n\
+         - tier definition: {}\n\n",
+        domain_slug(cell),
+        cell.subdomain_slug(),
+        cell.format.slug(),
+        tier_slug(cell.tier),
+        tier_definition(cell.format, cell.tier)
+    )
+}
+
+fn anchor_section(anchors: &[AnchorPoint]) -> String {
+    let mut section = String::from("## Approved anchor points\n\n");
+    section.push_str(
+        "Cite only these exact pairs. Use an anchor only when it supports the attached claim; \
+         if no supplied anchor supports a claim, omit the claim rather than invent a citation.\n\n",
+    );
+    for anchor in anchors {
+        if anchor.fact.trim().is_empty() {
+            section.push_str(&format!(
+                "- source_id: {} | locator: {} | fact: (registry-approved locator; use only if it supports the claim)\n",
+                anchor.source_id, anchor.locator
+            ));
+        } else {
+            section.push_str(&format!(
+                "- source_id: {} | locator: {} | fact: {}\n",
+                anchor.source_id, anchor.locator, anchor.fact
+            ));
+        }
+    }
+    if anchors.is_empty() {
+        section.push_str("- (none supplied; do not make clinical claims)\n");
+    }
+    section.push('\n');
+    section
+}
+
+fn exemplar_section(exemplars: &[&Value]) -> String {
+    let mut section = String::new();
+    if exemplars.is_empty() {
+        return section;
+    }
+    section.push_str("## Gold exemplars (style and structure only — do not copy content)\n\n");
+    for exemplar in exemplars {
+        let id = exemplar
+            .get("id")
+            .and_then(Value::as_str)
+            .unwrap_or("<gold>");
+        section.push_str(&format!("### {id}\n"));
+        section.push_str(&serde_json::to_string(exemplar).unwrap_or_default());
+        section.push_str("\n\n");
+    }
+    section
 }
 
 /// Token count under cl100k, used as the budgeting tokenizer for both prompt

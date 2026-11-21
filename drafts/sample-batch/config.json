@@ -5,10 +5,19 @@
       "domain": "bbf",
       "format": "mcq",
       "tier": "foundation",
-      "count": 2,
+      "count": 1,
       "lane": "procedural",
       "template": "fact.alveolar_epithelium",
       "subdomain": "animal_structure"
+    },
+    {
+      "domain": "cpf",
+      "format": "mcq",
+      "tier": "foundation",
+      "count": 1,
+      "lane": "procedural",
+      "template": "fact.si_unit_force",
+      "subdomain": "mechanics"
     },
     {
       "domain": "cpf",
@@ -23,7 +32,7 @@
       "domain": "psb",
       "format": "mcq",
       "tier": "foundation",
-      "count": 2,
+      "count": 1,
       "lane": "procedural",
       "template": "fact.ethnocentrism",
       "subdomain": "culture_identity"
@@ -32,10 +41,19 @@
       "domain": "pre_clinical",
       "format": "mcq",
       "tier": "foundation",
-      "count": 2,
+      "count": 1,
       "lane": "procedural",
       "template": "fact.diaphragm",
       "subdomain": "respiratory"
+    },
+    {
+      "domain": "pre_clinical",
+      "format": "mcq",
+      "tier": "application",
+      "count": 2,
+      "lane": "procedural",
+      "template": "calc.half_life",
+      "subdomain": "pharmacology_principles"
     }
   ]
 }

@@ -114,6 +114,9 @@ fn run_batch(args: RunArgs) -> Result<()> {
         gold: args.gold,
     };
     let plan = load_plan(&paths, args.seed)?;
+    // Refuse a `data/` output dir before any work: teacher requests burn API
+    // quota, so the destination must be valid before the first request.
+    medsynth_generate::batch::check_output_dir(&paths, &args.out)?;
     let env = |name: &str| std::env::var(name).ok();
     let factory = |prepared: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
         Ok(Box::new(HttpTeacherClient::new(prepared)?))

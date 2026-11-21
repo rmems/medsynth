@@ -175,7 +175,8 @@ fn parse_matrix_row(line: &str) -> Option<MatrixRow> {
     let application = cols[4].parse::<u32>().ok()?;
     let reasoning = cols[5].parse::<u32>().ok()?;
     let subtotal = cols[6].parse::<u32>().ok()?;
-    if foundation + application + reasoning != subtotal {
+    let tiers_total = u64::from(foundation) + u64::from(application) + u64::from(reasoning);
+    if tiers_total != u64::from(subtotal) {
         return None;
     }
     Some(MatrixRow {

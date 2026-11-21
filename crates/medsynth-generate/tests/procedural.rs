@@ -233,8 +233,10 @@ fn provenance_is_complete_and_receipts_cover_every_anchor() {
             .or_default() += 1;
     }
     assert_eq!(domains.len(), 4);
+    // Every domain produces at least one record; unique-stem cells leave
+    // single-record domains where only one template exists for a tier.
     for count in domains.values() {
-        assert!(*count >= 2);
+        assert!(*count >= 1);
     }
 }
 

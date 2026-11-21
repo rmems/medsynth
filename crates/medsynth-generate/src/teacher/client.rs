@@ -25,6 +25,10 @@ pub struct TeacherRequest {
 #[derive(Debug, Clone)]
 pub struct TeacherCompletion {
     pub content: String,
+    /// The `model` field the endpoint reported, when it did. Pinned variants
+    /// carry dated names while providers answer with an alias; capturing it
+    /// keeps the draft's rights envelope honest about what served the draft.
+    pub served_model: Option<String>,
 }
 
 /// A teacher transport. Tests supply recorded responses; production uses
@@ -116,8 +120,13 @@ pub fn parse_chat_completion(value: &Value) -> Result<TeacherCompletion, Teacher
         .and_then(|message| message.get("content"))
         .and_then(Value::as_str)
         .ok_or(TeacherError::MissingContent)?;
+    let served_model = value
+        .get("model")
+        .and_then(Value::as_str)
+        .map(str::to_owned);
     Ok(TeacherCompletion {
         content: content.to_owned(),
+        served_model,
     })
 }
 
@@ -138,8 +147,18 @@ mod tests {
         let address = listener.local_addr().unwrap();
         let handle = std::thread::spawn(move || {
             let (mut stream, _) = listener.accept().unwrap();
-            let mut buffer = [0u8; 8192];
-            let _ = stream.read(&mut buffer);
+            // Drain the full request: reqwest sends headers plus the JSON
+            // body, which exceeds a single 8 KiB read. A truncated request
+            // makes the client reset the connection mid-write.
+            stream
+                .set_read_timeout(Some(std::time::Duration::from_millis(50)))
+                .unwrap();
+            let mut chunk = [0u8; 8192];
+            while let Ok(n) = stream.read(&mut chunk) {
+                if n == 0 {
+                    break;
+                }
+            }
             let reason = if status == 200 { "OK" } else { "Error" };
             let response = format!(
                 "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",

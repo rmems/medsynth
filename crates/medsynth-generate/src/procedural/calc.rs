@@ -6,8 +6,8 @@
 //! option together.
 
 use medsynth_schema::{
-    AnchoredClaim, AnchoredText, Domain, McqOption, McqRationale, McqRecord, OptionLabel,
-    Provenance, SchemaVersion, Subdomain, Tier, VerificationStatus,
+    AnchoredClaim, AnchoredText, Domain, McqRationale, McqRecord, Provenance, SchemaVersion,
+    Subdomain, Tier, VerificationStatus,
 };
 
 use crate::config::TargetCell;
@@ -101,9 +101,17 @@ fn newtons_second_law(rng: &mut SeededRng) -> CalcInstance {
         key_explanation: format!(
             "Newton's second law gives a = F_net / m. With F_net = {force} N and m = {mass} kg, a = {force} / {mass} = {acceleration} m/s^2."
         ),
-        distractor_refutation: "Adding force and mass, doubling the acceleration, or taking their ratio the other way does not follow Newton's second law; acceleration is net force divided by mass.".to_owned(),
-        anchors: &[("openstax-university-physics-2016", "vol1:ch5:newtons-second-law")],
-        params: vec![("mass_kg", u64::from(mass)), ("net_force_n", u64::from(force))],
+        distractor_refutation: format!(
+            "Doubling the acceleration, adding force and mass ({force} + {mass}), or adding one to the acceleration does not follow Newton's second law; acceleration is net force divided by mass."
+        ),
+        anchors: &[(
+            "openstax-university-physics-2016",
+            "vol1:ch5:newtons-second-law",
+        )],
+        params: vec![
+            ("mass_kg", u64::from(mass)),
+            ("acceleration_mps2", u64::from(acceleration)),
+        ],
     }
 }
 
@@ -138,7 +146,7 @@ fn half_life(rng: &mut SeededRng) -> CalcInstance {
         params: vec![
             ("dose_mg", initial),
             ("half_life_h", half_life_hours),
-            ("elapsed_h", elapsed),
+            ("half_lives", half_lives),
         ],
     }
 }
@@ -177,30 +185,12 @@ pub(crate) fn build_calc_record(
         ));
     }
     let instance = evaluate(template.id, rng)?;
-    let mut texts = Vec::with_capacity(4);
-    texts.push(instance.correct_text.clone());
-    texts.extend(instance.distractors.iter().cloned());
-    rng.shuffle(&mut texts);
-
-    let labels = [
-        OptionLabel::A,
-        OptionLabel::B,
-        OptionLabel::C,
-        OptionLabel::D,
-    ];
-    let mut key = None;
-    let mut options = Vec::with_capacity(texts.len());
-    for (text, label) in texts.into_iter().zip(labels) {
-        if text == instance.correct_text {
-            key = Some(label);
-        }
-        options.push(McqOption {
-            label,
-            text,
-            anchors: Vec::new(),
-        });
-    }
-    let key = key.ok_or_else(|| format!("template `{}`: computed answer missing", template.id))?;
+    let (options, key) = crate::procedural::shuffled_options(
+        &instance.correct_text,
+        instance.distractors.iter().cloned(),
+        rng,
+    )
+    .map_err(|e| format!("template `{}`: {e}", template.id))?;
 
     let anchors = to_anchors(instance.anchors)?;
     let record = McqRecord {

@@ -1,12 +1,12 @@
 {
   "manifest_version": 1,
-  "batch_id": "batch-14dc89d05222c480",
+  "batch_id": "batch-a5e4ee8e3540c9f6",
   "seed": 2523,
-  "config_sha256": "8aa57a5b96d6f37fa675c540997b02d93e3968de0035fe724372cfb572f0b269",
+  "config_sha256": "6633548d0b7f6c5e33aaf1ae07c0ff8f0c793d218ce69c1850b005e6524172da",
   "config": {
     "cells": [
       {
-        "count": 2,
+        "count": 1,
         "domain": "bbf",
         "format": "mcq",
         "in_flight_attempts": 0,
@@ -14,6 +14,17 @@
         "resolved_attempts": 0,
         "subdomain": "animal_structure",
         "template": "fact.alveolar_epithelium",
+        "tier": "foundation"
+      },
+      {
+        "count": 1,
+        "domain": "cpf",
+        "format": "mcq",
+        "in_flight_attempts": 0,
+        "lane": "procedural",
+        "resolved_attempts": 0,
+        "subdomain": "mechanics",
+        "template": "fact.si_unit_force",
         "tier": "foundation"
       },
       {
@@ -28,7 +39,7 @@
         "tier": "application"
       },
       {
-        "count": 2,
+        "count": 1,
         "domain": "psb",
         "format": "mcq",
         "in_flight_attempts": 0,
@@ -39,7 +50,7 @@
         "tier": "foundation"
       },
       {
-        "count": 2,
+        "count": 1,
         "domain": "pre_clinical",
         "format": "mcq",
         "in_flight_attempts": 0,
@@ -48,6 +59,17 @@
         "subdomain": "respiratory",
         "template": "fact.diaphragm",
         "tier": "foundation"
+      },
+      {
+        "count": 2,
+        "domain": "pre_clinical",
+        "format": "mcq",
+        "in_flight_attempts": 0,
+        "lane": "procedural",
+        "resolved_attempts": 0,
+        "subdomain": "pharmacology_principles",
+        "template": "calc.half_life",
+        "tier": "application"
       }
     ],
     "seed": 2523,
@@ -62,6 +84,11 @@
     "path": "docs/sources.json",
     "version": "0.1",
     "sha256": "39e51fcb22bbbf9affbea513e192cba1b589c046fa7283507148f1c1f34bef7f"
+  },
+  "gold": {
+    "path": "data/gold",
+    "version": "0.1",
+    "sha256": "e9390f77ad90648f0322b5f3a26392cecb59c8c1fdd0bd825c352c7e20569ef9"
   },
   "teachers": {
     "path": "docs/teachers.md",
@@ -93,12 +120,30 @@
       "subdomain": "animal_structure",
       "lane": "procedural",
       "matrix_target": 18,
-      "requested": 2,
+      "requested": 1,
       "resolved_attempts": 0,
       "in_flight_attempts": 0,
       "budget_cap": 54,
-      "dispatched": 2,
-      "produced": 2,
+      "dispatched": 1,
+      "produced": 1,
+      "dropped": 0,
+      "budget_limited": false,
+      "escalated": false,
+      "status": "produced"
+    },
+    {
+      "domain": "cpf",
+      "format": "mcq",
+      "tier": "foundation",
+      "subdomain": "mechanics",
+      "lane": "procedural",
+      "matrix_target": 12,
+      "requested": 1,
+      "resolved_attempts": 0,
+      "in_flight_attempts": 0,
+      "budget_cap": 36,
+      "dispatched": 1,
+      "produced": 1,
       "dropped": 0,
       "budget_limited": false,
       "escalated": false,
@@ -129,12 +174,12 @@
       "subdomain": "culture_identity",
       "lane": "procedural",
       "matrix_target": 10,
-      "requested": 2,
+      "requested": 1,
       "resolved_attempts": 0,
       "in_flight_attempts": 0,
       "budget_cap": 30,
-      "dispatched": 2,
-      "produced": 2,
+      "dispatched": 1,
+      "produced": 1,
       "dropped": 0,
       "budget_limited": false,
       "escalated": false,
@@ -145,6 +190,24 @@
       "format": "mcq",
       "tier": "foundation",
       "subdomain": "respiratory",
+      "lane": "procedural",
+      "matrix_target": 32,
+      "requested": 1,
+      "resolved_attempts": 0,
+      "in_flight_attempts": 0,
+      "budget_cap": 96,
+      "dispatched": 1,
+      "produced": 1,
+      "dropped": 0,
+      "budget_limited": false,
+      "escalated": false,
+      "status": "produced"
+    },
+    {
+      "domain": "pre_clinical",
+      "format": "mcq",
+      "tier": "application",
+      "subdomain": "pharmacology_principles",
       "lane": "procedural",
       "matrix_target": 32,
       "requested": 2,
@@ -178,14 +241,14 @@
       "jsonl_file": "mcq.jsonl"
     },
     {
-      "id": "draft-bbf-mcq-foundation-c56b05eb-001",
+      "id": "draft-cpf-mcq-foundation-c56b05eb-000",
       "format": "mcq",
-      "domain": "bbf",
-      "subdomain": "animal_structure",
+      "domain": "cpf",
+      "subdomain": "mechanics",
       "tier": "foundation",
       "lane": "procedural",
-      "generator": "template:fact.alveolar_epithelium",
-      "sha256": "fc759378ce554ff056f657dc49acaef41ce18c4ee29e9bba241aa9e77ae4ae06",
+      "generator": "template:fact.si_unit_force",
+      "sha256": "006e5a05dfe63b21dd5db8b485fafa3a1f133a5feff02b57c83be22f4737fd74",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -196,7 +259,7 @@
       "tier": "application",
       "lane": "procedural",
       "generator": "template:calc.newtons_second_law",
-      "sha256": "8eb44b1733cea5fa9955c56a1a37ef9d7a80199157ee25df65ea6c6406deff93",
+      "sha256": "9d4ed921483fd5a1580d8584ce015aec40ae068f690a96be12c892f3cbdf59af",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -207,7 +270,7 @@
       "tier": "application",
       "lane": "procedural",
       "generator": "template:calc.newtons_second_law",
-      "sha256": "f6656d21d471b31ddc221206ab779bd8553998332bb2e26a91d30dc754b9a852",
+      "sha256": "ba360fc1881aa535388822b93a5564a9425dd821fa5936b2cb29b1ef14a79ab9",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -222,17 +285,6 @@
       "jsonl_file": "mcq.jsonl"
     },
     {
-      "id": "draft-psb-mcq-foundation-c56b05eb-001",
-      "format": "mcq",
-      "domain": "psb",
-      "subdomain": "culture_identity",
-      "tier": "foundation",
-      "lane": "procedural",
-      "generator": "template:fact.ethnocentrism",
-      "sha256": "0fa0b4f67da44bb3555d052fcdceb550860cbac620c79eccafaf992513db26fe",
-      "jsonl_file": "mcq.jsonl"
-    },
-    {
       "id": "draft-pre-clinical-mcq-foundation-c56b05eb-000",
       "format": "mcq",
       "domain": "pre_clinical",
@@ -244,14 +296,25 @@
       "jsonl_file": "mcq.jsonl"
     },
     {
-      "id": "draft-pre-clinical-mcq-foundation-c56b05eb-001",
+      "id": "draft-pre-clinical-mcq-application-c56b05eb-000",
       "format": "mcq",
       "domain": "pre_clinical",
-      "subdomain": "respiratory",
-      "tier": "foundation",
+      "subdomain": "pharmacology_principles",
+      "tier": "application",
       "lane": "procedural",
-      "generator": "template:fact.diaphragm",
-      "sha256": "f2e0372afe9c0fefa84ef501dfc8cba0a77aa7726ab600bd89e38e7d1797e16e",
+      "generator": "template:calc.half_life",
+      "sha256": "bf7f0b049761626bea92909245f0b1c066e29f713e6de19b24d3e4d0bd08aac2",
+      "jsonl_file": "mcq.jsonl"
+    },
+    {
+      "id": "draft-pre-clinical-mcq-application-c56b05eb-001",
+      "format": "mcq",
+      "domain": "pre_clinical",
+      "subdomain": "pharmacology_principles",
+      "tier": "application",
+      "lane": "procedural",
+      "generator": "template:calc.half_life",
+      "sha256": "04c9db0661dd32ed81b6ad369b023bc24466d92c4cc35efe734f4c573b7baa9b",
       "jsonl_file": "mcq.jsonl"
     }
   ],
@@ -277,18 +340,10 @@
       "occurrences": 3
     },
     {
-      "record_id": "draft-bbf-mcq-foundation-c56b05eb-001",
-      "source_id": "openstax-anatomy-physiology-2e",
-      "locator": "sec22.2:the-lungs",
-      "registry_entry_sha256": "3e299644b95a7da88b36a97f8cbb44941fa2eb62a73d720736c8a7e47da3c26a",
-      "registry_version": "0.1",
-      "occurrences": 3
-    },
-    {
-      "record_id": "draft-bbf-mcq-foundation-c56b05eb-001",
-      "source_id": "openstax-anatomy-physiology-2e",
-      "locator": "sec4.2:epithelial-tissue",
-      "registry_entry_sha256": "3e299644b95a7da88b36a97f8cbb44941fa2eb62a73d720736c8a7e47da3c26a",
+      "record_id": "draft-cpf-mcq-foundation-c56b05eb-000",
+      "source_id": "openstax-university-physics-2016",
+      "locator": "vol1:ch5:newtons-laws",
+      "registry_entry_sha256": "da175aa9d563d2778f0d953671a0c2a74873c52767c55f5b82f9b00f39e9ec3f",
       "registry_version": "0.1",
       "occurrences": 3
     },
@@ -317,14 +372,6 @@
       "occurrences": 3
     },
     {
-      "record_id": "draft-psb-mcq-foundation-c56b05eb-001",
-      "source_id": "openstax-introduction-sociology-3e",
-      "locator": "ch3:elements-of-culture",
-      "registry_entry_sha256": "5e16ff95c37ca33a3e58e8b385352bfaf40768729f2476694b7e7975bffc5261",
-      "registry_version": "0.1",
-      "occurrences": 3
-    },
-    {
       "record_id": "draft-pre-clinical-mcq-foundation-c56b05eb-000",
       "source_id": "openstax-anatomy-physiology-2e",
       "locator": "sec22.3:the-process-of-breathing",
@@ -333,10 +380,18 @@
       "occurrences": 3
     },
     {
-      "record_id": "draft-pre-clinical-mcq-foundation-c56b05eb-001",
-      "source_id": "openstax-anatomy-physiology-2e",
-      "locator": "sec22.3:the-process-of-breathing",
-      "registry_entry_sha256": "3e299644b95a7da88b36a97f8cbb44941fa2eb62a73d720736c8a7e47da3c26a",
+      "record_id": "draft-pre-clinical-mcq-application-c56b05eb-000",
+      "source_id": "katzung-basic-clinical-pharmacology-16e",
+      "locator": "ch2:pharmacokinetics",
+      "registry_entry_sha256": "8a138e5abeacaf978d1ae5c3a1d97c2937f1f86f1174b872abf5def0927e6530",
+      "registry_version": "0.1",
+      "occurrences": 3
+    },
+    {
+      "record_id": "draft-pre-clinical-mcq-application-c56b05eb-001",
+      "source_id": "katzung-basic-clinical-pharmacology-16e",
+      "locator": "ch2:pharmacokinetics",
+      "registry_entry_sha256": "8a138e5abeacaf978d1ae5c3a1d97c2937f1f86f1174b872abf5def0927e6530",
       "registry_version": "0.1",
       "occurrences": 3
     }

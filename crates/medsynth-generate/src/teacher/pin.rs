@@ -159,39 +159,109 @@ impl TeacherPinRegistry {
             .pins
             .get(pin_id)
             .ok_or_else(|| TeacherError::Unpinned(pin_id.to_owned()))?;
-        let missing = pin.missing_fields();
-        if !missing.is_empty() {
-            return Err(TeacherError::IncompletePin {
-                pin_id: pin_id.to_owned(),
-                missing,
-            });
-        }
-        if pin.lane != Some(PinLane::Teacher) {
-            return Err(TeacherError::ResearchOnly(pin_id.to_owned()));
-        }
-        let family = pin.family.to_ascii_lowercase();
-        let provider = pin.provider.to_ascii_lowercase();
-        if family.contains("claude")
-            || family.contains("anthropic")
-            || family.contains("grok")
-            || family.contains("xai")
-            || provider.contains("claude")
-            || provider.contains("anthropic")
-            || provider.contains("grok")
-            || provider.contains("xai")
-        {
-            return Err(TeacherError::ResearchOnly(pin_id.to_owned()));
-        }
-        if !matches!(family.as_str(), "deepseek" | "nvidia-nemotron" | "nemotron") {
-            return Err(TeacherError::IneligibleFamily { family });
-        }
-        if pin.permits_distillation != Some(true) || pin.permits_synthetic_data != Some(true) {
-            return Err(TeacherError::TermsDoNotPermit {
-                pin_id: pin_id.to_owned(),
-            });
-        }
+        require_complete(pin)?;
+        require_teacher_lane(pin)?;
+        require_approved_family(pin)?;
+        require_trusted_endpoint(pin)?;
+        require_credential_env(pin)?;
+        require_terms(pin)?;
         Ok(pin)
     }
+}
+
+/// Names that mark a family or provider as research-only (never drafting).
+const RESEARCH_ONLY_KEYS: &[&str] = &["claude", "anthropic", "grok", "xai"];
+
+/// Teacher families approved under the standing distillation rule.
+const APPROVED_FAMILIES: &[&str] = &["deepseek", "nvidia-nemotron", "nemotron"];
+
+fn is_research_only_name(text: &str) -> bool {
+    RESEARCH_ONLY_KEYS.iter().any(|key| text.contains(key))
+}
+
+fn require_complete(pin: &TeacherPin) -> Result<(), TeacherError> {
+    let missing = pin.missing_fields();
+    if missing.is_empty() {
+        return Ok(());
+    }
+    Err(TeacherError::IncompletePin {
+        pin_id: pin.pin_id.clone(),
+        missing,
+    })
+}
+
+fn require_teacher_lane(pin: &TeacherPin) -> Result<(), TeacherError> {
+    if pin.lane != Some(PinLane::Teacher) {
+        return Err(TeacherError::ResearchOnly(pin.pin_id.clone()));
+    }
+    let family = pin.family.to_ascii_lowercase();
+    let provider = pin.provider.to_ascii_lowercase();
+    if is_research_only_name(&family) || is_research_only_name(&provider) {
+        return Err(TeacherError::ResearchOnly(pin.pin_id.clone()));
+    }
+    Ok(())
+}
+
+fn require_approved_family(pin: &TeacherPin) -> Result<(), TeacherError> {
+    let family = pin.family.to_ascii_lowercase();
+    if APPROVED_FAMILIES.contains(&family.as_str()) {
+        return Ok(());
+    }
+    Err(TeacherError::IneligibleFamily { family })
+}
+
+/// The pin's endpoint must be the family's approved HTTPS host — credentials
+/// must never be sent to an arbitrary endpoint named in the pin file.
+fn require_trusted_endpoint(pin: &TeacherPin) -> Result<(), TeacherError> {
+    let family = pin.family.to_ascii_lowercase();
+    let host = endpoint_host(&pin.endpoint);
+    let trusted = matches!(
+        (family.as_str(), host),
+        ("deepseek", Some("api.deepseek.com"))
+            | (
+                "nvidia-nemotron" | "nemotron",
+                Some("integrate.api.nvidia.com")
+            )
+    );
+    if trusted {
+        return Ok(());
+    }
+    Err(TeacherError::UntrustedEndpoint {
+        pin_id: pin.pin_id.clone(),
+        endpoint: pin.endpoint.clone(),
+    })
+}
+
+/// The lowercase host of an `https://` URL, or `None` when the endpoint is
+/// not HTTPS (never send credentials over plaintext).
+fn endpoint_host(endpoint: &str) -> Option<&str> {
+    let rest = endpoint.strip_prefix("https://")?;
+    rest.split(['/', '?'])
+        .next()?
+        .split(':')
+        .next()
+        .filter(|&h| !h.is_empty())
+}
+
+/// Credentials are read only from `MEDSYNTH_TEACHER_*` variables, so a pin
+/// cannot point the pipeline at an unrelated secret in the environment.
+fn require_credential_env(pin: &TeacherPin) -> Result<(), TeacherError> {
+    if pin.api_key_env.starts_with("MEDSYNTH_TEACHER_") {
+        return Ok(());
+    }
+    Err(TeacherError::InvalidCredentialEnv {
+        pin_id: pin.pin_id.clone(),
+        env_var: pin.api_key_env.clone(),
+    })
+}
+
+fn require_terms(pin: &TeacherPin) -> Result<(), TeacherError> {
+    if pin.permits_distillation != Some(true) || pin.permits_synthetic_data != Some(true) {
+        return Err(TeacherError::TermsDoNotPermit {
+            pin_id: pin.pin_id.clone(),
+        });
+    }
+    Ok(())
 }
 
 fn pin_blocks(text: &str) -> Vec<String> {

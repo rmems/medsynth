@@ -36,10 +36,20 @@ impl SeededRng {
         self.inner.next_u64()
     }
 
-    /// Uniform-enough integer in `0..bound` (bound must be positive).
+    /// Uniform integer in `0..bound` (bound must be positive).
+    ///
+    /// Rejection sampling: a raw `% bound` would return low residues slightly
+    /// more often whenever `bound` does not divide 2^64 evenly.
     pub fn below(&mut self, bound: u32) -> u32 {
         assert!(bound > 0, "bound must be positive");
-        (self.next_u64() % u64::from(bound)) as u32
+        let bound = u64::from(bound);
+        let zone = (u64::MAX / bound) * bound;
+        loop {
+            let value = self.next_u64();
+            if value < zone {
+                return (value % bound) as u32;
+            }
+        }
     }
 
     /// Inclusive integer range.

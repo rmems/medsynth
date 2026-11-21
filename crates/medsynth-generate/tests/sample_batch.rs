@@ -181,8 +181,9 @@ fn sample_batch_manifest_matches_records_and_current_inputs() {
             })
             .count();
         assert_eq!(produced, matching, "cell {cell:?}");
-        assert_eq!(cell["requested"], 2);
-        assert_eq!(cell["dispatched"], 2);
+        let requested = cell["requested"].as_u64().unwrap();
+        assert!(requested >= 1);
+        assert_eq!(cell["dispatched"], requested);
         assert_eq!(cell["dropped"], 0);
         assert_eq!(cell["status"], "produced");
     }

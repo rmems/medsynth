@@ -11,8 +11,8 @@ use crate::procedural::TEMPLATE_VERSION;
 use crate::record::GeneratedRecord;
 use crate::rng::SeededRng;
 use medsynth_schema::{
-    AnchoredClaim, AnchoredText, Domain, McqOption, McqRationale, McqRecord, OptionLabel,
-    Provenance, SchemaVersion, SourceId, Subdomain, Tier, VerificationStatus,
+    AnchoredClaim, AnchoredText, Domain, McqRationale, McqRecord, Provenance, SchemaVersion,
+    SourceId, Subdomain, Tier, VerificationStatus,
 };
 
 /// One anchored fact-recall template.
@@ -134,6 +134,45 @@ pub const FACTS: &[Fact] = &[
             "sec17.3:the-pituitary-gland-and-hypothalamus",
         )],
     },
+    Fact {
+        id: "fact.mitochondrion_atp",
+        domain: Domain::Bbf,
+        subdomain: Subdomain::CellFunction,
+        tier: Tier::Foundation,
+        stem: "Which organelle generates the majority of ATP in an aerobic eukaryotic cell?",
+        correct: "Mitochondrion",
+        distractors: ["Nucleus", "Smooth endoplasmic reticulum", "Lysosome"],
+        key_explanation: "Mitochondria carry out oxidative phosphorylation, which supplies most of the ATP used by aerobic cells.",
+        distractor_refutation: "The nucleus stores genetic information, the smooth endoplasmic reticulum synthesizes lipids and detoxifies, and lysosomes degrade material — none is the primary ATP source.",
+        anchors: &[(
+            "mol-bio-cell-7e",
+            "ch14:electron-transport-oxidative-phosphorylation",
+        )],
+    },
+    Fact {
+        id: "fact.si_unit_force",
+        domain: Domain::Cpf,
+        subdomain: Subdomain::Mechanics,
+        tier: Tier::Foundation,
+        stem: "What is the SI unit of force?",
+        correct: "Newton",
+        distractors: ["Joule", "Pascal", "Watt"],
+        key_explanation: "The newton is the SI unit of force, defined as one kilogram-meter per second squared.",
+        distractor_refutation: "The joule is the SI unit of energy, the pascal is the unit of pressure, and the watt is the unit of power.",
+        anchors: &[("openstax-university-physics-2016", "vol1:ch5:newtons-laws")],
+    },
+    Fact {
+        id: "fact.fundamental_attribution",
+        domain: Domain::Psb,
+        subdomain: Subdomain::Psychology,
+        tier: Tier::Foundation,
+        stem: "An observer attributes a coworker's missed deadline to laziness while overlooking the coworker's heavy workload. The observer's judgment best illustrates:",
+        correct: "Fundamental attribution error",
+        distractors: ["Self-serving bias", "Halo effect", "Just-world hypothesis"],
+        key_explanation: "The fundamental attribution error is the tendency to overestimate dispositional explanations and underestimate situational ones for others' behavior.",
+        distractor_refutation: "Self-serving bias applies to explanations of one's own behavior, the halo effect generalizes a single positive trait to the whole person, and the just-world hypothesis assumes people get what they deserve.",
+        anchors: &[("myers-psychology-14e", "ch18:attribution-theory")],
+    },
 ];
 
 impl Fact {
@@ -161,30 +200,12 @@ pub(crate) fn build_fact_record(
             cell.label()
         ));
     }
-    let mut texts = Vec::with_capacity(4);
-    texts.push(fact.correct.to_owned());
-    texts.extend(fact.distractors.iter().map(|d| (*d).to_owned()));
-    rng.shuffle(&mut texts);
-
-    let labels = [
-        OptionLabel::A,
-        OptionLabel::B,
-        OptionLabel::C,
-        OptionLabel::D,
-    ];
-    let mut key = None;
-    let mut options = Vec::with_capacity(texts.len());
-    for (text, label) in texts.into_iter().zip(labels) {
-        if text == fact.correct {
-            key = Some(label);
-        }
-        options.push(McqOption {
-            label,
-            text,
-            anchors: Vec::new(),
-        });
-    }
-    let key = key.ok_or_else(|| format!("template `{}`: correct option missing", fact.id))?;
+    let (options, key) = crate::procedural::shuffled_options(
+        fact.correct,
+        fact.distractors.iter().map(|d| (*d).to_owned()),
+        rng,
+    )
+    .map_err(|e| format!("template `{}`: {e}", fact.id))?;
 
     let anchors = to_anchors(fact.anchors)?;
     let record = McqRecord {

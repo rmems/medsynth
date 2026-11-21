@@ -132,15 +132,15 @@ fn extract_json(content: &str) -> Result<String, TeacherError> {
             .or_else(|| rest.strip_prefix("JSON"))
             .unwrap_or(rest);
         let rest = rest.trim_start();
-        let Some(end) = rest.rfind("```") else {
+        let Some(end) = rest.find("```") else {
             return Err(TeacherError::Parse(
                 "unterminated markdown fence in teacher output".to_owned(),
             ));
         };
-        return Ok(rest[..end].trim().to_owned());
+        return single_json(&rest[..end]);
     }
-    if text.starts_with('{') && text.ends_with('}') {
-        return Ok(text.to_owned());
+    if text.starts_with('{') {
+        return single_json(text);
     }
     // Some providers prepend a short sentence despite the prompt. Fail closed
     // unless the response still contains exactly one JSON object.
@@ -149,17 +149,24 @@ fn extract_json(content: &str) -> Result<String, TeacherError> {
             "teacher output contains no JSON object".to_owned(),
         ));
     };
-    let Some(end) = text.rfind('}') else {
-        return Err(TeacherError::Parse(
-            "teacher output contains no closing JSON brace".to_owned(),
-        ));
-    };
-    if end < start {
-        return Err(TeacherError::Parse(
-            "teacher output has malformed JSON boundaries".to_owned(),
-        ));
-    }
-    Ok(text[start..=end].to_owned())
+    single_json(&text[start..])
+}
+
+/// Accept the candidate only if it is exactly one JSON object — this rejects
+/// trailing prose, `{a}{b}` concatenations, and truncated objects alike.
+fn single_json(candidate: &str) -> Result<String, TeacherError> {
+    serde_json::from_str::<serde_json::Value>(candidate).map_err(|e| {
+        TeacherError::Parse(format!("teacher output is not a single JSON object: {e}"))
+    })?;
+    Ok(candidate.trim().to_owned())
+}
+
+/// What the pipeline stamps onto a teacher draft — everything the teacher
+/// is not allowed to set for itself.
+pub struct RecordStamp<'a> {
+    pub id: medsynth_schema::RecordId,
+    pub pin: &'a TeacherPin,
+    pub prompt_version: &'a str,
 }
 
 /// Build the record for a teacher content object.
@@ -167,11 +174,10 @@ pub fn build_record(
     format: Format,
     content: TeacherContent,
     cell: &TargetCell,
-    id: medsynth_schema::RecordId,
-    pin: &TeacherPin,
-    prompt_version: &str,
+    stamp: &RecordStamp<'_>,
 ) -> Result<GeneratedRecord, TeacherError> {
-    let provenance = teacher_provenance(pin, prompt_version);
+    let id = stamp.id.clone();
+    let provenance = teacher_provenance(stamp.pin, stamp.prompt_version);
     match (format, content) {
         (Format::Mcq, TeacherContent::Mcq(content)) => build_mcq(content, cell, id, provenance),
         (Format::CaseVignette, TeacherContent::CaseVignette(content)) => {
