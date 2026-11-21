@@ -137,12 +137,12 @@ fn valid_fixture_files() -> Vec<PathBuf> {
     let fixtures = workspace_root().join("fixtures");
     let mut files: Vec<PathBuf> = fs::read_dir(&fixtures)
         .expect("cannot read fixtures/")
-        .filter_map(|d| d.ok().map(|e| e.path()))
+        .map(|d| d.expect("dir entry").path())
         .filter(|p| p.is_dir())
         .flat_map(|dir| {
             fs::read_dir(&dir)
                 .expect("cannot read fixture dir")
-                .filter_map(|f| f.ok().map(|e| e.path()))
+                .map(|f| f.expect("dir entry").path())
                 .collect::<Vec<_>>()
         })
         .filter(|p| {

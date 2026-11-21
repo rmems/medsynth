@@ -32,6 +32,9 @@ An anchor is `{ "source_id": "...", "locator": "..." }` where:
   entries (those carrying an access date, e.g. `ada-standards-diabetes-2025`)
   must carry the access date of the anchor check in the locator per contract
   §7.
+- Living guideline entries are re-checked when a new edition appears: the new
+  edition is added as a `current` entry, the old one flips to `superseded`,
+  and the coverage table is updated — never silently overwritten.
 
 Adding a source is a reviewed change: new entries must be verifiable against
 the publisher or issuing body and name who added them and why the source is
