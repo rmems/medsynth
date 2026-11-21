@@ -110,16 +110,28 @@ fn key_references_option(
 /// article "a" cannot pass as a reference, and accepts a bare letter
 /// token for `B`–`E`, which have no article collision.
 fn references_label(explanation: &str, key: &str) -> bool {
-    if explanation
-        .to_lowercase()
-        .contains(&format!("option {}", key.to_lowercase()))
-    {
+    if names_option(explanation, key) {
         return true;
     }
     key != "A"
         && explanation
             .split(|c: char| !c.is_alphanumeric())
             .any(|t| t == key)
+}
+
+/// True when the explanation names "option <key>" — tolerating
+/// punctuation between them ("option (A)", "option: B", "option B)").
+fn names_option(explanation: &str, key: &str) -> bool {
+    let lower = explanation.to_lowercase();
+    let key = key.to_lowercase();
+    lower.match_indices("option").any(|(i, _)| {
+        let rest = lower[i + "option".len()..].trim_start_matches(|c: char| !c.is_alphanumeric());
+        rest.starts_with(&key)
+            && rest[key.len()..]
+                .chars()
+                .next()
+                .is_none_or(|c| !c.is_alphanumeric())
+    })
 }
 
 fn key_rationale_vignette(record: &RecordFile, findings: &mut Vec<Finding>) {

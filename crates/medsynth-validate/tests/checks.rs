@@ -198,6 +198,37 @@ fn anchor_presence_fails_on_unregistered_source_ids() {
 }
 
 #[test]
+fn anchor_presence_flags_unlisted_citation_mixed_with_listed() {
+    // One registered anchor must not mask an unlisted citation.
+    let mut bad = mcq();
+    bad["stem"]["anchors"][0]["source_id"] = serde_json::json!("not-in-registry-1x");
+    let findings = findings_for(&[record(Format::Mcq, "mixed-sources", bad)]);
+    assert!(
+        findings
+            .iter()
+            .any(|f| f.check == Check::AnchorPresence && f.detail.contains("not-in-registry-1x")),
+        "unlisted citation must be flagged even beside listed ones: {findings:?}"
+    );
+}
+
+#[test]
+fn key_rationale_accepts_parenthesized_label_reference() {
+    // All-short options force the label fallback; "option (A)" must count
+    // as a reference to key A.
+    let mut r = mcq();
+    for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
+        r["options"][i]["text"] = serde_json::json!(opt);
+    }
+    r["rationale"]["key_explanation"]["text"] =
+        serde_json::json!("Option (A) is correct because ATP is the product.");
+    let findings = findings_for(&[record(Format::Mcq, "paren-label", r)]);
+    assert!(
+        !findings.iter().any(|f| f.check == Check::KeyRationale),
+        "parenthesized label reference must pass: {findings:?}"
+    );
+}
+
+#[test]
 fn anchor_presence_passes_unverified_with_no_anchors() {
     // An unverified draft with zero anchors must not trip the check — the
     // gate may only flag records above unverified.
