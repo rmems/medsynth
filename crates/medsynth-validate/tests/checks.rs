@@ -161,6 +161,7 @@ fn overlap_ties_without_an_unambiguous_label_still_fail() {
     for explanation in [
         "A junction connects the cells.",
         "Option A and option B are junction candidates.",
+        "Option A and option\nB are junction candidates.",
     ] {
         let mut value = mcq();
         value["options"] = serde_json::json!([

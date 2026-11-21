@@ -141,7 +141,9 @@ fn references_label(explanation: &str, key: &str) -> bool {
 
 /// Separators that may precede a label: whitespace, a colon, and the
 /// opening markers `(` and quotes.
-const SEPARATORS: &[char] = &[' ', '\t', '\u{a0}', ':', '(', '"', '\'', '‘', '’', '“', '”'];
+const SEPARATORS: &[char] = &[
+    ' ', '\t', '\n', '\r', '\u{a0}', ':', '(', '"', '\'', '‘', '’', '“', '”',
+];
 /// Characters that mark a label as enclosed. Closing quotes cannot open:
 /// `'option' a …` closes the trigger word, it does not mark `a`.
 const MARKERS: &[char] = &['(', '"', '\'', '‘', '“'];

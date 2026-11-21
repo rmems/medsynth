@@ -358,8 +358,11 @@ fn collect_probes(root_dir: &Path, dir: &Path, actual: &mut BTreeSet<String>) {
 }
 
 fn assert_review(entry: &Value, reviewers: &[&str], raw: &[u8]) {
+    let reviewer = entry["reviewer_run_id"]
+        .as_str()
+        .unwrap_or_else(|| panic!("{}: reviewer_run_id missing", entry["record_id"]));
     assert!(
-        reviewers.contains(&entry["reviewer_run_id"].as_str().unwrap()),
+        reviewers.contains(&reviewer),
         "{}: entry names a reviewer run the manifest does not",
         entry["record_id"]
     );
