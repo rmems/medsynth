@@ -141,8 +141,14 @@ fn names_option(explanation: &str, key: &str) -> bool {
                     .is_none_or(|c| !c.is_alphanumeric())
         })
         .any(|(i, _)| {
-            let rest =
-                lower[i + "option".len()..].trim_start_matches(|c: char| SEPARATORS.contains(&c));
+            // A quote immediately after "option" is a closing quote on the
+            // word itself ('option' a …), not a label opener.
+            const QUOTES: &[char] = &['"', '\'', '‘', '’', '“', '”'];
+            let rest = &lower[i + "option".len()..];
+            if rest.starts_with(QUOTES) {
+                return false;
+            }
+            let rest = rest.trim_start_matches(|c: char| SEPARATORS.contains(&c));
             rest.starts_with(&key)
                 && rest[key.len()..]
                     .chars()

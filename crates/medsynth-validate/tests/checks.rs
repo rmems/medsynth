@@ -245,6 +245,22 @@ fn key_rationale_accepts_quoted_label_reference() {
 }
 
 #[test]
+fn key_rationale_rejects_quoted_option_word_before_label() {
+    // `'option' a` — the article following a quoted word is not a label.
+    let mut r = mcq();
+    for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
+        r["options"][i]["text"] = serde_json::json!(opt);
+    }
+    r["rationale"]["key_explanation"]["text"] =
+        serde_json::json!("ADP is the best 'option' a student should pick.");
+    let findings = findings_for(&[record(Format::Mcq, "quoted-word", r)]);
+    assert!(
+        findings.iter().any(|f| f.check == Check::KeyRationale),
+        "closing quote before 'a' must not pass: {findings:?}"
+    );
+}
+
+#[test]
 fn key_rationale_rejects_sentence_break_before_label() {
     // "option. A ..." crosses a sentence boundary and must not count as a
     // label reference — this rationale favors ADP, not the key A.
