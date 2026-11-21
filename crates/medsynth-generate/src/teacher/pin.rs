@@ -175,8 +175,11 @@ const RESEARCH_ONLY_KEYS: &[&str] = &["claude", "anthropic", "grok", "xai"];
 /// Teacher families approved under the standing distillation rule.
 const APPROVED_FAMILIES: &[&str] = &["deepseek", "nvidia-nemotron", "nemotron"];
 
-fn is_research_only_name(text: &str) -> bool {
-    RESEARCH_ONLY_KEYS.iter().any(|key| text.contains(key))
+fn is_research_only_name(pin: &TeacherPin) -> bool {
+    [&pin.family, &pin.provider].iter().any(|name| {
+        let lowered = name.to_ascii_lowercase();
+        RESEARCH_ONLY_KEYS.iter().any(|key| lowered.contains(key))
+    })
 }
 
 fn require_complete(pin: &TeacherPin) -> Result<(), TeacherError> {
@@ -194,9 +197,7 @@ fn require_teacher_lane(pin: &TeacherPin) -> Result<(), TeacherError> {
     if pin.lane != Some(PinLane::Teacher) {
         return Err(TeacherError::ResearchOnly(pin.pin_id.clone()));
     }
-    let family = pin.family.to_ascii_lowercase();
-    let provider = pin.provider.to_ascii_lowercase();
-    if is_research_only_name(&family) || is_research_only_name(&provider) {
+    if is_research_only_name(pin) {
         return Err(TeacherError::ResearchOnly(pin.pin_id.clone()));
     }
     Ok(())
@@ -266,26 +267,23 @@ fn require_terms(pin: &TeacherPin) -> Result<(), TeacherError> {
 
 fn pin_blocks(text: &str) -> Vec<String> {
     let mut blocks = Vec::new();
-    let mut current: Option<Vec<&str>> = None;
+    let mut current: Vec<&str> = Vec::new();
     for line in text.lines() {
         let is_pin_heading = line.starts_with("### Pin:") || line.starts_with("## Pin:");
         let is_other_heading =
             !is_pin_heading && (line.starts_with("## ") || line.starts_with("### "));
-        if is_pin_heading {
-            if let Some(lines) = current.take() {
-                blocks.push(join_block(&lines));
+        if is_pin_heading || is_other_heading {
+            if !current.is_empty() {
+                blocks.push(join_block(&current));
             }
-            current = Some(vec![line]);
-        } else if is_other_heading {
-            if let Some(lines) = current.take() {
-                blocks.push(join_block(&lines));
-            }
-        } else if let Some(lines) = current.as_mut() {
-            lines.push(line);
+            current.clear();
+        }
+        if is_pin_heading || (!is_other_heading && !current.is_empty()) {
+            current.push(line);
         }
     }
-    if let Some(lines) = current {
-        blocks.push(join_block(&lines));
+    if !current.is_empty() {
+        blocks.push(join_block(&current));
     }
     blocks
 }

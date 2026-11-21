@@ -110,6 +110,7 @@ fn newtons_second_law(rng: &mut SeededRng) -> CalcInstance {
         )],
         params: vec![
             ("mass_kg", u64::from(mass)),
+            ("net_force_n", u64::from(force)),
             ("acceleration_mps2", u64::from(acceleration)),
         ],
     }
@@ -147,6 +148,7 @@ fn half_life(rng: &mut SeededRng) -> CalcInstance {
             ("dose_mg", initial),
             ("half_life_h", half_life_hours),
             ("half_lives", half_lives),
+            ("elapsed_h", elapsed),
         ],
     }
 }
@@ -154,19 +156,20 @@ fn half_life(rng: &mut SeededRng) -> CalcInstance {
 fn three_distractors(correct: u64, candidates: Vec<u64>) -> Vec<u64> {
     let mut out: Vec<u64> = Vec::with_capacity(3);
     for candidate in candidates {
-        if candidate != correct && !out.contains(&candidate) {
-            out.push(candidate);
-        }
+        push_unique(&mut out, candidate, correct);
     }
     let mut bump = 1;
     while out.len() < 3 {
-        let candidate = correct + bump;
-        if !out.contains(&candidate) {
-            out.push(candidate);
-        }
+        push_unique(&mut out, correct + bump, correct);
         bump += 1;
     }
     out
+}
+
+fn push_unique(out: &mut Vec<u64>, candidate: u64, correct: u64) {
+    if candidate != correct && !out.contains(&candidate) {
+        out.push(candidate);
+    }
 }
 
 /// Build a calculation MCQ. Options are shuffled; the key is the label of the

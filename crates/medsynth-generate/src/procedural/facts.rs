@@ -29,150 +29,175 @@ pub struct Fact {
     pub anchors: &'static [(&'static str, &'static str)],
 }
 
+/// One catalog entry. The macro keeps each fact terse while the `Fact`
+/// literal stays the single construction site.
+macro_rules! fact {
+    (
+        $id:literal, $domain:expr, $subdomain:expr, $tier:expr,
+        $stem:literal, $correct:literal,
+        [$($distractor:literal),+ $(,)?],
+        $explain:literal, $refute:literal,
+        [$($anchor:expr),+ $(,)?] $(,)?
+    ) => {
+        Fact {
+            id: $id,
+            domain: $domain,
+            subdomain: $subdomain,
+            tier: $tier,
+            stem: $stem,
+            correct: $correct,
+            distractors: [$($distractor),+],
+            key_explanation: $explain,
+            distractor_refutation: $refute,
+            anchors: &[$($anchor),+],
+        }
+    };
+}
+
 /// The fact catalog. Every anchor cites an approved registry source; the
 /// registry check happens again during self-validation.
 pub const FACTS: &[Fact] = &[
-    Fact {
-        id: "fact.alveolar_epithelium",
-        domain: Domain::Bbf,
-        subdomain: Subdomain::AnimalStructure,
-        tier: Tier::Foundation,
-        stem: "Which epithelial type forms the thin alveolar lining that minimizes the diffusion distance for gas exchange?",
-        correct: "Simple squamous epithelium",
-        distractors: [
+    fact!(
+        "fact.alveolar_epithelium",
+        Domain::Bbf,
+        Subdomain::AnimalStructure,
+        Tier::Foundation,
+        "Which epithelial type forms the thin alveolar lining that minimizes the diffusion distance for gas exchange?",
+        "Simple squamous epithelium",
+        [
             "Simple cuboidal epithelium",
             "Stratified squamous epithelium",
             "Pseudostratified columnar epithelium",
         ],
-        key_explanation: "Simple squamous epithelium is a single layer of flattened cells; its thinness supports rapid diffusion across the alveolar wall.",
-        distractor_refutation: "Simple cuboidal and columnar epithelia are thicker and specialized for secretion or absorption, and stratified squamous epithelium is multilayered and protective rather than optimized for diffusion.",
-        anchors: &[
+        "Simple squamous epithelium is a single layer of flattened cells; its thinness supports rapid diffusion across the alveolar wall.",
+        "Simple cuboidal and columnar epithelia are thicker and specialized for secretion or absorption, and stratified squamous epithelium is multilayered and protective rather than optimized for diffusion.",
+        [
             ("openstax-anatomy-physiology-2e", "sec22.2:the-lungs"),
             ("openstax-anatomy-physiology-2e", "sec4.2:epithelial-tissue"),
-        ],
-    },
-    Fact {
-        id: "fact.ethnocentrism",
-        domain: Domain::Psb,
-        subdomain: Subdomain::CultureIdentity,
-        tier: Tier::Foundation,
-        stem: "A researcher evaluates a community's healing practices by the standards of the researcher's own culture and labels them inferior. This judgment best illustrates:",
-        correct: "Ethnocentrism",
-        distractors: ["Cultural relativism", "Xenocentrism", "Assimilation"],
-        key_explanation: "Ethnocentrism is the practice of judging another culture by the standards of one's own culture.",
-        distractor_refutation: "Cultural relativism instead evaluates a culture by its own standards, xenocentrism favors another culture over one's own, and assimilation describes adoption of a dominant culture's practices.",
-        anchors: &[(
+        ]
+    ),
+    fact!(
+        "fact.ethnocentrism",
+        Domain::Psb,
+        Subdomain::CultureIdentity,
+        Tier::Foundation,
+        "A researcher evaluates a community's healing practices by the standards of the researcher's own culture and labels them inferior. This judgment best illustrates:",
+        "Ethnocentrism",
+        ["Cultural relativism", "Xenocentrism", "Assimilation"],
+        "Ethnocentrism is the practice of judging another culture by the standards of one's own culture.",
+        "Cultural relativism instead evaluates a culture by its own standards, xenocentrism favors another culture over one's own, and assimilation describes adoption of a dominant culture's practices.",
+        [(
             "openstax-introduction-sociology-3e",
             "ch3:elements-of-culture",
-        )],
-    },
-    Fact {
-        id: "fact.diaphragm",
-        domain: Domain::PreClinical,
-        subdomain: Subdomain::Respiratory,
-        tier: Tier::Foundation,
-        stem: "Which muscle is the principal driver of quiet inspiration in a healthy adult?",
-        correct: "Diaphragm",
-        distractors: [
+        )]
+    ),
+    fact!(
+        "fact.diaphragm",
+        Domain::PreClinical,
+        Subdomain::Respiratory,
+        Tier::Foundation,
+        "Which muscle is the principal driver of quiet inspiration in a healthy adult?",
+        "Diaphragm",
+        [
             "External intercostal muscles",
             "Rectus abdominis",
             "Sternocleidomastoid muscles",
         ],
-        key_explanation: "The diaphragm contracts during quiet inspiration, flattening and descending to increase thoracic volume and lower intrathoracic pressure.",
-        distractor_refutation: "External intercostals assist by elevating the ribs, while the rectus abdominis and sternocleidomastoid are accessory or expiratory muscles rather than the principal driver of quiet inspiration.",
-        anchors: &[(
+        "The diaphragm contracts during quiet inspiration, flattening and descending to increase thoracic volume and lower intrathoracic pressure.",
+        "External intercostals assist by elevating the ribs, while the rectus abdominis and sternocleidomastoid are accessory or expiratory muscles rather than the principal driver of quiet inspiration.",
+        [(
             "openstax-anatomy-physiology-2e",
             "sec22.3:the-process-of-breathing",
-        )],
-    },
-    Fact {
-        id: "fact.pulmonary_artery",
-        domain: Domain::PreClinical,
-        subdomain: Subdomain::Cardiovascular,
-        tier: Tier::Foundation,
-        stem: "Which vessel carries deoxygenated blood from the right ventricle toward the lungs?",
-        correct: "Pulmonary artery",
-        distractors: ["Pulmonary vein", "Aorta", "Superior vena cava"],
-        key_explanation: "The pulmonary artery leaves the right ventricle and carries deoxygenated blood to the lungs for gas exchange.",
-        distractor_refutation: "The pulmonary vein returns oxygenated blood to the left atrium, the aorta carries oxygenated blood from the left ventricle, and the superior vena cava returns deoxygenated blood to the right atrium.",
-        anchors: &[
+        )]
+    ),
+    fact!(
+        "fact.pulmonary_artery",
+        Domain::PreClinical,
+        Subdomain::Cardiovascular,
+        Tier::Foundation,
+        "Which vessel carries deoxygenated blood from the right ventricle toward the lungs?",
+        "Pulmonary artery",
+        ["Pulmonary vein", "Aorta", "Superior vena cava"],
+        "The pulmonary artery leaves the right ventricle and carries deoxygenated blood to the lungs for gas exchange.",
+        "The pulmonary vein returns oxygenated blood to the left atrium, the aorta carries oxygenated blood from the left ventricle, and the superior vena cava returns deoxygenated blood to the right atrium.",
+        [
             (
                 "openstax-anatomy-physiology-2e",
                 "sec20.1:structure-and-function-of-blood-vessels",
             ),
             ("openstax-anatomy-physiology-2e", "sec19.1:heart-anatomy"),
-        ],
-    },
-    Fact {
-        id: "fact.osteoclast",
-        domain: Domain::PreClinical,
-        subdomain: Subdomain::Musculoskeletal,
-        tier: Tier::Foundation,
-        stem: "Which bone cell resorbs bone matrix during remodeling?",
-        correct: "Osteoclast",
-        distractors: ["Osteoblast", "Osteocyte", "Chondrocyte"],
-        key_explanation: "Osteoclasts are multinucleated cells that resorb bone matrix during remodeling.",
-        distractor_refutation: "Osteoblasts form new bone matrix, osteocytes maintain bone tissue, and chondrocytes produce cartilage.",
-        anchors: &[("openstax-anatomy-physiology-2e", "sec6.3:bone-structure")],
-    },
-    Fact {
-        id: "fact.posterior_pituitary",
-        domain: Domain::PreClinical,
-        subdomain: Subdomain::Endocrine,
-        tier: Tier::Foundation,
-        stem: "Which hormone is released from the posterior pituitary?",
-        correct: "Antidiuretic hormone",
-        distractors: [
+        ]
+    ),
+    fact!(
+        "fact.osteoclast",
+        Domain::PreClinical,
+        Subdomain::Musculoskeletal,
+        Tier::Foundation,
+        "Which bone cell resorbs bone matrix during remodeling?",
+        "Osteoclast",
+        ["Osteoblast", "Osteocyte", "Chondrocyte"],
+        "Osteoclasts are multinucleated cells that resorb bone matrix during remodeling.",
+        "Osteoblasts form new bone matrix, osteocytes maintain bone tissue, and chondrocytes produce cartilage.",
+        [("openstax-anatomy-physiology-2e", "sec6.3:bone-structure")]
+    ),
+    fact!(
+        "fact.posterior_pituitary",
+        Domain::PreClinical,
+        Subdomain::Endocrine,
+        Tier::Foundation,
+        "Which hormone is released from the posterior pituitary?",
+        "Antidiuretic hormone",
+        [
             "Thyroid-stimulating hormone",
             "Prolactin",
             "Adrenocorticotropic hormone",
         ],
-        key_explanation: "The posterior pituitary releases antidiuretic hormone and oxytocin, which are produced in the hypothalamus.",
-        distractor_refutation: "Thyroid-stimulating hormone, prolactin, and adrenocorticotropic hormone are released from the anterior pituitary.",
-        anchors: &[(
+        "The posterior pituitary releases antidiuretic hormone and oxytocin, which are produced in the hypothalamus.",
+        "Thyroid-stimulating hormone, prolactin, and adrenocorticotropic hormone are released from the anterior pituitary.",
+        [(
             "openstax-anatomy-physiology-2e",
             "sec17.3:the-pituitary-gland-and-hypothalamus",
-        )],
-    },
-    Fact {
-        id: "fact.mitochondrion_atp",
-        domain: Domain::Bbf,
-        subdomain: Subdomain::CellFunction,
-        tier: Tier::Foundation,
-        stem: "Which organelle generates the majority of ATP in an aerobic eukaryotic cell?",
-        correct: "Mitochondrion",
-        distractors: ["Nucleus", "Smooth endoplasmic reticulum", "Lysosome"],
-        key_explanation: "Mitochondria carry out oxidative phosphorylation, which supplies most of the ATP used by aerobic cells.",
-        distractor_refutation: "The nucleus stores genetic information, the smooth endoplasmic reticulum synthesizes lipids and detoxifies, and lysosomes degrade material — none is the primary ATP source.",
-        anchors: &[(
+        )]
+    ),
+    fact!(
+        "fact.mitochondrion_atp",
+        Domain::Bbf,
+        Subdomain::CellFunction,
+        Tier::Foundation,
+        "Which organelle generates the majority of ATP in an aerobic eukaryotic cell?",
+        "Mitochondrion",
+        ["Nucleus", "Smooth endoplasmic reticulum", "Lysosome"],
+        "Mitochondria carry out oxidative phosphorylation, which supplies most of the ATP used by aerobic cells.",
+        "The nucleus stores genetic information, the smooth endoplasmic reticulum synthesizes lipids and detoxifies, and lysosomes degrade material — none is the primary ATP source.",
+        [(
             "mol-bio-cell-7e",
             "ch14:electron-transport-oxidative-phosphorylation",
-        )],
-    },
-    Fact {
-        id: "fact.si_unit_force",
-        domain: Domain::Cpf,
-        subdomain: Subdomain::Mechanics,
-        tier: Tier::Foundation,
-        stem: "What is the SI unit of force?",
-        correct: "Newton",
-        distractors: ["Joule", "Pascal", "Watt"],
-        key_explanation: "The newton is the SI unit of force, defined as one kilogram-meter per second squared.",
-        distractor_refutation: "The joule is the SI unit of energy, the pascal is the unit of pressure, and the watt is the unit of power.",
-        anchors: &[("openstax-university-physics-2016", "vol1:ch5:newtons-laws")],
-    },
-    Fact {
-        id: "fact.fundamental_attribution",
-        domain: Domain::Psb,
-        subdomain: Subdomain::Psychology,
-        tier: Tier::Foundation,
-        stem: "An observer attributes a coworker's missed deadline to laziness while overlooking the coworker's heavy workload. The observer's judgment best illustrates:",
-        correct: "Fundamental attribution error",
-        distractors: ["Self-serving bias", "Halo effect", "Just-world hypothesis"],
-        key_explanation: "The fundamental attribution error is the tendency to overestimate dispositional explanations and underestimate situational ones for others' behavior.",
-        distractor_refutation: "Self-serving bias applies to explanations of one's own behavior, the halo effect generalizes a single positive trait to the whole person, and the just-world hypothesis assumes people get what they deserve.",
-        anchors: &[("myers-psychology-14e", "ch18:attribution-theory")],
-    },
+        )]
+    ),
+    fact!(
+        "fact.si_unit_force",
+        Domain::Cpf,
+        Subdomain::Mechanics,
+        Tier::Foundation,
+        "What is the SI unit of force?",
+        "Newton",
+        ["Joule", "Pascal", "Watt"],
+        "The newton is the SI unit of force, defined as one kilogram-meter per second squared.",
+        "The joule is the SI unit of energy, the pascal is the unit of pressure, and the watt is the unit of power.",
+        [("openstax-university-physics-2016", "vol1:ch5:newtons-laws")]
+    ),
+    fact!(
+        "fact.fundamental_attribution",
+        Domain::Psb,
+        Subdomain::Psychology,
+        Tier::Foundation,
+        "An observer attributes a coworker's missed deadline to laziness while overlooking the coworker's heavy workload. The observer's judgment best illustrates:",
+        "Fundamental attribution error",
+        ["Self-serving bias", "Halo effect", "Just-world hypothesis"],
+        "The fundamental attribution error is the tendency to overestimate dispositional explanations and underestimate situational ones for others' behavior.",
+        "Self-serving bias applies to explanations of one's own behavior, the halo effect generalizes a single positive trait to the whole person, and the just-world hypothesis assumes people get what they deserve.",
+        [("myers-psychology-14e", "ch18:attribution-theory")]
+    ),
 ];
 
 impl Fact {

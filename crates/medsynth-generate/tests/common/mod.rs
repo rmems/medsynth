@@ -28,6 +28,7 @@ pub fn plan_paths(config: &Path) -> PlanPaths {
         teachers: root.join("docs/teachers.md"),
         schemas: root.join("schemas"),
         gold: root.join("data/gold"),
+        data: root.join("data"),
     }
 }
 

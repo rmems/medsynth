@@ -160,6 +160,24 @@ fn check_invariants(record: &GeneratedRecord, context: &ValidationContext<'_>) -
             check_teacher_provenance(provenance, pin, prompt_version, &mut errors);
         }
     }
+    check_anchors(record, context, &mut errors);
+    if !taxonomy_versions_ok(record) {
+        errors.push(format!(
+            "taxonomy_version must be `{}` and contract_version must be `{}`",
+            crate::TAXONOMY_VERSION,
+            crate::CONTRACT_VERSION
+        ));
+    }
+    errors
+}
+
+/// Anchor receipts: locators must be non-blank and registry-resolved; teacher
+/// drafts may only cite the cell's approved anchor list.
+fn check_anchors(
+    record: &GeneratedRecord,
+    context: &ValidationContext<'_>,
+    errors: &mut Vec<String>,
+) {
     let mut seen = BTreeSet::new();
     for (source_id, locator) in record.anchors() {
         if locator.trim().is_empty() {
@@ -179,14 +197,6 @@ fn check_invariants(record: &GeneratedRecord, context: &ValidationContext<'_>) -
             ));
         }
     }
-    if !taxonomy_versions_ok(record) {
-        errors.push(format!(
-            "taxonomy_version must be `{}` and contract_version must be `{}`",
-            crate::TAXONOMY_VERSION,
-            crate::CONTRACT_VERSION
-        ));
-    }
-    errors
 }
 
 fn taxonomy_versions_ok(record: &GeneratedRecord) -> bool {

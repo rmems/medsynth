@@ -227,80 +227,96 @@ fn teacher_lane_refuses_without_credentials() {
     }
 }
 
-#[test]
-fn recorded_fixtures_parse_into_valid_unverified_records() {
+/// A recorded teacher completion parses, builds, and validates as an
+/// unverified draft with full provenance.
+fn assert_fixture_record(
+    format: Format,
+    fixture: &str,
+    cell: &TargetCell,
+    allow: &BTreeSet<(String, String)>,
+    index: usize,
+) {
     let pins = docs_pins();
     let pin = pins.ensure_teacher("deepseek-v4.1-flash").unwrap();
+    let content = parse_completion_json(format, &fixture_content(fixture)).unwrap();
+    let id = RecordId::new(format!("draft-fixture-{index}-000")).unwrap();
+    let stamp = RecordStamp {
+        id,
+        pin,
+        prompt_version: "teacher-draft-v1",
+    };
+    let record = build_record(format, content, cell, &stamp).unwrap();
+    assert_eq!(
+        record.verification_status(),
+        medsynth_schema::VerificationStatus::Unverified
+    );
+    assert_eq!(
+        record.provenance().model.as_deref(),
+        Some(pin.variant.as_str())
+    );
+    assert_eq!(
+        record.provenance().prompt_version.as_deref(),
+        Some("teacher-draft-v1")
+    );
+    assert_eq!(record.provenance().generator, "teacher-pipeline-v1");
+    validate_teacher(format, &record, pin, allow);
+}
 
-    let cases = [
-        (
+#[test]
+fn mcq_fixture_parses_into_a_valid_unverified_record() {
+    assert_fixture_record(
+        Format::Mcq,
+        "mcq_response.json",
+        &teacher_cell(
+            Domain::Bbf,
             Format::Mcq,
-            "mcq_response.json",
-            teacher_cell(
-                Domain::Bbf,
-                Format::Mcq,
-                Tier::Foundation,
-                Subdomain::AnimalStructure,
-            ),
-            allowlist(&[
-                ("openstax-anatomy-physiology-2e", "sec22.2:the-lungs"),
-                ("openstax-anatomy-physiology-2e", "sec4.2:epithelial-tissue"),
-            ]),
+            Tier::Foundation,
+            Subdomain::AnimalStructure,
         ),
-        (
-            Format::CaseVignette,
-            "vignette_response.json",
-            teacher_cell(
-                Domain::PreClinical,
-                Format::CaseVignette,
-                Tier::Application,
-                Subdomain::Endocrine,
-            ),
-            allowlist(&[
-                (
-                    "openstax-anatomy-physiology-2e",
-                    "sec17.3:the-pituitary-gland-and-hypothalamus",
-                ),
-                ("openstax-anatomy-physiology-2e", "sec26.2:water-balance"),
-            ]),
-        ),
-        (
-            Format::TutoringExample,
-            "tutoring_response.json",
-            teacher_cell(
-                Domain::Bbf,
-                Format::TutoringExample,
-                Tier::Foundation,
-                Subdomain::AnimalStructure,
-            ),
-            allowlist(&[("openstax-anatomy-physiology-2e", "sec22.2:the-lungs")]),
-        ),
-    ];
+        &allowlist(&[
+            ("openstax-anatomy-physiology-2e", "sec22.2:the-lungs"),
+            ("openstax-anatomy-physiology-2e", "sec4.2:epithelial-tissue"),
+        ]),
+        0,
+    );
+}
 
-    for (index, (format, fixture, cell, allow)) in cases.into_iter().enumerate() {
-        let content = parse_completion_json(format, &fixture_content(fixture)).unwrap();
-        let id = RecordId::new(format!("draft-fixture-{index}-000")).unwrap();
-        let stamp = RecordStamp {
-            id,
-            pin,
-            prompt_version: "teacher-draft-v1",
-        };
-        let record = build_record(format, content, &cell, &stamp).unwrap();
-        assert_eq!(
-            record.verification_status(),
-            medsynth_schema::VerificationStatus::Unverified
-        );
-        assert_eq!(
-            record.provenance().model.as_deref(),
-            Some(pin.variant.as_str())
-        );
-        assert_eq!(
-            record.provenance().prompt_version.as_deref(),
-            Some("teacher-draft-v1")
-        );
-        assert_eq!(record.provenance().generator, "teacher-pipeline-v1");
-        validate_teacher(format, &record, pin, &allow);
-    }
+#[test]
+fn vignette_fixture_parses_into_a_valid_unverified_record() {
+    assert_fixture_record(
+        Format::CaseVignette,
+        "vignette_response.json",
+        &teacher_cell(
+            Domain::PreClinical,
+            Format::CaseVignette,
+            Tier::Application,
+            Subdomain::Endocrine,
+        ),
+        &allowlist(&[
+            (
+                "openstax-anatomy-physiology-2e",
+                "sec17.3:the-pituitary-gland-and-hypothalamus",
+            ),
+            ("openstax-anatomy-physiology-2e", "sec26.2:water-balance"),
+        ]),
+        1,
+    );
+}
+
+#[test]
+fn tutoring_fixture_parses_into_a_valid_unverified_record() {
+    assert_fixture_record(
+        Format::TutoringExample,
+        "tutoring_response.json",
+        &teacher_cell(
+            Domain::Bbf,
+            Format::TutoringExample,
+            Tier::Foundation,
+            Subdomain::AnimalStructure,
+        ),
+        &allowlist(&[("openstax-anatomy-physiology-2e", "sec22.2:the-lungs")]),
+        2,
+    );
 }
 
 #[test]

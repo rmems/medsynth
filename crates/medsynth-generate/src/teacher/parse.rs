@@ -132,11 +132,19 @@ fn extract_json(content: &str) -> Result<String, TeacherError> {
             .or_else(|| rest.strip_prefix("JSON"))
             .unwrap_or(rest);
         let rest = rest.trim_start();
-        let Some(end) = rest.find("```") else {
+        // The closing fence must start a line — fence-like text inside JSON
+        // string values is content, not a delimiter. Everything after it must
+        // be whitespace, so a second fenced draft rejects the completion.
+        let Some(end) = rest.find("\n```") else {
             return Err(TeacherError::Parse(
                 "unterminated markdown fence in teacher output".to_owned(),
             ));
         };
+        if !rest[end + 1..].trim_start_matches('`').trim().is_empty() {
+            return Err(TeacherError::Parse(
+                "teacher output has content after the closing fence".to_owned(),
+            ));
+        }
         return single_json(&rest[..end]);
     }
     if text.starts_with('{') {

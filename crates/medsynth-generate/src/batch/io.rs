@@ -2,8 +2,10 @@
 //!
 //! Drafts are staged to `<name>.tmp` and renamed over the previous file so an
 //! interrupted write can never leave a half-written shard or manifest behind.
-//! Shards for formats this batch did not produce are removed — a stale shard
-//! from an earlier run must not masquerade as part of the new batch.
+//! Shards for formats this batch attempted but did not produce are removed —
+//! a stale shard from an earlier run must not masquerade as part of the new
+//! batch. Formats the run never attempted (e.g. a refused teacher lane) keep
+//! their existing shards untouched.
 //!
 //! The output directory is fail-closed against `data/`: drafts never enter
 //! `data/gold/` or the admitted-record tree. The check resolves the output
@@ -50,8 +52,10 @@ impl BatchOutput {
                     written.push(path);
                 }
                 None => {
-                    // Drop a stale shard from an earlier run of this directory.
-                    if path.exists() {
+                    // Drop a stale shard only when this run actually attempted
+                    // the format: a refused lane must not erase drafts an
+                    // earlier successful run published.
+                    if path.exists() && self.attempted_formats.contains(&format) {
                         std::fs::remove_file(&path)
                             .map_err(|e| GenerateError::io(path.clone(), e))?;
                     }
@@ -76,7 +80,12 @@ pub fn check_output_dir(paths: &PlanPaths, out_dir: &Path) -> Result<(), Generat
 fn check_protected(out_dir: &Path, protected: &[PathBuf]) -> Result<(), GenerateError> {
     let resolved = resolve_under_existing(out_dir);
     for dir in protected {
-        let protected = dir.canonicalize().unwrap_or_else(|_| dir.clone());
+        // Canonicalize when the dir exists; otherwise resolve through its
+        // deepest existing ancestor so a not-yet-created `data/` still
+        // protects.
+        let protected = dir
+            .canonicalize()
+            .unwrap_or_else(|_| resolve_under_existing(dir));
         if resolved == protected || resolved.starts_with(&protected) {
             return Err(GenerateError::Config(format!(
                 "refusing to write drafts under `data/` (got `{}` resolving into `{}`); admitted records belong in data/<format>/ only after #9",
@@ -131,12 +140,12 @@ fn normalize_path(path: &Path) -> PathBuf {
 }
 
 /// Write via a sibling temp file and rename, so readers never see a
-/// partially written shard or manifest.
+/// partially written shard or manifest. `std::fs::rename` replaces an
+/// existing destination atomically on both Unix and Windows
+/// (MOVEFILE_REPLACE_EXISTING); a separate delete step would reopen a
+/// missing-file window.
 fn atomic_write(path: &Path, text: &str) -> Result<(), GenerateError> {
     let tmp = path.with_extension("tmp");
     std::fs::write(&tmp, text).map_err(|e| GenerateError::io(tmp.clone(), e))?;
-    if path.exists() {
-        std::fs::remove_file(path).map_err(|e| GenerateError::io(path.to_path_buf(), e))?;
-    }
     std::fs::rename(&tmp, path).map_err(|e| GenerateError::io(tmp.clone(), e))
 }

@@ -5,8 +5,8 @@
 use std::collections::BTreeSet;
 
 use crate::batch::{
-    BatchPlan, BatchSinks, Budget, CellOutcome, FailedAttempt, ProducedDraft, anchor_pack,
-    cell_report, cell_status,
+    BatchPlan, BatchSinks, Budget, CellOutcome, FailedAttempt, OutputRecord, ProducedDraft,
+    TeacherStats, anchor_pack, cell_report, cell_status,
 };
 use crate::config::{Lane, TargetCell, TeacherSelection};
 use crate::error::GenerateError;
@@ -15,8 +15,8 @@ use crate::procedural;
 use crate::record::record_id_for;
 use crate::rng::SeededRng;
 use crate::teacher::{
-    BuiltPrompt, PreparedTeacher, RecordStamp, TeacherClient, TeacherError, TeacherRequest,
-    build_prompt, completion_tokens, parse_completion_json,
+    BuiltPrompt, PreparedTeacher, RecordStamp, TeacherClient, TeacherCompletion, TeacherError,
+    TeacherRequest, build_prompt, completion_tokens, parse_completion_json,
 };
 use crate::validate::{ExpectedProvenance, ValidationContext};
 
@@ -54,9 +54,11 @@ pub(super) fn run_procedural_cell(
         match procedural_attempt(ctx, template, ctx.budget.attempt_base + index) {
             Ok(draft) => {
                 sinks.push_written(
-                    draft.record,
-                    draft.raw,
-                    Lane::Procedural,
+                    OutputRecord {
+                        record: draft.record,
+                        raw: draft.raw,
+                        lane: Lane::Procedural,
+                    },
                     &ctx.plan.registry,
                 )?;
                 produced += 1;
@@ -131,21 +133,54 @@ fn procedural_attempt(
 
 /// Run the teacher lane for one cell.
 ///
-/// A run where every dispatched request fails at transport is a lane error,
-/// not an empty batch: it is surfaced so the CLI exits nonzero.
+/// Transport counters accumulate lane-wide: a cell whose attempts all failed
+/// at transport does not stop the next cell — the lane fails only when every
+/// request across the run fails at transport (see `finish_teacher_report`).
 pub(super) fn run_teacher_cell(
     ctx: &CellCtx<'_>,
     teacher: &TeacherCtx<'_>,
     sinks: &mut BatchSinks,
-    teacher_error: &mut Option<TeacherError>,
+    stats: &mut TeacherStats,
 ) -> Result<CellReport, GenerateError> {
+    let cell = ctx.cell;
+    let setup = match teacher_setup(ctx) {
+        Ok(setup) => setup,
+        Err(error) => {
+            stats.error = Some(error);
+            return Ok(crate::batch::refused_report(cell, ctx.budget, "lane_error"));
+        }
+    };
+    let (produced, cell_dropped) = dispatch_teacher_attempts(ctx, teacher, &setup, sinks, stats)?;
+    Ok(cell_report(
+        cell,
+        ctx.budget,
+        CellOutcome {
+            lane: "teacher",
+            dispatched: ctx.budget.dispatch,
+            produced,
+            dropped: cell_dropped,
+            status: cell_status(ctx.budget, produced, cell_dropped),
+        },
+    ))
+}
+
+/// Everything a teacher cell needs to dispatch requests.
+struct TeacherSetup<'a> {
+    selection: &'a TeacherSelection,
+    allowlist: BTreeSet<(String, String)>,
+    prompt: BuiltPrompt,
+}
+
+/// Build the anchor pack, allowlist, and prompt for the cell. A prompt-build
+/// failure is reported as a lane error by the caller.
+fn teacher_setup<'a>(ctx: &'a CellCtx<'a>) -> Result<TeacherSetup<'a>, TeacherError> {
     let cell = ctx.cell;
     let selection = ctx
         .plan
         .config
         .teacher
         .as_ref()
-        .ok_or_else(|| GenerateError::Config("teacher selection missing".to_owned()))?;
+        .ok_or_else(|| TeacherError::Parse("teacher selection missing".to_owned()))?;
     let anchors = anchor_pack(ctx.plan, cell);
     let allowlist: BTreeSet<(String, String)> = anchors
         .iter()
@@ -155,31 +190,45 @@ pub(super) fn run_teacher_cell(
         ctx.plan
             .gold
             .exemplars(cell.format, cell.domain, selection.exemplars_per_prompt);
-    let prompt = match build_prompt(cell, &anchors, &exemplars, selection) {
-        Ok(prompt) => prompt,
-        Err(error) => {
-            *teacher_error = Some(error);
-            return Ok(crate::batch::refused_report(cell, ctx.budget, "lane_error"));
-        }
-    };
+    let prompt = build_prompt(cell, &anchors, &exemplars, selection)?;
+    Ok(TeacherSetup {
+        selection,
+        allowlist,
+        prompt,
+    })
+}
 
-    let mut dispatched = 0u32;
+/// Dispatch every attempt the budget allows, folding outcomes into the sinks
+/// and the lane-wide transport counters. Returns (produced, dropped).
+fn dispatch_teacher_attempts(
+    ctx: &CellCtx<'_>,
+    teacher: &TeacherCtx<'_>,
+    setup: &TeacherSetup<'_>,
+    sinks: &mut BatchSinks,
+    stats: &mut TeacherStats,
+) -> Result<(u32, u32), GenerateError> {
     let mut produced = 0u32;
     let mut cell_dropped = 0u32;
-    let mut transport_failures = 0u32;
     for index in 0..ctx.budget.dispatch {
-        dispatched += 1;
+        stats.dispatched += 1;
         let attempt = AttemptCtx {
             cell_ctx: ctx,
             attempt: ctx.budget.attempt_base + index,
             teacher,
-            selection,
-            prompt: &prompt,
-            allowlist: &allowlist,
+            selection: setup.selection,
+            prompt: &setup.prompt,
+            allowlist: &setup.allowlist,
         };
         match teacher_attempt(&attempt) {
             Ok(draft) => {
-                sinks.push_written(draft.record, draft.raw, Lane::Teacher, &ctx.plan.registry)?;
+                sinks.push_written(
+                    OutputRecord {
+                        record: draft.record,
+                        raw: draft.raw,
+                        lane: Lane::Teacher,
+                    },
+                    &ctx.plan.registry,
+                )?;
                 if let Some(envelope) = draft.envelope {
                     sinks.envelopes.push(envelope);
                 }
@@ -187,29 +236,14 @@ pub(super) fn run_teacher_cell(
             }
             Err(failure) => {
                 if failure.stage == "teacher_transport" {
-                    transport_failures += 1;
+                    stats.transport_failures += 1;
                 }
-                sinks.drop_draft(cell, Lane::Teacher, failure);
+                sinks.drop_draft(ctx.cell, Lane::Teacher, failure);
                 cell_dropped += 1;
             }
         }
     }
-    if dispatched > 0 && transport_failures == dispatched {
-        *teacher_error = Some(TeacherError::Transport(format!(
-            "all {dispatched} teacher requests failed at transport"
-        )));
-    }
-    Ok(cell_report(
-        cell,
-        ctx.budget,
-        CellOutcome {
-            lane: "teacher",
-            dispatched,
-            produced,
-            dropped: cell_dropped,
-            status: cell_status(ctx.budget, produced, cell_dropped),
-        },
-    ))
+    Ok((produced, cell_dropped))
 }
 
 /// Inputs one teacher attempt needs, bundled to keep the signature small.
@@ -222,19 +256,39 @@ struct AttemptCtx<'a> {
     allowlist: &'a BTreeSet<(String, String)>,
 }
 
-fn teacher_attempt(ctx: &AttemptCtx<'_>) -> Result<ProducedDraft, FailedAttempt> {
-    let fail = |id, stage, reasons: Vec<String>| FailedAttempt {
-        id,
-        stage,
-        self_validation: matches!(stage, "self_validation" | "rights_envelope"),
-        reasons,
-    };
-    let cell = ctx.cell_ctx.cell;
-    let plan = ctx.cell_ctx.plan;
-    let id = record_id_for(plan.config.seed, cell, ctx.attempt)
-        .map_err(|e| fail(None, "generation", vec![format!("record id: {e}")]))?;
-    let id_text = id.as_str().to_owned();
+impl AttemptCtx<'_> {
+    fn fail(&self, id: Option<String>, stage: &'static str, reasons: Vec<String>) -> FailedAttempt {
+        FailedAttempt {
+            id,
+            stage,
+            self_validation: matches!(stage, "self_validation" | "rights_envelope"),
+            reasons,
+        }
+    }
+}
 
+fn teacher_attempt(ctx: &AttemptCtx<'_>) -> Result<ProducedDraft, FailedAttempt> {
+    let cell = ctx.cell_ctx.cell;
+    let id = record_id_for(ctx.cell_ctx.plan.config.seed, cell, ctx.attempt)
+        .map_err(|e| ctx.fail(None, "generation", vec![format!("record id: {e}")]))?;
+    let completion = request_completion(ctx, id.as_str())?;
+    let content = parse_completion_json(cell.format, &completion.content).map_err(|e| {
+        ctx.fail(
+            Some(id.as_str().to_owned()),
+            "teacher_parse",
+            vec![e.to_string()],
+        )
+    })?;
+    finalize_draft(ctx, id, content, completion.served_model.as_deref())
+}
+
+/// Dispatch the request. Transport failures (network/HTTP) stay distinct from
+/// response-shape failures like `MissingContent` so only real transport
+/// outages count toward the lane failure check.
+fn request_completion(
+    ctx: &AttemptCtx<'_>,
+    id_text: &str,
+) -> Result<TeacherCompletion, FailedAttempt> {
     let request = TeacherRequest {
         model: ctx.teacher.prepared.pin().model_id.clone(),
         system: ctx.prompt.system.clone(),
@@ -243,16 +297,17 @@ fn teacher_attempt(ctx: &AttemptCtx<'_>) -> Result<ProducedDraft, FailedAttempt>
         temperature: ctx.selection.temperature,
     };
     let completion = ctx.teacher.client.complete(&request).map_err(|e| {
-        fail(
-            Some(id_text.clone()),
-            "teacher_transport",
-            vec![e.to_string()],
-        )
+        let stage = if matches!(e, TeacherError::Transport(_)) {
+            "teacher_transport"
+        } else {
+            "teacher_response"
+        };
+        ctx.fail(Some(id_text.to_owned()), stage, vec![e.to_string()])
     })?;
     let actual_tokens = completion_tokens(&completion.content);
     if actual_tokens > ctx.selection.max_output_tokens {
-        return Err(fail(
-            Some(id_text),
+        return Err(ctx.fail(
+            Some(id_text.to_owned()),
             "teacher_budget",
             vec![format!(
                 "completion used {actual_tokens} tokens; limit {}",
@@ -260,30 +315,42 @@ fn teacher_attempt(ctx: &AttemptCtx<'_>) -> Result<ProducedDraft, FailedAttempt>
             )],
         ));
     }
-    let content = parse_completion_json(cell.format, &completion.content)
-        .map_err(|e| fail(Some(id_text.clone()), "teacher_parse", vec![e.to_string()]))?;
+    Ok(completion)
+}
+
+/// Build the record from parsed content, wrap it in a rights envelope, and
+/// self-validate before it may be written.
+fn finalize_draft(
+    ctx: &AttemptCtx<'_>,
+    id: medsynth_schema::RecordId,
+    content: crate::teacher::TeacherContent,
+    served_model: Option<&str>,
+) -> Result<ProducedDraft, FailedAttempt> {
+    let cell = ctx.cell_ctx.cell;
+    let plan = ctx.cell_ctx.plan;
     let stamp = RecordStamp {
         id,
         pin: ctx.teacher.prepared.pin(),
         prompt_version: &ctx.prompt.prompt_version,
     };
-    let record = crate::teacher::build_record(cell.format, content, cell, &stamp)
-        .map_err(|e| fail(Some(id_text.clone()), "teacher_parse", vec![e.to_string()]))?;
+    let record = crate::teacher::build_record(cell.format, content, cell, &stamp).map_err(|e| {
+        ctx.fail(
+            Some(stamp.id.as_str().to_owned()),
+            "teacher_parse",
+            vec![e.to_string()],
+        )
+    })?;
     let raw = record.to_json_string().map_err(|e| {
-        fail(
+        ctx.fail(
             Some(record.id().as_str().to_owned()),
             "generation",
             vec![format!("serialize: {e}")],
         )
     })?;
     let record_id = record.id().as_str().to_owned();
-    let envelope = RightsEnvelope::build(
-        &record_id,
-        &raw,
-        ctx.teacher.prepared.pin(),
-        completion.served_model.as_deref(),
-    )
-    .map_err(|reason| fail(Some(record_id.clone()), "rights_envelope", vec![reason]))?;
+    let envelope =
+        RightsEnvelope::build(&record_id, &raw, ctx.teacher.prepared.pin(), served_model)
+            .map_err(|reason| ctx.fail(Some(record_id.clone()), "rights_envelope", vec![reason]))?;
     let context = ValidationContext {
         expected: ExpectedProvenance::Teacher {
             pin: ctx.teacher.prepared.pin(),
@@ -294,7 +361,7 @@ fn teacher_attempt(ctx: &AttemptCtx<'_>) -> Result<ProducedDraft, FailedAttempt>
     };
     plan.validator
         .validate_raw(cell.format, &raw, &context)
-        .map_err(|errors| fail(Some(record_id), "self_validation", errors))?;
+        .map_err(|errors| ctx.fail(Some(record_id), "self_validation", errors))?;
     Ok(ProducedDraft {
         record,
         raw,

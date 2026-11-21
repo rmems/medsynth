@@ -12,7 +12,7 @@ use serde_json::Value;
 
 use crate::error::GenerateError;
 use crate::format::Format;
-use crate::hash::sha256_hex;
+use crate::hash::{normalize_newlines, sha256_hex};
 use crate::matrix::domain_slug;
 
 /// Gold records keyed by format, plus a content hash so a batch manifest can
@@ -37,7 +37,9 @@ impl GoldCorpus {
                 std::fs::read_to_string(&path).map_err(|e| GenerateError::io(path.clone(), e))?;
             let records = parse_shard(&path, &text)?;
             material.push_str(format.slug());
-            material.push_str(&sha256_hex(text.as_bytes()));
+            // Hash normalized text so CRLF checkouts don't change the corpus
+            // hash (and therefore the batch id) for identical records.
+            material.push_str(&sha256_hex(normalize_newlines(&text).as_bytes()));
             shards.insert(format, records);
         }
         Ok(Self {

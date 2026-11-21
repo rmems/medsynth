@@ -142,85 +142,109 @@ impl RunConfig {
             if !seen.insert(cell.key()) {
                 errors.push(format!("duplicate target cell `{}`", cell.label()));
             }
-            if cell.subdomain.parent_domain() != cell.domain {
-                errors.push(format!(
-                    "cell `{}`: subdomain `{}` does not belong to domain `{}`",
-                    cell.label(),
-                    cell.subdomain_slug(),
-                    domain_slug(cell.domain)
-                ));
-            }
-            if cell.count == 0 {
-                errors.push(format!("cell `{}`: count must be positive", cell.label()));
-            }
-            match matrix.target(cell.key()) {
-                Some(target) => {
-                    // The matrix target is admitted fill, not a draft ceiling:
-                    // rejected drafts may be replaced up to 3× the target. A
-                    // request larger than the whole 3× budget can never be
-                    // dispatched, so reject it rather than silently truncating
-                    // most of it.
-                    let cap = target.saturating_mul(3);
-                    if cell.count > cap {
-                        errors.push(format!(
-                            "cell `{}`: requested {} drafts exceeds the 3× budget cap {cap}",
-                            cell.label(),
-                            cell.count
-                        ));
-                    }
-                }
-                None => errors.push(format!(
-                    "cell `{}` is not in the taxonomy §5 matrix",
-                    cell.label()
-                )),
-            }
-            match cell.lane {
-                Lane::Procedural => {
-                    if !cell.format.procedural() {
-                        errors.push(format!(
-                            "cell `{}`: procedural lane only produces `mcq` drafts",
-                            cell.label()
-                        ));
-                    }
-                    if cell.template.as_deref().is_none_or(str::is_empty) {
-                        errors.push(format!(
-                            "cell `{}`: procedural lane needs a template id",
-                            cell.label()
-                        ));
-                    }
-                }
-                Lane::Teacher => {
-                    if cell.template.is_some() {
-                        errors.push(format!(
-                            "cell `{}`: teacher lane must not set a procedural template",
-                            cell.label()
-                        ));
-                    }
-                }
-            }
+            cell.check_shape(&mut errors);
+            cell.check_matrix(matrix, &mut errors);
+            cell.check_lane(&mut errors);
         }
+        self.check_teacher(&mut errors);
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+
+    fn check_teacher(&self, errors: &mut Vec<String>) {
         let needs_teacher = self.cells.iter().any(|c| c.lane == Lane::Teacher);
         if needs_teacher && self.teacher.is_none() {
             errors.push("teacher cells are configured but `teacher` is absent".to_owned());
         }
         if let Some(teacher) = &self.teacher {
-            if teacher.pin_id.trim().is_empty() {
-                errors.push("teacher.pin_id must not be blank".to_owned());
+            teacher.check(errors);
+        }
+    }
+}
+
+impl TargetCell {
+    fn check_shape(&self, errors: &mut Vec<String>) {
+        if self.subdomain.parent_domain() != self.domain {
+            errors.push(format!(
+                "cell `{}`: subdomain `{}` does not belong to domain `{}`",
+                self.label(),
+                self.subdomain_slug(),
+                domain_slug(self.domain)
+            ));
+        }
+        if self.count == 0 {
+            errors.push(format!("cell `{}`: count must be positive", self.label()));
+        }
+    }
+
+    fn check_matrix(&self, matrix: &CoverageMatrix, errors: &mut Vec<String>) {
+        match matrix.target(self.key()) {
+            Some(target) => {
+                // The matrix target is admitted fill, not a draft ceiling:
+                // rejected drafts may be replaced up to 3× the target. A
+                // request larger than the whole 3× budget can never be
+                // dispatched, so reject it rather than silently truncating
+                // most of it.
+                let cap = target.saturating_mul(3);
+                if self.count > cap {
+                    errors.push(format!(
+                        "cell `{}`: requested {} drafts exceeds the 3× budget cap {cap}",
+                        self.label(),
+                        self.count
+                    ));
+                }
             }
-            if teacher.prompt_version.trim().is_empty() {
-                errors.push("teacher.prompt_version must not be blank".to_owned());
+            None => errors.push(format!(
+                "cell `{}` is not in the taxonomy §5 matrix",
+                self.label()
+            )),
+        }
+    }
+
+    fn check_lane(&self, errors: &mut Vec<String>) {
+        match self.lane {
+            Lane::Procedural => {
+                if !self.format.procedural() {
+                    errors.push(format!(
+                        "cell `{}`: procedural lane only produces `mcq` drafts",
+                        self.label()
+                    ));
+                }
+                if self.template.as_deref().is_none_or(str::is_empty) {
+                    errors.push(format!(
+                        "cell `{}`: procedural lane needs a template id",
+                        self.label()
+                    ));
+                }
             }
-            if teacher.max_prompt_tokens == 0 || teacher.max_output_tokens == 0 {
-                errors.push("teacher token budgets must be positive".to_owned());
-            }
-            if !(0.0..=2.0).contains(&teacher.temperature) {
-                errors.push("teacher.temperature must be between 0 and 2".to_owned());
+            Lane::Teacher => {
+                if self.template.is_some() {
+                    errors.push(format!(
+                        "cell `{}`: teacher lane must not set a procedural template",
+                        self.label()
+                    ));
+                }
             }
         }
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
+    }
+}
+
+impl TeacherSelection {
+    fn check(&self, errors: &mut Vec<String>) {
+        if self.pin_id.trim().is_empty() {
+            errors.push("teacher.pin_id must not be blank".to_owned());
+        }
+        if self.prompt_version.trim().is_empty() {
+            errors.push("teacher.prompt_version must not be blank".to_owned());
+        }
+        if self.max_prompt_tokens == 0 || self.max_output_tokens == 0 {
+            errors.push("teacher token budgets must be positive".to_owned());
+        }
+        if !(0.0..=2.0).contains(&self.temperature) {
+            errors.push("teacher.temperature must be between 0 and 2".to_owned());
         }
     }
 }

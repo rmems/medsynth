@@ -12,7 +12,7 @@ use medsynth_generate::record::record_id_for;
 use medsynth_generate::rng::SeededRng;
 use medsynth_generate::{Format, GeneratedRecord, TargetCell, load_plan, procedural};
 use medsynth_schema::{Domain, McqRecord, Subdomain, Tier, VerificationStatus};
-use serde_json::json;
+use serde_json::{Value, json};
 
 fn cell(domain: Domain, tier: Tier, subdomain: Subdomain, template: &str) -> TargetCell {
     TargetCell {
@@ -240,26 +240,33 @@ fn provenance_is_complete_and_receipts_cover_every_anchor() {
     }
 }
 
-#[test]
-fn budget_cap_limits_dispatch_and_escalates() {
-    let capped = json!({
+fn budget_cell_config(count: u64, resolved: u64, in_flight: u64) -> Value {
+    json!({
         "seed": 7u64,
         "cells": [{
             "domain": "bbf",
             "format": "mcq",
             "tier": "foundation",
-            "count": 18,
+            "count": count,
             "lane": "procedural",
             "template": "fact.alveolar_epithelium",
             "subdomain": "animal_structure",
-            "resolved_attempts": 30,
-            "in_flight_attempts": 10
+            "resolved_attempts": resolved,
+            "in_flight_attempts": in_flight
         }]
-    });
-    let dir = TempDir::new("budget-capped");
-    let config = write_config(&dir, &capped);
+    })
+}
+
+fn run_budget_cell(config: &Value, name: &str) -> medsynth_generate::batch::BatchOutput {
+    let dir = TempDir::new(name);
+    let config = write_config(&dir, config);
     let plan = load_plan(&plan_paths(&config), None).unwrap();
-    let output = run_all(&plan);
+    run_all(&plan)
+}
+
+#[test]
+fn budget_cap_limits_dispatch_to_remaining_attempts() {
+    let output = run_budget_cell(&budget_cell_config(18, 30, 10), "budget-capped");
     let cell = &output.manifest.cells[0];
     assert_eq!(cell.matrix_target, 18);
     assert_eq!(cell.budget_cap, 54);
@@ -270,50 +277,22 @@ fn budget_cap_limits_dispatch_and_escalates() {
     assert!(cell.budget_limited);
     assert!(!cell.escalated);
     assert_eq!(output.manifest.dropped_by_self_validation, 0);
+}
 
-    let replacement = json!({
-        "seed": 7u64,
-        "cells": [{
-            "domain": "bbf",
-            "format": "mcq",
-            "tier": "foundation",
-            "count": 54,
-            "lane": "procedural",
-            "template": "fact.alveolar_epithelium",
-            "subdomain": "animal_structure",
-            "resolved_attempts": 40,
-            "in_flight_attempts": 0
-        }]
-    });
-    let dir = TempDir::new("budget-replacement");
-    let config = write_config(&dir, &replacement);
-    let plan = load_plan(&plan_paths(&config), None).unwrap();
-    let output = run_all(&plan);
+#[test]
+fn budget_counts_resolved_attempts_against_replacement_targets() {
+    let output = run_budget_cell(&budget_cell_config(54, 40, 0), "budget-replacement");
     let cell = &output.manifest.cells[0];
     assert_eq!(cell.requested, 54);
     assert_eq!(cell.dispatched, 14);
     assert_eq!(cell.produced, 14);
     assert!(cell.budget_limited);
     assert!(!cell.escalated);
+}
 
-    let exhausted = json!({
-        "seed": 7u64,
-        "cells": [{
-            "domain": "bbf",
-            "format": "mcq",
-            "tier": "foundation",
-            "count": 18,
-            "lane": "procedural",
-            "template": "fact.alveolar_epithelium",
-            "subdomain": "animal_structure",
-            "resolved_attempts": 54,
-            "in_flight_attempts": 0
-        }]
-    });
-    let dir = TempDir::new("budget-exhausted");
-    let config = write_config(&dir, &exhausted);
-    let plan = load_plan(&plan_paths(&config), None).unwrap();
-    let output = run_all(&plan);
+#[test]
+fn exhausted_budget_escalates_the_cell() {
+    let output = run_budget_cell(&budget_cell_config(18, 54, 0), "budget-exhausted");
     let cell = &output.manifest.cells[0];
     assert_eq!(cell.dispatched, 0);
     assert_eq!(cell.produced, 0);

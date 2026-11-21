@@ -6,9 +6,10 @@ in `data/`.
 
 ## What is here
 
-- `config.json` — seed `2523` and four target cells, two MCQs each, one cell
-  per domain: `bbf` fact recall, `cpf` Newton's-second-law calculation, `psb`
-  fact recall, and `pre_clinical` fact recall.
+- `config.json` — seed `2523` and six target cells: `bbf` fact recall (1),
+  `cpf` SI-unit fact recall (1) plus a Newton's-second-law calculation cell
+  (2), `psb` fact recall (1), and `pre_clinical` fact recall (1) plus a
+  half-life calculation cell (2).
 - `mcq.jsonl` — the eight generated MCQ drafts.
 - `manifest.json` — seed, effective config, input-document hashes, per-cell
   counts, per-record SHA-256 hashes, anchor receipts, and drop counts. The

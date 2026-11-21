@@ -6,19 +6,21 @@
 //! records are still written and the manifest records the teacher refusal.
 //! The CLI turns a recorded refusal into a nonzero exit after writing.
 
-mod anchors;
+pub mod anchors;
 mod cells;
 mod io;
 
 pub(crate) use anchors::anchor_pack;
 pub use io::check_output_dir;
 
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 use serde_json::Value;
 
 use crate::config::{Lane, RunConfig, TargetCell, TeacherSelection};
 use crate::error::GenerateError;
+use crate::format::Format;
 use crate::gold::GoldCorpus;
 use crate::hash::{display_path, sha256_str, text_file_sha256};
 use crate::manifest::{
@@ -41,6 +43,9 @@ pub struct PlanPaths {
     pub teachers: PathBuf,
     pub schemas: PathBuf,
     pub gold: PathBuf,
+    /// The admitted dataset tree (`data/`). Drafts never write under it,
+    /// regardless of where `--gold` points.
+    pub data: PathBuf,
 }
 
 /// Everything loaded and validated before generation starts.
@@ -93,19 +98,19 @@ pub struct BatchOutput {
     pub manifest: BatchManifest,
     /// Present when the teacher lane was requested but refused or failed.
     pub lane_error: Option<TeacherError>,
-    /// Directories drafts must never write into (gold corpus and its parent
-    /// `data/`). Checked again by `write_output`.
+    /// Directories drafts must never write into: the gold corpus directory and
+    /// the `data/` dataset tree. Checked again by `write_output`.
     pub(crate) protected_dirs: Vec<PathBuf>,
+    /// Formats at least one cell attempted. A refused or filtered run must not
+    /// delete existing shards for formats it never touched.
+    pub(crate) attempted_formats: BTreeSet<Format>,
 }
 
-/// Directories drafts must never write into: the gold corpus and the `data/`
-/// tree above it.
+/// Directories drafts must never write into: the workspace `data/` tree and
+/// the gold corpus directory (independently, so a custom `--gold` neither
+/// unprotects `data/` nor shields its whole parent).
 pub(crate) fn protected_dirs(paths: &PlanPaths) -> Vec<PathBuf> {
-    let mut dirs = vec![paths.gold.clone()];
-    if let Some(parent) = paths.gold.parent() {
-        dirs.push(parent.to_path_buf());
-    }
-    dirs
+    vec![paths.data.clone(), paths.gold.clone()]
 }
 
 /// Load and validate all batch inputs.
@@ -182,11 +187,10 @@ impl BatchSinks {
     /// Record a written draft and its manifest entry + anchor receipts.
     fn push_written(
         &mut self,
-        record: GeneratedRecord,
-        raw: String,
-        lane: Lane,
+        written: OutputRecord,
         registry: &SourceRegistry,
     ) -> Result<(), GenerateError> {
+        let record = &written.record;
         let id = record.id().as_str().to_owned();
         let record_receipts = anchor_receipts(&id, &record.anchors(), registry)
             .map_err(|reason| GenerateError::Other(format!("record `{id}`: {reason}")))?;
@@ -196,13 +200,13 @@ impl BatchSinks {
             domain: domain_slug(record.domain()).to_owned(),
             subdomain: crate::config::subdomain_slug(record.subdomain()).to_owned(),
             tier: tier_slug(record.tier()).to_owned(),
-            lane: lane_label(lane).to_owned(),
+            lane: lane_label(written.lane).to_owned(),
             generator: record.provenance().generator.clone(),
-            sha256: sha256_str(&raw),
+            sha256: sha256_str(&written.raw),
             jsonl_file: format!("{}.jsonl", record.format().slug()),
         });
         self.receipts.extend(record_receipts);
-        self.records.push(OutputRecord { record, raw, lane });
+        self.records.push(written);
         Ok(())
     }
 
@@ -274,13 +278,24 @@ impl Budget {
     }
 }
 
+/// Lane-wide dispatch accounting, mutated while cells run.
+#[derive(Default)]
+pub(super) struct TeacherStats {
+    /// Requests dispatched to the teacher endpoint across all cells. Tracked
+    /// lane-wide so one cell's transport failures cannot cancel later cells.
+    pub(super) dispatched: u32,
+    /// Dispatched requests that failed at transport.
+    pub(super) transport_failures: u32,
+    pub(super) error: Option<TeacherError>,
+}
+
 /// State of the teacher lane after the startup gate.
-struct TeacherLane {
-    report: TeacherLaneReport,
+pub(super) struct TeacherLane {
+    pub(super) report: TeacherLaneReport,
     pin_ref: Option<TeacherPinRef>,
     prepared: Option<PreparedTeacher>,
     client: Option<Box<dyn TeacherClient>>,
-    error: Option<TeacherError>,
+    pub(super) stats: TeacherStats,
 }
 
 /// Pin + credential + client construction, once per run.
@@ -290,7 +305,7 @@ fn prepare_teacher_lane(plan: &BatchPlan, options: &ExecuteOptions<'_>) -> Teach
         pin_ref: None,
         prepared: None,
         client: None,
-        error: None,
+        stats: TeacherStats::default(),
     };
     let needs_teacher = plan
         .config
@@ -304,7 +319,7 @@ fn prepare_teacher_lane(plan: &BatchPlan, options: &ExecuteOptions<'_>) -> Teach
     lane.report.pin_id = plan.config.teacher.as_ref().map(|t| t.pin_id.clone());
     let (Some(pins), Some(selection)) = (&plan.pins, &plan.config.teacher) else {
         lane.report.status = "refused".to_owned();
-        lane.error = Some(TeacherError::PinParse(
+        lane.stats.error = Some(TeacherError::PinParse(
             plan.pins_error
                 .clone()
                 .unwrap_or_else(|| "teacher pin registry is unavailable".to_owned()),
@@ -322,7 +337,7 @@ fn prepare_teacher_lane(plan: &BatchPlan, options: &ExecuteOptions<'_>) -> Teach
         }
         Err(error) => {
             lane.report.status = "refused".to_owned();
-            lane.error = Some(error);
+            lane.stats.error = Some(error);
         }
     }
     lane
@@ -343,13 +358,23 @@ fn finish_teacher_report(lane: &mut TeacherLane) {
     if lane.report.status == "not_requested" {
         return;
     }
-    if lane.error.is_some() {
+    // Lane failure is judged across every dispatched request: a cell whose
+    // attempts all failed at transport does not cancel later cells, but a
+    // run where *every* request failed at transport is a lane error so the
+    // CLI exits nonzero.
+    if lane.stats.dispatched > 0 && lane.stats.transport_failures == lane.stats.dispatched {
+        lane.stats.error = Some(TeacherError::Transport(format!(
+            "all {} teacher requests failed at transport",
+            lane.stats.dispatched
+        )));
+    }
+    if lane.stats.error.is_some() {
         lane.report.status = if lane.prepared.is_some() {
             "error".to_owned()
         } else {
             "refused".to_owned()
         };
-        lane.report.error = lane.error.as_ref().map(ToString::to_string);
+        lane.report.error = lane.stats.error.as_ref().map(ToString::to_string);
     }
 }
 
@@ -362,32 +387,51 @@ pub fn execute(
     let mut lane = prepare_teacher_lane(plan, options);
     let mut cells = Vec::new();
     let mut totals = Totals::default();
+    let mut attempted_formats = BTreeSet::new();
 
     for cell in &plan.config.cells {
         totals.requested += cell.count;
-        let report = run_cell(plan, options, cell, &mut lane, &mut sinks)?;
+        let report = run_cell(&RunScope { plan, options }, cell, &mut lane, &mut sinks)?;
+        if report.dispatched > 0 {
+            attempted_formats.insert(cell.format);
+        }
         accumulate(&mut totals, &report);
         cells.push(report);
     }
     finish_teacher_report(&mut lane);
 
-    let manifest = build_manifest(plan, &lane, cells, totals, &sinks);
+    let manifest = build_manifest(
+        plan,
+        &lane,
+        ManifestParts {
+            cells,
+            totals,
+            sinks: &sinks,
+        },
+    );
     Ok(BatchOutput {
         records: sinks.records,
         manifest,
-        lane_error: lane.error,
+        lane_error: lane.stats.error,
         protected_dirs: protected_dirs(&plan.paths),
+        attempted_formats,
     })
 }
 
+/// The run-wide pieces every cell shares.
+struct RunScope<'a> {
+    plan: &'a BatchPlan,
+    options: &'a ExecuteOptions<'a>,
+}
+
 fn run_cell(
-    plan: &BatchPlan,
-    options: &ExecuteOptions<'_>,
+    scope: &RunScope<'_>,
     cell: &TargetCell,
     lane: &mut TeacherLane,
     sinks: &mut BatchSinks,
 ) -> Result<CellReport, GenerateError> {
-    if !lane_included(cell.lane, options.lane_filter) {
+    let plan = scope.plan;
+    if !lane_included(cell.lane, scope.options.lane_filter) {
         return Ok(filtered_report(plan, cell));
     }
     let budget = Budget::for_cell(plan, cell);
@@ -399,22 +443,28 @@ fn run_cell(
     match cell.lane {
         Lane::Procedural => cells::run_procedural_cell(&ctx, sinks),
         Lane::Teacher => match (lane.prepared.as_ref(), lane.client.as_deref()) {
-            (Some(prepared), Some(client)) if lane.error.is_none() => {
+            (Some(prepared), Some(client)) if lane.stats.error.is_none() => {
                 let teacher = cells::TeacherCtx { prepared, client };
-                cells::run_teacher_cell(&ctx, &teacher, sinks, &mut lane.error)
+                cells::run_teacher_cell(&ctx, &teacher, sinks, &mut lane.stats)
             }
             _ => Ok(refused_report(cell, &budget, "lane_refused")),
         },
     }
 }
 
-fn build_manifest(
-    plan: &BatchPlan,
-    lane: &TeacherLane,
+/// The finished cell reports plus everything the sinks accumulated.
+struct ManifestParts<'a> {
     cells: Vec<CellReport>,
     totals: Totals,
-    sinks: &BatchSinks,
-) -> BatchManifest {
+    sinks: &'a BatchSinks,
+}
+
+fn build_manifest(plan: &BatchPlan, lane: &TeacherLane, parts: ManifestParts<'_>) -> BatchManifest {
+    let ManifestParts {
+        cells,
+        totals,
+        sinks,
+    } = parts;
     let id = batch_id(&BatchIdInputs {
         seed: plan.config.seed,
         config_sha256: &plan.config_sha256,
@@ -530,7 +580,7 @@ pub(crate) fn cell_report(
 
 fn filtered_report(plan: &BatchPlan, cell: &TargetCell) -> CellReport {
     let budget = Budget::for_cell(plan, cell);
-    cell_report(
+    let mut report = cell_report(
         cell,
         &budget,
         CellOutcome {
@@ -540,7 +590,11 @@ fn filtered_report(plan: &BatchPlan, cell: &TargetCell) -> CellReport {
             dropped: 0,
             status: "filtered_out".to_owned(),
         },
-    )
+    );
+    // A filtered cell dispatched nothing, so its budget is untouched — the
+    // escalation flag only makes sense for cells that actually ran.
+    report.escalated = false;
+    report
 }
 
 pub(crate) fn refused_report(cell: &TargetCell, budget: &Budget, status: &str) -> CellReport {

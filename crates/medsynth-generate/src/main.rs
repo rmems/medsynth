@@ -25,7 +25,7 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Run a batch and write JSONL shards plus manifest.json.
-    Run(RunArgs),
+    Run(Box<RunArgs>),
     /// Validate the teacher pin registry and report readiness.
     CheckPin(CheckPinArgs),
     /// Parse and check the taxonomy §5 coverage matrix.
@@ -52,6 +52,9 @@ struct RunArgs {
     schemas: PathBuf,
     #[arg(long, default_value = "data/gold")]
     gold: PathBuf,
+    /// Admitted dataset tree drafts must never write into.
+    #[arg(long, default_value = "data")]
+    data: PathBuf,
     /// Override the seed in the config.
     #[arg(long)]
     seed: Option<u64>,
@@ -92,7 +95,7 @@ fn main() {
 fn run() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Command::Run(args) => run_batch(args),
+        Command::Run(args) => run_batch(*args),
         Command::CheckPin(args) => check_pin(args),
         Command::Matrix(args) => show_matrix(args),
         Command::Templates => {
@@ -112,6 +115,7 @@ fn run_batch(args: RunArgs) -> Result<()> {
         teachers: args.teachers,
         schemas: args.schemas,
         gold: args.gold,
+        data: args.data,
     };
     let plan = load_plan(&paths, args.seed)?;
     // Refuse a `data/` output dir before any work: teacher requests burn API

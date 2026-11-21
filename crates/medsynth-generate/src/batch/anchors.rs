@@ -67,7 +67,7 @@ fn collect_block_points(value: &Value, points: &mut Vec<AnchorPoint>) {
         Value::Object(object) => {
             if let Some(text) = object.get("text").and_then(Value::as_str) {
                 let mut anchors = Vec::new();
-                collect_gold_anchors(value, &mut anchors);
+                collect_anchors(value, &mut anchors);
                 let fact = truncate(text, 240);
                 for (source_id, locator) in anchors {
                     push_point(points, &source_id, &locator, &fact);
@@ -86,7 +86,11 @@ fn collect_block_points(value: &Value, points: &mut Vec<AnchorPoint>) {
     }
 }
 
-fn collect_gold_anchors(value: &Value, out: &mut Vec<(String, String)>) {
+/// Walk a JSON tree and collect every `(source_id, locator)` anchor object.
+///
+/// Public so the sample-batch test can verify committed drafts against the
+/// same walker the pipeline uses — the two must never diverge.
+pub fn collect_anchors(value: &Value, out: &mut Vec<(String, String)>) {
     match value {
         Value::Object(object) => {
             if let (Some(source_id), Some(locator)) = (
@@ -96,12 +100,12 @@ fn collect_gold_anchors(value: &Value, out: &mut Vec<(String, String)>) {
                 out.push((source_id.to_owned(), locator.to_owned()));
             }
             for child in object.values() {
-                collect_gold_anchors(child, out);
+                collect_anchors(child, out);
             }
         }
         Value::Array(items) => {
             for item in items {
-                collect_gold_anchors(item, out);
+                collect_anchors(item, out);
             }
         }
         _ => {}
