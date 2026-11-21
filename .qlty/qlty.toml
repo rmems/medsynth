@@ -2,18 +2,15 @@ config_version = "0"
 
 # Qlty configuration for the medsynth Rust workspace. Plugins run via
 # `qlty check --all` in CI (.github/workflows/ci.yml, job `qlty`).
+# rustfmt and clippy run natively in the test job (cargo fmt --check /
+# cargo clippy -D warnings) — qlty's bundled plugins disagree with the
+# pinned workspace toolchain, so they would be noise here.
 # No markdownlint: the repo's docs use long prose lines and its own table
 # style — linting them is out of scope for this gate.
 
 [[source]]
 name = "default"
 default = true
-
-[[plugin]]
-name = "clippy"
-
-[[plugin]]
-name = "rustfmt"
 
 [[plugin]]
 name = "actionlint"
