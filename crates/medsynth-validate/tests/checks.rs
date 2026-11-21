@@ -229,6 +229,22 @@ fn key_rationale_accepts_parenthesized_label_reference() {
 }
 
 #[test]
+fn key_rationale_accepts_quoted_label_reference() {
+    // Quoted labels like `Option "A"` must count as explicit references.
+    let mut r = mcq();
+    for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
+        r["options"][i]["text"] = serde_json::json!(opt);
+    }
+    r["rationale"]["key_explanation"]["text"] =
+        serde_json::json!("Option \"A\" is correct because ATP is the product.");
+    let findings = findings_for(&[record(Format::Mcq, "quoted-label", r)]);
+    assert!(
+        !findings.iter().any(|f| f.check == Check::KeyRationale),
+        "quoted label reference must pass: {findings:?}"
+    );
+}
+
+#[test]
 fn key_rationale_rejects_sentence_break_before_label() {
     // "option. A ..." crosses a sentence boundary and must not count as a
     // label reference — this rationale favors ADP, not the key A.

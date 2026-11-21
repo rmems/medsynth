@@ -123,7 +123,7 @@ fn references_label(explanation: &str, key: &str) -> bool {
 /// separators that legitimately precede a label ("option (A)",
 /// "option: B", "option B"), but not sentence terminators.
 fn names_option(explanation: &str, key: &str) -> bool {
-    const SEPARATORS: &[char] = &[' ', '\t', ':', '('];
+    const SEPARATORS: &[char] = &[' ', '\t', '\u{a0}', ':', '(', '"', '\'', '‘', '’', '“', '”'];
     let lower = explanation.to_lowercase();
     let key = key.to_lowercase();
     lower
