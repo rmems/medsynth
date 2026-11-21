@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write # Qlty coverage upload via OIDC
 
 jobs:
   test:
@@ -47,6 +48,15 @@ jobs:
 
       - name: Coverage (all crates, incl. medsynth-validate)
         run: cargo llvm-cov --locked --workspace --lcov --output-path lcov.info
+
+      # Fork PRs get no OIDC token, so skip the upload there; pushes still upload.
+      - name: Upload coverage to Qlty
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+        uses: qltysh/qlty-action/coverage@a46e29cfd54065ae8a2c6b1fd3446aed1b1a4257 # v2
+        with:
+          oidc: true
+          files: lcov.info
+          strip-prefix: ${{ github.workspace }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
