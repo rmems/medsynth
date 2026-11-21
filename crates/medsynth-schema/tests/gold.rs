@@ -346,8 +346,12 @@ fn collect_probes(root_dir: &Path, dir: &Path, actual: &mut BTreeSet<String>) {
     }
 }
 
-fn assert_review(entry: &Value, reviewer: &str, raw: &[u8]) {
-    assert_eq!(entry["reviewer_run_id"], reviewer);
+fn assert_review(entry: &Value, reviewers: &[&str], raw: &[u8]) {
+    assert!(
+        reviewers.contains(&entry["reviewer_run_id"].as_str().unwrap()),
+        "{}: entry names a reviewer run the manifest does not",
+        entry["record_id"]
+    );
     let digest = format!("{:x}", Sha256::digest(raw));
     assert_eq!(
         entry["record_sha256"], digest,
@@ -363,7 +367,13 @@ fn independent_review_covers_the_exact_records() {
     assert_eq!(manifest["drafting_run_id"], DRAFTER);
     assert_eq!(manifest["review_status"], "passed");
     let reviewer = manifest["reviewer_run_id"].as_str().unwrap();
-    assert!(!reviewer.trim().is_empty() && reviewer != DRAFTER);
+    // " + " separates the reviewing runs when more than one produced
+    // evidence (for example a re-review after changes_requested); each
+    // entry then names the run that reviewed its exact pinned bytes.
+    let reviewers: Vec<&str> = reviewer.split(" + ").collect();
+    assert!(reviewers
+        .iter()
+        .all(|r| !r.trim().is_empty() && *r != DRAFTER));
     let mut reviewed = BTreeMap::new();
     for entry in manifest["records"].as_array().unwrap() {
         let id = entry["record_id"].as_str().unwrap();
@@ -380,7 +390,7 @@ fn independent_review_covers_the_exact_records() {
         let entry = reviewed
             .get(id)
             .unwrap_or_else(|| panic!("{id}: missing review"));
-        assert_review(entry, reviewer, raw.as_bytes());
+        assert_review(entry, &reviewers, raw.as_bytes());
         for check in ["anchor_check", "rationale_check", "tier_check"] {
             assert_eq!(entry[check]["outcome"], "pass", "{id}: {check}");
         }
@@ -433,7 +443,7 @@ fn independent_review_covers_the_exact_records() {
         let path = root()
             .join("data/gold/near-miss")
             .join(probe["file"].as_str().unwrap());
-        assert_review(entry, reviewer, &fs::read(path).unwrap());
+        assert_review(entry, &reviewers, &fs::read(path).unwrap());
         assert_eq!(entry["planted_defect_check"]["outcome"], "pass", "{id}");
         assert!(
             entry["planted_defect_check"]["evidence"]
