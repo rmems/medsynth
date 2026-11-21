@@ -1,9 +1,12 @@
 //! Unit tests for each gate check — pass and fail cases — plus the
 //! originality screen's copied-record case.
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use medsynth_validate::{Check, Format, RecordFile, Validators, originality, run_checks};
+use medsynth_validate::{
+    Check, Format, RecordFile, Validators, load_registry, originality, run_checks,
+};
 
 fn workspace_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -11,6 +14,10 @@ fn workspace_root() -> PathBuf {
         .nth(2)
         .expect("crate lives two levels below the workspace root")
         .to_path_buf()
+}
+
+fn registry() -> HashSet<String> {
+    load_registry(&workspace_root())
 }
 
 fn fixture(format: &str, name: &str) -> serde_json::Value {
@@ -22,13 +29,15 @@ fn fixture(format: &str, name: &str) -> serde_json::Value {
 fn record(format: Format, name: &str, value: serde_json::Value) -> RecordFile {
     RecordFile {
         path: PathBuf::from(format!("data/{}/{name}.json", format.slug())),
+        line: None,
         format,
+        raw: serde_json::to_string(&value).expect("serializes"),
         value,
     }
 }
 
 fn findings_for(records: &[RecordFile]) -> Vec<medsynth_validate::Finding> {
-    run_checks(records, &Validators::compile())
+    run_checks(records, &Validators::compile(), &registry())
 }
 
 fn mcq() -> serde_json::Value {
@@ -71,15 +80,29 @@ fn every_valid_fixture_passes_every_check() {
 
 #[test]
 fn schema_check_fails_invalid_fixture() {
-    let mut bad = fixture("mcq", "invalid-three-options.json");
-    let findings = findings_for(&[record(Format::Mcq, "three-options", bad.clone())]);
+    let bad = fixture("mcq", "invalid-three-options.json");
+    let findings = findings_for(&[record(Format::Mcq, "three-options", bad)]);
     assert!(
         findings.iter().any(|f| f.check == Check::Schema),
         "expected a schema finding, got: {findings:?}"
     );
-    // Same defect through a record with no other problems.
-    bad["id"] = serde_json::json!("mcq-test-0002");
-    assert!(!findings.is_empty());
+}
+
+#[test]
+fn schema_check_fails_duplicate_record_ids() {
+    let mut second = mcq();
+    second["domain"] = serde_json::json!("bbf");
+    let records = vec![
+        record(Format::Mcq, "first", mcq()),
+        record(Format::Mcq, "second", second),
+    ];
+    let findings = findings_for(&records);
+    assert!(
+        findings
+            .iter()
+            .any(|f| f.check == Check::Schema && f.detail.contains("duplicate record id")),
+        "expected a duplicate-id finding, got: {findings:?}"
+    );
 }
 
 #[test]
@@ -96,16 +119,21 @@ fn key_rationale_fails_when_key_disagrees_with_rationale() {
 }
 
 #[test]
-fn key_rationale_fails_on_empty_rationale_text() {
+fn key_rationale_fails_on_blank_rationale_text() {
     let mut bad = mcq();
+    // Whitespace-only passes the schema's min-length rule; the lint must
+    // still name it empty.
     bad["rationale"]["key_explanation"]["text"] = serde_json::json!("   ");
-    bad["verification_status"] = serde_json::json!("unverified");
-    // Whitespace-only text trips the schema too; the lint must still fire
-    // for a text that is non-blank-but-contentless is covered above — keep
-    // this case purely lint-level by using a blank text under a schema that
-    // requires min length 1? No: blank fails schema first. Instead drop the
-    // anchors so only the lint's anchor sub-check fires.
-    bad["rationale"]["key_explanation"]["text"] = serde_json::json!("Vmax unchanged.");
+    let findings = findings_for(&[record(Format::Mcq, "blank-rationale", bad)]);
+    assert!(
+        findings.iter().any(|f| f.check == Check::KeyRationale),
+        "expected a key-rationale finding, got: {findings:?}"
+    );
+}
+
+#[test]
+fn key_rationale_fails_on_unanchored_claim() {
+    let mut bad = mcq();
     bad["rationale"]["key_explanation"]["anchors"] = serde_json::json!([]);
     let findings = findings_for(&[record(Format::Mcq, "unanchored-rationale", bad)]);
     assert!(
@@ -142,6 +170,34 @@ fn anchor_presence_fails_above_unverified_with_no_anchors() {
 }
 
 #[test]
+fn anchor_presence_fails_on_unregistered_source_ids() {
+    // An anchor citing a source id outside the registry counts as no
+    // anchor (contract §4).
+    let mut bad = mcq();
+    fn rewrite(v: &mut serde_json::Value) {
+        match v {
+            serde_json::Value::Object(map) => {
+                if let Some(serde_json::Value::String(s)) = map.get_mut("source_id") {
+                    *s = "not-in-registry-1x".into();
+                }
+                for (_, v) in map.iter_mut() {
+                    rewrite(v);
+                }
+            }
+            serde_json::Value::Array(items) => items.iter_mut().for_each(rewrite),
+            _ => {}
+        }
+    }
+    rewrite(&mut bad);
+    bad["verification_status"] = serde_json::json!("anchor-checked");
+    let findings = findings_for(&[record(Format::Mcq, "bad-sources", bad)]);
+    assert!(
+        findings.iter().any(|f| f.check == Check::AnchorPresence),
+        "unregistered source ids must not satisfy anchor-presence: {findings:?}"
+    );
+}
+
+#[test]
 fn anchor_presence_passes_unverified_with_no_anchors() {
     // An unverified draft with zero anchors must not trip the check — the
     // gate may only flag records above unverified.
@@ -168,19 +224,21 @@ fn anchor_presence_passes_unverified_with_no_anchors() {
 }
 
 #[test]
-fn originality_flags_copied_record() {
+fn originality_flags_copied_record_and_reports_both_sides() {
     let original = record(Format::Mcq, "original", mcq());
     let mut copied = original.value.clone();
     copied["id"] = serde_json::json!("mcq-copy-0001");
     let copy = record(Format::Mcq, "copy", copied);
     let findings = findings_for(&[original, copy]);
-    let originality_findings: Vec<_> = findings
+    let flagged: std::collections::BTreeSet<_> = findings
         .iter()
         .filter(|f| f.check == Check::Originality)
+        .map(|f| f.path.to_string_lossy().into_owned())
         .collect();
-    assert!(
-        !originality_findings.is_empty(),
-        "copied record must trip the originality screen: {findings:?}"
+    assert_eq!(
+        flagged.len(),
+        2,
+        "both records of a copied pair must be flagged: {findings:?}"
     );
 }
 

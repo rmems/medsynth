@@ -1,25 +1,15 @@
 name: Data Validation
 
+# Runs on every pull request and push to main: a required check skipped by
+# path filters would stay pending forever on data-free PRs. The job itself
+# is the gate — it validates the whole corpus regardless of what changed.
 on:
   pull_request:
-    paths:
-      - "data/**"
-      - "fixtures/**"
-      - "schemas/**"
-      - "scripts/**"
-      - "crates/medsynth-schema/**"
-      - "crates/medsynth-validate/**"
-      - ".github/workflows/data-validation.yml"
   push:
     branches: [main]
-    paths:
-      - "data/**"
-      - "fixtures/**"
-      - "schemas/**"
-      - "scripts/**"
-      - "crates/medsynth-schema/**"
-      - "crates/medsynth-validate/**"
-      - ".github/workflows/data-validation.yml"
+
+permissions:
+  contents: read
 
 jobs:
   validate:
@@ -27,11 +17,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@master
+        uses: dtolnay/rust-toolchain@1.99.1
         with:
-          toolchain: stable
           components: rustfmt, clippy
 
       - name: Cache cargo

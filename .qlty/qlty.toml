@@ -2,6 +2,8 @@ config_version = "0"
 
 # Qlty configuration for the medsynth Rust workspace. Plugins run via
 # `qlty check --all` in CI (.github/workflows/ci.yml, job `qlty`).
+# No markdownlint: the repo's docs use long prose lines and its own table
+# style — linting them is out of scope for this gate.
 
 [[source]]
 name = "default"
@@ -15,9 +17,6 @@ name = "rustfmt"
 
 [[plugin]]
 name = "actionlint"
-
-[[plugin]]
-name = "markdownlint"
 
 [[plugin]]
 name = "trufflehog"
