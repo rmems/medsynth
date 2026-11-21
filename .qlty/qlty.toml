@@ -1,9 +1,10 @@
 config_version = "0"
 
-# Qlty configuration for the medsynth Rust workspace. Plugins run
-# `qlty check` in CI (.github/workflows/ci.yml, job `qlty`).
+# Qlty configuration for the medsynth Rust workspace. Plugins run via
+# `qlty check --all` in CI (.github/workflows/ci.yml, job `qlty`).
 
-[source]
+[[source]]
+name = "default"
 default = true
 
 [[plugin]]
@@ -20,11 +21,3 @@ name = "markdownlint"
 
 [[plugin]]
 name = "trufflehog"
-
-[[ignore]]
-# Vendored/generated and build-output paths.
-file_patterns = [
-  "target/**",
-  "schemas/**",
-  "Cargo.lock",
-]
