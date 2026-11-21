@@ -98,9 +98,8 @@ fn run_command_writes_a_batch_and_refuses_data_directory() {
     assert!(stderr(&output).contains("refusing to write drafts under"));
 }
 
-#[test]
-fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
-    let config = json!({
+fn teacher_cell_config() -> Value {
+    json!({
         "seed": 10u64,
         "cells": [
             {
@@ -122,7 +121,12 @@ fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
             }
         ],
         "teacher": {"pin_id": "deepseek-v4.1-flash"}
-    });
+    })
+}
+
+#[test]
+fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
+    let config = teacher_cell_config();
     let config_dir = TempDir::new("cli-teacher-config");
     let config_path = write_config(&config_dir, &config);
     let out = TempDir::new("cli-teacher-out");
@@ -148,8 +152,14 @@ fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
             .unwrap();
     assert_eq!(manifest["teacher_lane"]["status"], "refused");
     assert_eq!(manifest["totals"]["produced"], 1);
+}
 
+#[test]
+fn teacher_responses_data_guard_tracks_the_lane() {
     // The fulfillment directory is held to the same `data/` restriction.
+    let config = teacher_cell_config();
+    let config_dir = TempDir::new("cli-teacher-config2");
+    let config_path = write_config(&config_dir, &config);
     let out2 = TempDir::new("cli-teacher-out2");
     let output = command()
         .args([

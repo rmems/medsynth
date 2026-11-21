@@ -114,7 +114,8 @@ impl TeacherClient for RecordedTeacherClient {
         let (request_path, response_path) = self.paths(request);
         // Stage then rename: a pre-existing symlink at the request path is
         // replaced by the rename, never followed to truncate its target.
-        let tmp_path = request_path.with_extension("tmp");
+        // Per-process staging name: overlapping reruns never share a tmp file.
+        let tmp_path = request_path.with_extension(format!("request.{}.tmp", std::process::id()));
         std::fs::write(&tmp_path, request_body_text(request))
             .and_then(|()| std::fs::rename(&tmp_path, &request_path))
             .map_err(|e| {

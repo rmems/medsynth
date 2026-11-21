@@ -158,10 +158,14 @@ fn normalize_path(path: &Path) -> PathBuf {
         match component {
             Component::CurDir => {}
             Component::ParentDir => {
-                // A leading `..` has no earlier component to cancel: keep it
-                // so `../data` resolves outside the workspace instead of
-                // being collapsed into the workspace's `data/`.
-                if !normalized.pop() {
+                // Cancel a normal component; keep the `..` otherwise (leading
+                // or consecutive `..`) so `../../x` keeps both traversals.
+                if matches!(
+                    normalized.components().next_back(),
+                    Some(Component::Normal(_))
+                ) {
+                    normalized.pop();
+                } else {
                     normalized.push(Component::ParentDir.as_os_str());
                 }
             }
