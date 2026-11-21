@@ -247,33 +247,36 @@ fn key_references_option(
 
 fn key_rationale_vignette(record: &RecordFile, findings: &mut Vec<Finding>) {
     let v = &record.value;
-    for (kind, claims) in [("questions", "answer"), ("teaching_points", "")] {
-        let Some(items) = v.get(kind).and_then(|q| q.as_array()) else {
-            continue;
-        };
-        for (i, item) in items.iter().enumerate() {
-            let claim = if claims.is_empty() {
-                item
-            } else {
-                &item[claims]
-            };
-            if claim["text"].as_str().is_none_or(|t| t.trim().is_empty()) {
-                let label = if claims.is_empty() {
-                    format!("{kind}[{i}].text is empty")
-                } else {
-                    format!("{kind}[{i}].{claims}.text is empty")
-                };
-                push_lint(record, findings, label);
-            }
-            if claim["anchors"].as_array().is_none_or(|a| a.is_empty()) {
-                let label = if claims.is_empty() {
-                    format!("{kind}[{i}] has no anchors")
-                } else {
-                    format!("{kind}[{i}].{claims} has no anchors")
-                };
-                push_lint(record, findings, label);
-            }
+    if let Some(items) = v.get("questions").and_then(|q| q.as_array()) {
+        for (i, q) in items.iter().enumerate() {
+            lint_claim(
+                record,
+                findings,
+                &format!("questions[{i}].answer"),
+                &q["answer"],
+            );
         }
+    }
+    if let Some(items) = v.get("teaching_points").and_then(|q| q.as_array()) {
+        for (i, p) in items.iter().enumerate() {
+            lint_claim(record, findings, &format!("teaching_points[{i}]"), p);
+        }
+    }
+}
+
+/// `AnchoredClaim`-shaped lint: non-blank text and a non-empty anchors
+/// array, at a JSON path named by `label`.
+fn lint_claim(
+    record: &RecordFile,
+    findings: &mut Vec<Finding>,
+    label: &str,
+    claim: &serde_json::Value,
+) {
+    if claim["text"].as_str().is_none_or(|t| t.trim().is_empty()) {
+        push_lint(record, findings, format!("{label}.text is empty"));
+    }
+    if claim["anchors"].as_array().is_none_or(|a| a.is_empty()) {
+        push_lint(record, findings, format!("{label} has no anchors"));
     }
 }
 
@@ -369,15 +372,7 @@ fn collect_unlisted(
         serde_json::Value::Object(map) => {
             for (k, v) in map {
                 if k == "anchors" {
-                    if let Some(anchors) = v.as_array() {
-                        for a in anchors {
-                            if let Some(id) = a["source_id"].as_str()
-                                && !registry.contains(id)
-                            {
-                                out.insert(id.to_owned());
-                            }
-                        }
-                    }
+                    collect_unlisted_anchors(v, registry, out);
                 } else {
                     collect_unlisted(v, registry, out);
                 }
@@ -389,6 +384,23 @@ fn collect_unlisted(
             }
         }
         _ => {}
+    }
+}
+
+fn collect_unlisted_anchors(
+    value: &serde_json::Value,
+    registry: &HashSet<String>,
+    out: &mut BTreeSet<String>,
+) {
+    let Some(anchors) = value.as_array() else {
+        return;
+    };
+    for a in anchors {
+        if let Some(id) = a["source_id"].as_str()
+            && !registry.contains(id)
+        {
+            out.insert(id.to_owned());
+        }
     }
 }
 
