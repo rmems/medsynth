@@ -371,9 +371,11 @@ fn independent_review_covers_the_exact_records() {
     // evidence (for example a re-review after changes_requested); each
     // entry then names the run that reviewed its exact pinned bytes.
     let reviewers: Vec<&str> = reviewer.split(" + ").collect();
-    assert!(reviewers
-        .iter()
-        .all(|r| !r.trim().is_empty() && *r != DRAFTER));
+    assert!(
+        reviewers
+            .iter()
+            .all(|r| !r.trim().is_empty() && *r != DRAFTER)
+    );
     let mut reviewed = BTreeMap::new();
     for entry in manifest["records"].as_array().unwrap() {
         let id = entry["record_id"].as_str().unwrap();
