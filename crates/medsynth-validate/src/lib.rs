@@ -343,50 +343,64 @@ pub fn load_paths(
             for (idx, raw) in text.lines().enumerate() {
                 let line = idx + 1;
                 if raw.trim().is_empty() {
+                    // A blank line inside a shard is not a record —
+                    // skipping it silently would let malformed JSONL pass.
+                    findings.push(Finding {
+                        path: display_path.clone(),
+                        line: Some(line),
+                        record_id: "<unreadable>".into(),
+                        check: Check::Schema,
+                        detail: "blank line in JSONL shard".into(),
+                    });
                     continue;
                 }
                 push_record(
                     &mut records,
                     &mut findings,
-                    &display_path,
-                    Some(line),
-                    format,
-                    raw,
+                    PendingRecord {
+                        path: &display_path,
+                        line: Some(line),
+                        format,
+                        raw,
+                    },
                 );
             }
         } else {
             push_record(
                 &mut records,
                 &mut findings,
-                &display_path,
-                None,
-                format,
-                &text,
+                PendingRecord {
+                    path: &display_path,
+                    line: None,
+                    format,
+                    raw: &text,
+                },
             );
         }
     }
     (records, findings)
 }
 
-fn push_record(
-    records: &mut Vec<RecordFile>,
-    findings: &mut Vec<Finding>,
-    display_path: &Path,
+/// One parsed-but-unvalidated record found by [`load_paths`].
+struct PendingRecord<'a> {
+    path: &'a Path,
     line: Option<usize>,
     format: Format,
-    raw: &str,
-) {
-    match serde_json::from_str(raw) {
+    raw: &'a str,
+}
+
+fn push_record(records: &mut Vec<RecordFile>, findings: &mut Vec<Finding>, pending: PendingRecord) {
+    match serde_json::from_str(pending.raw) {
         Ok(value) => records.push(RecordFile {
-            path: display_path.to_path_buf(),
-            line,
-            format,
+            path: pending.path.to_path_buf(),
+            line: pending.line,
+            format: pending.format,
             value,
-            raw: raw.to_owned(),
+            raw: pending.raw.to_owned(),
         }),
         Err(e) => findings.push(Finding {
-            path: display_path.to_path_buf(),
-            line,
+            path: pending.path.to_path_buf(),
+            line: pending.line,
             record_id: "<unreadable>".into(),
             check: Check::Schema,
             detail: format!("invalid JSON: {e}"),
@@ -394,475 +408,7 @@ fn push_record(
     }
 }
 
-/// Run every check over the corpus and return all findings. `registry` is
-/// the approved source-id set from [`load_registry`].
-pub fn run_checks(
-    records: &[RecordFile],
-    validators: &Validators,
-    registry: &HashSet<String>,
-) -> Vec<Finding> {
-    let mut findings = Vec::new();
-    duplicate_id_check(records, &mut findings);
-    for record in records {
-        schema_check(record, validators, &mut findings);
-        key_rationale_check(record, &mut findings);
-        anchor_presence_check(record, registry, &mut findings);
-    }
-    originality::screen(records, &mut findings);
-    findings.sort_by(|a, b| {
-        a.path
-            .cmp(&b.path)
-            .then(a.line.cmp(&b.line))
-            .then(a.check.name().cmp(b.check.name()))
-            .then(a.detail.cmp(&b.detail))
-    });
-    findings
-}
+mod checks;
+pub mod originality;
 
-/// Record ids must be unique across the corpus — a duplicate makes the
-/// identity ambiguous for consumers and for finding reports.
-fn duplicate_id_check(records: &[RecordFile], findings: &mut Vec<Finding>) {
-    let mut seen: HashMap<String, &RecordFile> = HashMap::new();
-    for record in records {
-        let id = record.record_id();
-        if id == "<no-id>" {
-            continue;
-        }
-        if let Some(first) = seen.get(&id) {
-            findings.push(Finding {
-                path: record.path.clone(),
-                line: record.line,
-                record_id: id.clone(),
-                check: Check::Schema,
-                detail: format!(
-                    "duplicate record id (first seen at {})",
-                    first.path.display()
-                ),
-            });
-        } else {
-            seen.insert(id, record);
-        }
-    }
-}
-
-/// `schema` — JSON Schema validation plus deserialize (of the raw record
-/// text, so duplicate fields fail) + cross-field `validate()`.
-fn schema_check(record: &RecordFile, validators: &Validators, findings: &mut Vec<Finding>) {
-    let mut push = |detail: String| {
-        findings.push(Finding {
-            path: record.path.clone(),
-            line: record.line,
-            record_id: record.record_id(),
-            check: Check::Schema,
-            detail,
-        });
-    };
-    let Some(validator) = validators.by_format.get(&record.format) else {
-        push(format!("no schema for format {}", record.format.slug()));
-        return;
-    };
-    let schema_errors: Vec<String> = validator
-        .iter_errors(&record.value)
-        .map(|e| format!("{e} at {}", e.instance_path()))
-        .collect();
-    if !schema_errors.is_empty() {
-        for detail in schema_errors {
-            push(detail);
-        }
-        return;
-    }
-    // Deserialization failure names the serde path; a validate() failure
-    // lists the cross-field rules broken.
-    match record.format {
-        Format::Mcq => cross_detail::<McqRecord>(record, findings),
-        Format::CaseVignette => cross_detail::<CaseVignetteRecord>(record, findings),
-        Format::TutoringExample => cross_detail::<TutoringExampleRecord>(record, findings),
-    }
-}
-
-fn cross_detail<T>(record: &RecordFile, findings: &mut Vec<Finding>)
-where
-    T: serde::de::DeserializeOwned + CrossValidate,
-{
-    let mut push = |detail: String| {
-        findings.push(Finding {
-            path: record.path.clone(),
-            line: record.line,
-            record_id: record.record_id(),
-            check: Check::Schema,
-            detail,
-        });
-    };
-    match serde_json::from_str::<T>(&record.raw) {
-        Err(e) => push(format!("record does not deserialize: {e}")),
-        Ok(r) => {
-            if let Err(errors) = r.validate() {
-                for e in errors {
-                    push(format!("cross-field rule: {e}"));
-                }
-            }
-        }
-    }
-}
-
-/// Lets `schema_check` call each record type's `validate` generically.
-pub trait CrossValidate {
-    /// Cross-field `validate` from `medsynth-schema`.
-    fn validate(&self) -> Result<(), Vec<ValidationError>>;
-}
-impl CrossValidate for McqRecord {
-    fn validate(&self) -> Result<(), Vec<ValidationError>> {
-        McqRecord::validate(self)
-    }
-}
-impl CrossValidate for CaseVignetteRecord {
-    fn validate(&self) -> Result<(), Vec<ValidationError>> {
-        CaseVignetteRecord::validate(self)
-    }
-}
-impl CrossValidate for TutoringExampleRecord {
-    fn validate(&self) -> Result<(), Vec<ValidationError>> {
-        TutoringExampleRecord::validate(self)
-    }
-}
-
-/// `key-rationale` — rationale present, non-empty, referencing the keyed
-/// answer; answer fields non-empty; `AnchoredClaim` anchors non-empty.
-fn key_rationale_check(record: &RecordFile, findings: &mut Vec<Finding>) {
-    match record.format {
-        Format::Mcq => key_rationale_mcq(record, findings),
-        Format::CaseVignette => key_rationale_vignette(record, findings),
-        Format::TutoringExample => key_rationale_tutoring(record, findings),
-    }
-}
-
-fn push_lint(record: &RecordFile, findings: &mut Vec<Finding>, detail: String) {
-    findings.push(Finding {
-        path: record.path.clone(),
-        line: record.line,
-        record_id: record.record_id(),
-        check: Check::KeyRationale,
-        detail,
-    });
-}
-
-fn key_rationale_mcq(record: &RecordFile, findings: &mut Vec<Finding>) {
-    let v = &record.value;
-    let Some(rationale) = v.get("rationale") else {
-        push_lint(record, findings, "rationale field missing".into());
-        return;
-    };
-    for field in ["key_explanation", "strongest_distractor"] {
-        let claim = &rationale[field];
-        if claim["text"].as_str().is_none_or(|t| t.trim().is_empty()) {
-            push_lint(record, findings, format!("rationale.{field}.text is empty"));
-        }
-        if claim["anchors"].as_array().is_none_or(|a| a.is_empty()) {
-            push_lint(
-                record,
-                findings,
-                format!("rationale.{field} has no anchors"),
-            );
-        }
-    }
-    key_references_option(record, v, rationale, findings);
-}
-
-/// The rationale must reference the keyed answer. Cheap deterministic
-/// proxy: the keyed option must share strictly more content words
-/// (lowercased tokens, len ≥ 4) with `key_explanation` than every other
-/// option — a wrong key leaves the rationale explaining another option,
-/// and a tie gives no evidence the rationale favors the keyed answer.
-fn key_references_option(
-    record: &RecordFile,
-    v: &serde_json::Value,
-    rationale: &serde_json::Value,
-    findings: &mut Vec<Finding>,
-) {
-    let (Some(key), Some(options), Some(explanation)) = (
-        v.get("key").and_then(|k| k.as_str()),
-        v.get("options").and_then(|o| o.as_array()),
-        rationale["key_explanation"]["text"].as_str(),
-    ) else {
-        return; // missing fields are the schema check's findings
-    };
-    let explained = words(explanation);
-    let overlap = |label: &str| -> usize {
-        options
-            .iter()
-            .find(|o| o["label"].as_str() == Some(label))
-            .map(|o| words(o["text"].as_str().unwrap_or("")))
-            .map(|w| explained.intersection(&w).count())
-            .unwrap_or(0)
-    };
-    let own = overlap(key);
-    let best_other = options
-        .iter()
-        .filter_map(|o| o["label"].as_str())
-        .filter(|l| *l != key)
-        .map(overlap)
-        .max()
-        .unwrap_or(0);
-    if own <= best_other {
-        let why = if own == best_other {
-            "does not uniquely explain"
-        } else {
-            "is not the option the rationale explains"
-        };
-        push_lint(
-            record,
-            findings,
-            format!(
-                "key `{key}` {why} the keyed answer \
-                 (keyed overlap {own}, best other {best_other})"
-            ),
-        );
-    }
-}
-
-fn key_rationale_vignette(record: &RecordFile, findings: &mut Vec<Finding>) {
-    let v = &record.value;
-    for (kind, claims) in [("questions", "answer"), ("teaching_points", "")] {
-        let Some(items) = v.get(kind).and_then(|q| q.as_array()) else {
-            continue;
-        };
-        for (i, item) in items.iter().enumerate() {
-            let claim = if claims.is_empty() {
-                item
-            } else {
-                &item[claims]
-            };
-            if claim["text"].as_str().is_none_or(|t| t.trim().is_empty()) {
-                let label = if claims.is_empty() {
-                    format!("{kind}[{i}].text is empty")
-                } else {
-                    format!("{kind}[{i}].{claims}.text is empty")
-                };
-                push_lint(record, findings, label);
-            }
-            if claim["anchors"].as_array().is_none_or(|a| a.is_empty()) {
-                let label = if claims.is_empty() {
-                    format!("{kind}[{i}] has no anchors")
-                } else {
-                    format!("{kind}[{i}].{claims} has no anchors")
-                };
-                push_lint(record, findings, label);
-            }
-        }
-    }
-}
-
-fn key_rationale_tutoring(record: &RecordFile, findings: &mut Vec<Finding>) {
-    let response = &record.value["tutor_response"];
-    if response["text"]
-        .as_str()
-        .is_none_or(|t| t.trim().is_empty())
-    {
-        push_lint(record, findings, "tutor_response.text is empty".into());
-    }
-}
-
-/// Content words for the key/rationale overlap check: lowercased word
-/// tokens of length ≥ 4.
-fn words(text: &str) -> HashSet<String> {
-    text.split(|c: char| !c.is_alphanumeric())
-        .filter(|w| w.len() >= 4)
-        .map(|w| w.to_lowercase())
-        .collect()
-}
-
-/// Rank of a [`VerificationStatus`] in the provenance ordering —
-/// `unverified` < `key-checked` < `anchor-checked` < `admitted`, the
-/// declaration order of the `medsynth-schema` enum.
-fn status_rank(value: &serde_json::Value) -> Option<u8> {
-    let s = value.get("verification_status")?.as_str()?;
-    [
-        VerificationStatus::Unverified,
-        VerificationStatus::KeyChecked,
-        VerificationStatus::AnchorChecked,
-        VerificationStatus::Admitted,
-    ]
-    .iter()
-    .position(|v| {
-        serde_json::to_value(v)
-            .ok()
-            .and_then(|j| j.as_str().map(str::to_owned))
-            .as_deref()
-            == Some(s)
-    })
-    .map(|p| p as u8)
-}
-
-/// `anchor-presence` — a record above `unverified` must carry at least one
-/// anchor citing a source id in the approved registry (contract §4).
-fn anchor_presence_check(
-    record: &RecordFile,
-    registry: &HashSet<String>,
-    findings: &mut Vec<Finding>,
-) {
-    let Some(rank) = status_rank(&record.value) else {
-        return; // missing/garbage status is the schema check's finding
-    };
-    if rank > 0 && count_registry_anchors(&record.value, registry) == 0 {
-        findings.push(Finding {
-            path: record.path.clone(),
-            line: record.line,
-            record_id: record.record_id(),
-            check: Check::AnchorPresence,
-            detail: format!(
-                "verification_status `{}` is above unverified but the record \
-                 carries no anchors into the approved source registry",
-                record.value["verification_status"].as_str().unwrap_or("?")
-            ),
-        });
-    }
-}
-
-/// Count anchor objects anywhere in the record whose `source_id` is in the
-/// approved registry — an anchor to an unlisted source is no anchor
-/// (contract §4).
-fn count_registry_anchors(value: &serde_json::Value, registry: &HashSet<String>) -> usize {
-    match value {
-        serde_json::Value::Object(map) => map
-            .iter()
-            .map(|(k, v)| {
-                if k == "anchors" {
-                    v.as_array().map_or(0, |anchors| {
-                        anchors
-                            .iter()
-                            .filter(|a| {
-                                a["source_id"]
-                                    .as_str()
-                                    .is_some_and(|id| registry.contains(id))
-                            })
-                            .count()
-                    })
-                } else {
-                    count_registry_anchors(v, registry)
-                }
-            })
-            .sum(),
-        serde_json::Value::Array(items) => items
-            .iter()
-            .map(|i| count_registry_anchors(i, registry))
-            .sum(),
-        _ => 0,
-    }
-}
-
-/// The smoke originality screen.
-///
-/// Word **5-gram** shingles are built from each record's text fields — every
-/// string under keys `text`, `presentation`, `question`, and every string
-/// inside `findings`/`options` arrays — lowercased, alphanumeric tokens,
-/// hashed with a stable FNV-1a so results are identical across toolchains
-/// and platforms. A pair of records is flagged when either record's shingle
-/// set is contained in the other's at a fraction ≥ **0.6**: a copied or
-/// near-copied record shares essentially all of its shingles with its
-/// source, while two records merely on the same topic share few 5-grams.
-/// Both records of an offending pair are reported. This is the smoke
-/// screen only; the full originality and contamination audit is #11.
-pub mod originality {
-    use super::*;
-
-    /// Word n-gram size for the overlap shingles.
-    pub const NGRAM: usize = 5;
-    /// Containment fraction at or above which a record pair is flagged as
-    /// likely duplicates.
-    pub const THRESHOLD: f64 = 0.6;
-
-    /// The text fields the screen reads: string values under these keys,
-    /// plus all string members of `findings` and `options` arrays.
-    const TEXT_KEYS: [&str; 3] = ["text", "presentation", "question"];
-    const TEXT_ARRAY_KEYS: [&str; 2] = ["findings", "options"];
-
-    /// All record text the screen sees, concatenated.
-    pub fn record_text(value: &serde_json::Value) -> String {
-        let mut out = String::new();
-        collect(value, None, &mut out);
-        out
-    }
-
-    fn collect(value: &serde_json::Value, key: Option<&str>, out: &mut String) {
-        match value {
-            serde_json::Value::Object(map) => {
-                for (k, v) in map {
-                    collect(v, Some(k), out);
-                }
-            }
-            serde_json::Value::Array(items) => {
-                for item in items {
-                    collect(item, key, out);
-                }
-            }
-            serde_json::Value::String(s)
-                if key.is_some_and(|k| TEXT_KEYS.contains(&k))
-                    || key.is_some_and(|k| TEXT_ARRAY_KEYS.contains(&k)) =>
-            {
-                out.push_str(s);
-                out.push(' ');
-            }
-            _ => {}
-        }
-    }
-
-    /// FNV-1a over the token — stable across Rust versions and platforms,
-    /// unlike `DefaultHasher`.
-    fn fnv1a(token: &[u8], seed: u64) -> u64 {
-        token.iter().fold(seed, |h, b| {
-            (h ^ u64::from(*b)).wrapping_mul(0x0000_0100_0000_01b3)
-        })
-    }
-
-    fn shingles(text: &str) -> HashSet<u64> {
-        let tokens: Vec<String> = text
-            .split(|c: char| !c.is_alphanumeric())
-            .filter(|w| !w.is_empty())
-            .map(|w| w.to_lowercase())
-            .collect();
-        tokens
-            .windows(NGRAM)
-            .map(|w| {
-                w.iter()
-                    .fold(0xcbf2_9ce4_8422_2325, |h, t| fnv1a(t.as_bytes(), h))
-            })
-            .collect()
-    }
-
-    /// Flag record pairs whose shingle containment — |shared| / |smaller
-    /// set| — reaches [`THRESHOLD`] in either direction. Both records of a
-    /// pair are reported.
-    pub fn screen(records: &[RecordFile], findings: &mut Vec<Finding>) {
-        let sets: Vec<HashSet<u64>> = records
-            .iter()
-            .map(|r| shingles(&record_text(&r.value)))
-            .collect();
-        let mut flagged: HashMap<usize, usize> = HashMap::new(); // record -> first offender
-        for i in 0..sets.len() {
-            for j in (i + 1)..sets.len() {
-                let (a, b) = (&sets[i], &sets[j]);
-                if a.is_empty() || b.is_empty() {
-                    continue;
-                }
-                let shared = a.intersection(b).count();
-                let smaller = a.len().min(b.len()) as f64;
-                if shared as f64 / smaller >= THRESHOLD {
-                    flagged.entry(i).or_insert(j);
-                    flagged.entry(j).or_insert(i);
-                }
-            }
-        }
-        for (i, j) in flagged {
-            findings.push(Finding {
-                path: records[i].path.clone(),
-                line: records[i].line,
-                record_id: records[i].record_id(),
-                check: Check::Originality,
-                detail: format!(
-                    "text near-duplicates {} (5-gram containment >= {THRESHOLD})",
-                    records[j].path.display()
-                ),
-            });
-        }
-    }
-}
+pub use checks::run_checks;

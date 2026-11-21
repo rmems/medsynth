@@ -19,6 +19,24 @@ fn workspace_root() -> PathBuf {
         .to_path_buf()
 }
 
+/// The `valid-*` fixture records of one format, loaded like the gate loads
+/// them (`.json` and `.jsonl` alike).
+fn valid_siblings(root: &Path, format: medsynth_validate::Format) -> Vec<RecordFile> {
+    let paths: Vec<PathBuf> = json_files(&root.join("fixtures").join(format.slug()))
+        .into_iter()
+        .filter(|p| {
+            p.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with("valid-"))
+        })
+        .collect();
+    let root2 = root.to_path_buf();
+    load_paths(paths, move |p| {
+        p.strip_prefix(&root2).unwrap_or(p).to_path_buf()
+    })
+    .0
+}
+
 #[test]
 fn gold_set_passes_every_check() {
     let root = workspace_root();
@@ -77,26 +95,7 @@ fn near_miss_fixtures_fail_for_their_planted_reason() {
         // Run the near-miss alongside the other valid records of its
         // format so the corpus-level checks (originality, duplicate ids)
         // see a realistic slice.
-        let mut slice: Vec<RecordFile> = Vec::new();
-        for sibling in json_files(&root.join("fixtures").join(format.slug())) {
-            let sib_display = sibling.strip_prefix(&root).unwrap().to_path_buf();
-            let sib_format = format_of(&sib_display).unwrap();
-            let sib_raw = std::fs::read_to_string(&sibling).unwrap();
-            let sib_name = sibling
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("")
-                .to_owned();
-            if sib_name.starts_with("valid-") {
-                slice.push(RecordFile {
-                    path: sib_display,
-                    line: None,
-                    format: sib_format,
-                    value: serde_json::from_str(&sib_raw).unwrap(),
-                    raw: sib_raw,
-                });
-            }
-        }
+        let mut slice = valid_siblings(&root, format);
         let value: serde_json::Value =
             serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
         slice.push(RecordFile {

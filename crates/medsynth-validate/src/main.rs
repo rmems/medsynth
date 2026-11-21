@@ -41,6 +41,9 @@ fn main() -> anyhow::Result<()> {
     }
     // An empty corpus passing silently would let a broken checkout or a
     // moved data/ directory green-light the gate — fail loudly instead.
+    if !root.join("data").is_dir() {
+        bail!("no data/ directory under {}", root.display());
+    }
     if records.is_empty() {
         bail!(
             "no records found under {}/data or {}/fixtures",
