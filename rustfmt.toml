@@ -1,0 +1,4 @@
+# Matches the workspace's Rust edition so standalone `rustfmt` (e.g. the
+# Qlty rustfmt plugin, which does not read Cargo.toml) agrees with
+# `cargo fmt`.
+edition = "2024"

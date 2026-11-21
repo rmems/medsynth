@@ -1,0 +1,41 @@
+name: Data Validation
+
+# Runs on every pull request and push to main: a required check skipped by
+# path filters would stay pending forever on data-free PRs. The job itself
+# is the gate — it validates the whole corpus regardless of what changed.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: data-validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@263313d2989f864a2b8613f97277288638e7d8f8 # 1.99.1
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-validate-${{ hashFiles('Cargo.lock') }}
+
+      - name: Run the validator over the corpus
+        run: cargo run --locked -p medsynth-validate -- .
+
+      - name: Fixture-behavior tests (gold passes / near-miss fails)
+        run: cargo test --locked -p medsynth-validate --test fixtures_behavior

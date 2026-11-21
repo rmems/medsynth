@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/medsynth-schema"]
+members = ["crates/medsynth-schema", "crates/medsynth-validate"]
 
 [workspace.package]
 version = "0.1.0"
