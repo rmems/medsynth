@@ -337,12 +337,12 @@ fn collect_probes(root_dir: &Path, dir: &Path, actual: &mut BTreeSet<String>) {
             collect_probes(root_dir, &path, actual);
         } else if dir == root_dir {
             assert!(
-                name == "manifest.json" || name == "README.md",
+                file_type.is_file() && (name == "manifest.json" || name == "README.md"),
                 "unexpected file at near-miss root: {name}"
             );
         } else {
             assert!(
-                path.extension().is_some_and(|e| e == "json"),
+                file_type.is_file() && path.extension().is_some_and(|e| e == "json"),
                 "unexpected file in near-miss dir: {}",
                 path.display()
             );
