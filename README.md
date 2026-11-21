@@ -8,6 +8,7 @@
 [![CodeScene Missed Goals](https://codescene.io/projects/84015/status-badges/missed-goals)](https://codescene.io/projects/84015)
 [![CodeScene System Mastery](https://codescene.io/projects/84015/status-badges/system-mastery)](https://codescene.io/projects/84015)
 [![Code Coverage](https://qlty.sh/gh/rmems/projects/medsynth/coverage.svg)](https://qlty.sh/gh/rmems/projects/medsynth)
+[![codecov](https://codecov.io/gh/rmems/medsynth/graph/badge.svg?token=zw4U1FXqnE)](https://codecov.io/gh/rmems/medsynth)
 
 Synthetic training and evaluation data for pre-medical and early medical
 education — every clinical and scientific claim traceable to a reference.

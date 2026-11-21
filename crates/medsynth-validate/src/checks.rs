@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use crate::{Check, Finding, RecordFile, Validators, originality};
 
 /// Run every check over the corpus and return all findings. `registry` is
-/// the approved source-id set from [`load_registry`].
+/// the approved source-id set from [`crate::load_registry`].
 pub fn run_checks(
     records: &[RecordFile],
     validators: &Validators,

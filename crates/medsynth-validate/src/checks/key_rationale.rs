@@ -79,29 +79,30 @@ fn key_references_option(
         .map(overlap)
         .max()
         .unwrap_or(0);
+    if let Some(detail) = key_verdict(explanation, key, own, best_other) {
+        push_lint(record, findings, detail);
+    }
+}
+
+/// `None` when the rationale adequately references the key; `Some(detail)`
+/// describes why it does not.
+fn key_verdict(explanation: &str, key: &str, own: usize, best_other: usize) -> Option<String> {
     if own == 0 && best_other == 0 {
-        if !references_label(explanation, key) {
-            push_lint(
-                record,
-                findings,
-                format!("rationale does not reference key `{key}`"),
-            );
-        }
-    } else if own <= best_other {
+        return (!references_label(explanation, key))
+            .then(|| format!("rationale does not reference key `{key}`"));
+    }
+    if own <= best_other {
         let why = if own == best_other {
             "does not uniquely explain"
         } else {
             "is not the option the rationale explains"
         };
-        push_lint(
-            record,
-            findings,
-            format!(
-                "key `{key}` {why} the keyed answer \
-                 (keyed overlap {own}, best other {best_other})"
-            ),
-        );
+        return Some(format!(
+            "key `{key}` {why} the keyed answer \
+             (keyed overlap {own}, best other {best_other})"
+        ));
     }
+    None
 }
 
 /// All-short options (e.g. "ATP"/"ADP") carry no ≥4-letter content words,

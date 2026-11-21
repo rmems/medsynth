@@ -209,21 +209,25 @@ pub fn load_registry(root: &Path) -> HashSet<String> {
 /// under `data/` (including `data/gold/`) and every `valid-*.json` fixture
 /// under `fixtures/` (at any depth, so a root-level `fixtures/valid-*.json`
 /// is still seen). Missing directories yield no files.
-pub fn record_files(root: &Path) -> Vec<PathBuf> {
+pub fn record_files(root: &Path) -> (Vec<PathBuf>, Vec<Finding>) {
     let mut files = Vec::new();
-    collect_json(root.join("data"), &mut files);
-    collect_matching(root.join("fixtures"), "valid-", &mut files);
+    let mut findings = Vec::new();
+    collect_json(root.join("data"), &mut files, &mut findings);
+    collect_matching(root.join("fixtures"), "valid-", &mut files, &mut findings);
     files.sort();
-    files
+    (files, findings)
 }
 
 /// Every `*.json`/`*.jsonl` under a directory, recursively — the gold-set
-/// test uses this on `data/gold/`.
-pub fn json_files(dir: &Path) -> Vec<PathBuf> {
+/// test uses this on `data/gold/`. Enumeration errors (permission denied,
+/// unreadable entries) come back as findings; only a missing directory is
+/// silently allowed.
+pub fn json_files(dir: &Path) -> (Vec<PathBuf>, Vec<Finding>) {
     let mut files = Vec::new();
-    collect_json(dir.to_path_buf(), &mut files);
+    let mut findings = Vec::new();
+    collect_json(dir.to_path_buf(), &mut files, &mut findings);
     files.sort();
-    files
+    (files, findings)
 }
 
 fn is_record_file(path: &Path, prefix: Option<&str>) -> bool {
@@ -241,11 +245,45 @@ fn is_record_file(path: &Path, prefix: Option<&str>) -> bool {
     )
 }
 
-fn collect_json(dir: PathBuf, out: &mut Vec<PathBuf>) {
-    let Ok(entries) = fs::read_dir(&dir) else {
+fn dir_finding(dir: &Path, detail: String) -> Finding {
+    Finding {
+        path: dir.to_path_buf(),
+        line: None,
+        record_id: "<load>".into(),
+        check: Check::Schema,
+        detail,
+    }
+}
+
+/// Missing directories are allowed (a corpus may ship without `data/`),
+/// but any other enumeration failure becomes a finding — a gate that
+/// silently skips unreadable directories is not a gate.
+fn read_dir(dir: &Path, findings: &mut Vec<Finding>) -> Option<fs::ReadDir> {
+    match fs::read_dir(dir) {
+        Ok(entries) => Some(entries),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(e) => {
+            findings.push(dir_finding(dir, format!("cannot read directory: {e}")));
+            None
+        }
+    }
+}
+
+fn collect_json(dir: PathBuf, out: &mut Vec<PathBuf>, findings: &mut Vec<Finding>) {
+    let Some(entries) = read_dir(&dir, findings) else {
         return;
     };
-    for entry in entries.flatten() {
+    for entry in entries {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(e) => {
+                findings.push(dir_finding(
+                    &dir,
+                    format!("cannot read directory entry: {e}"),
+                ));
+                continue;
+            }
+        };
         let path = entry.path();
         // Skip symlinked directories — following one that points at an
         // ancestor would recurse forever.
@@ -253,24 +291,39 @@ fn collect_json(dir: PathBuf, out: &mut Vec<PathBuf>) {
             continue;
         }
         if path.is_dir() {
-            collect_json(path, out);
+            collect_json(path, out, findings);
         } else if is_record_file(&path, None) {
             out.push(path);
         }
     }
 }
 
-fn collect_matching(dir: PathBuf, prefix: &str, out: &mut Vec<PathBuf>) {
-    let Ok(entries) = fs::read_dir(&dir) else {
+fn collect_matching(
+    dir: PathBuf,
+    prefix: &str,
+    out: &mut Vec<PathBuf>,
+    findings: &mut Vec<Finding>,
+) {
+    let Some(entries) = read_dir(&dir, findings) else {
         return;
     };
-    for entry in entries.flatten() {
+    for entry in entries {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(e) => {
+                findings.push(dir_finding(
+                    &dir,
+                    format!("cannot read directory entry: {e}"),
+                ));
+                continue;
+            }
+        };
         let path = entry.path();
         if entry.file_type().is_ok_and(|t| t.is_symlink()) {
             continue;
         }
         if path.is_dir() {
-            collect_matching(path, prefix, out);
+            collect_matching(path, prefix, out, findings);
         } else if is_record_file(&path, Some(prefix)) {
             out.push(path);
         }
@@ -293,9 +346,12 @@ pub fn format_of(path: &Path) -> Option<Format> {
 /// unclassifiable files instead of aborting.
 pub fn load_corpus(root: &Path) -> (Vec<RecordFile>, Vec<Finding>) {
     let root = root.to_path_buf();
-    load_paths(record_files(&root), move |p| {
+    let (files, mut findings) = record_files(&root);
+    let (records, load_findings) = load_paths(files, move |p| {
         p.strip_prefix(&root).unwrap_or(p).to_path_buf()
-    })
+    });
+    findings.extend(load_findings);
+    (records, findings)
 }
 
 /// Load and parse an explicit list of record files — used by the corpus
@@ -336,19 +392,19 @@ pub fn load_paths(
                 continue;
             }
         };
+        let mut corpus = Corpus {
+            records: &mut records,
+            findings: &mut findings,
+        };
         if is_jsonl {
-            load_jsonl(&text, &display_path, format, &mut records, &mut findings);
+            load_jsonl(&text, &display_path, format, &mut corpus);
         } else {
-            push_record(
-                &mut records,
-                &mut findings,
-                PendingRecord {
-                    path: &display_path,
-                    line: None,
-                    format,
-                    raw: &text,
-                },
-            );
+            corpus.push_pending(PendingRecord {
+                path: &display_path,
+                line: None,
+                format,
+                raw: &text,
+            });
         }
     }
     (records, findings)
@@ -356,17 +412,11 @@ pub fn load_paths(
 
 /// Load each non-blank line of a `.jsonl` shard as its own record; blank
 /// lines are findings (a malformed shard must not pass silently).
-fn load_jsonl(
-    text: &str,
-    display_path: &Path,
-    format: Format,
-    records: &mut Vec<RecordFile>,
-    findings: &mut Vec<Finding>,
-) {
+fn load_jsonl(text: &str, display_path: &Path, format: Format, corpus: &mut Corpus) {
     for (idx, raw) in text.lines().enumerate() {
         let line = idx + 1;
         if raw.trim().is_empty() {
-            findings.push(Finding {
+            corpus.findings.push(Finding {
                 path: display_path.to_path_buf(),
                 line: Some(line),
                 record_id: "<unreadable>".into(),
@@ -375,17 +425,19 @@ fn load_jsonl(
             });
             continue;
         }
-        push_record(
-            records,
-            findings,
-            PendingRecord {
-                path: display_path,
-                line: Some(line),
-                format,
-                raw,
-            },
-        );
+        corpus.push_pending(PendingRecord {
+            path: display_path,
+            line: Some(line),
+            format,
+            raw,
+        });
     }
+}
+
+/// The record and finding sinks every loader writes through.
+struct Corpus<'a> {
+    records: &'a mut Vec<RecordFile>,
+    findings: &'a mut Vec<Finding>,
 }
 
 /// One parsed-but-unvalidated record found by [`load_paths`].
@@ -396,22 +448,24 @@ struct PendingRecord<'a> {
     raw: &'a str,
 }
 
-fn push_record(records: &mut Vec<RecordFile>, findings: &mut Vec<Finding>, pending: PendingRecord) {
-    match serde_json::from_str(pending.raw) {
-        Ok(value) => records.push(RecordFile {
-            path: pending.path.to_path_buf(),
-            line: pending.line,
-            format: pending.format,
-            value,
-            raw: pending.raw.to_owned(),
-        }),
-        Err(e) => findings.push(Finding {
-            path: pending.path.to_path_buf(),
-            line: pending.line,
-            record_id: "<unreadable>".into(),
-            check: Check::Schema,
-            detail: format!("invalid JSON: {e}"),
-        }),
+impl Corpus<'_> {
+    fn push_pending(&mut self, pending: PendingRecord) {
+        match serde_json::from_str(pending.raw) {
+            Ok(value) => self.records.push(RecordFile {
+                path: pending.path.to_path_buf(),
+                line: pending.line,
+                format: pending.format,
+                value,
+                raw: pending.raw.to_owned(),
+            }),
+            Err(e) => self.findings.push(Finding {
+                path: pending.path.to_path_buf(),
+                line: pending.line,
+                record_id: "<unreadable>".into(),
+                check: Check::Schema,
+                detail: format!("invalid JSON: {e}"),
+            }),
+        }
     }
 }
 

@@ -22,7 +22,12 @@ fn workspace_root() -> PathBuf {
 /// The `valid-*` fixture records of one format, loaded like the gate loads
 /// them (`.json` and `.jsonl` alike).
 fn valid_siblings(root: &Path, format: medsynth_validate::Format) -> Vec<RecordFile> {
-    let paths: Vec<PathBuf> = json_files(&root.join("fixtures").join(format.slug()))
+    let (files, enum_findings) = json_files(&root.join("fixtures").join(format.slug()));
+    assert!(
+        enum_findings.is_empty(),
+        "fixture directory enumeration must not fail: {enum_findings:?}"
+    );
+    let paths: Vec<PathBuf> = files
         .into_iter()
         .filter(|p| {
             p.file_name()
@@ -49,7 +54,11 @@ fn gold_set_passes_every_check() {
         eprintln!("SKIP: data/gold/ does not exist yet — lands with #7");
         return;
     }
-    let paths = json_files(&gold);
+    let (paths, enum_findings) = json_files(&gold);
+    assert!(
+        enum_findings.is_empty(),
+        "gold directory enumeration must not fail: {enum_findings:?}"
+    );
     assert!(!paths.is_empty(), "data/gold/ must contain records");
     let root2 = root.clone();
     let (records, load_findings) = load_paths(paths, move |p| {

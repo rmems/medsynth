@@ -4,7 +4,7 @@ use medsynth_schema::VerificationStatus;
 
 use crate::{Check, Finding, RecordFile};
 
-/// Rank of a [`VerificationStatus`] in the provenance ordering —
+/// Rank of a [`medsynth_schema::VerificationStatus`] in the provenance ordering —
 /// `unverified` < `key-checked` < `anchor-checked` < `admitted`, the
 /// declaration order of the `medsynth-schema` enum.
 fn status_rank(value: &serde_json::Value) -> Option<u8> {
