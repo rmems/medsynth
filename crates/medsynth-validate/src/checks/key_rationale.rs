@@ -119,19 +119,36 @@ fn references_label(explanation: &str, key: &str) -> bool {
             .any(|t| t == key)
 }
 
-/// True when the explanation names "option <key>" — tolerating
-/// punctuation between them ("option (A)", "option: B", "option B)").
+/// True when the explanation names "option <key>" — tolerating the
+/// separators that legitimately precede a label ("option (A)",
+/// "option: B", "option B"), but not sentence terminators.
 fn names_option(explanation: &str, key: &str) -> bool {
+    const SEPARATORS: &[char] = &[' ', '\t', ':', '('];
     let lower = explanation.to_lowercase();
     let key = key.to_lowercase();
-    lower.match_indices("option").any(|(i, _)| {
-        let rest = lower[i + "option".len()..].trim_start_matches(|c: char| !c.is_alphanumeric());
-        rest.starts_with(&key)
-            && rest[key.len()..]
+    lower
+        .match_indices("option")
+        // "option" must be a whole word, not a prefix of a longer word
+        // like "optioned".
+        .filter(|(i, _)| {
+            lower[..*i]
                 .chars()
-                .next()
+                .next_back()
                 .is_none_or(|c| !c.is_alphanumeric())
-    })
+                && lower[i + "option".len()..]
+                    .chars()
+                    .next()
+                    .is_none_or(|c| !c.is_alphanumeric())
+        })
+        .any(|(i, _)| {
+            let rest =
+                lower[i + "option".len()..].trim_start_matches(|c: char| SEPARATORS.contains(&c));
+            rest.starts_with(&key)
+                && rest[key.len()..]
+                    .chars()
+                    .next()
+                    .is_none_or(|c| !c.is_alphanumeric())
+        })
 }
 
 fn key_rationale_vignette(record: &RecordFile, findings: &mut Vec<Finding>) {

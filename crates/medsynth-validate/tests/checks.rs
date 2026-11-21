@@ -229,6 +229,23 @@ fn key_rationale_accepts_parenthesized_label_reference() {
 }
 
 #[test]
+fn key_rationale_rejects_sentence_break_before_label() {
+    // "option. A ..." crosses a sentence boundary and must not count as a
+    // label reference — this rationale favors ADP, not the key A.
+    let mut r = mcq();
+    for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
+        r["options"][i]["text"] = serde_json::json!(opt);
+    }
+    r["rationale"]["key_explanation"]["text"] =
+        serde_json::json!("ADP is the best option. A phosphate group is released.");
+    let findings = findings_for(&[record(Format::Mcq, "sentence-break", r)]);
+    assert!(
+        findings.iter().any(|f| f.check == Check::KeyRationale),
+        "sentence-boundary 'option. A' must not pass: {findings:?}"
+    );
+}
+
+#[test]
 fn anchor_presence_passes_unverified_with_no_anchors() {
     // An unverified draft with zero anchors must not trip the check — the
     // gate may only flag records above unverified.
