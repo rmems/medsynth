@@ -169,4 +169,24 @@ fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
         "{}",
         stderr(&output)
     );
+
+    // A `--lane procedural` run never touches the fulfillment directory, so
+    // the same `data/` path must not block it.
+    let out3 = TempDir::new("cli-procedural-out");
+    let output = command()
+        .args([
+            "run",
+            "--config",
+            config_path.to_str().unwrap(),
+            "--out",
+            out3.path().to_str().unwrap(),
+            "--lane",
+            "procedural",
+            "--teacher-responses",
+            workspace_root().join("data/fulfill").to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{}", stderr(&output));
+    assert!(out3.path().join("mcq.jsonl").exists());
 }

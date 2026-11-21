@@ -309,7 +309,9 @@ fn request_completion(
         user: ctx.prompt.user.clone(),
         max_tokens: ctx.selection.max_output_tokens,
         temperature: ctx.selection.temperature,
-        seed: ctx.attempt,
+        // Fold the batch seed into the API seed so a shared fulfillment
+        // directory serves fresh samples per batch, not cross-batch dupes.
+        seed: (ctx.cell_ctx.plan.config.seed as u32) ^ ctx.attempt,
         pin_id: pin.pin_id.clone(),
         pin_variant: pin.variant.clone(),
     };

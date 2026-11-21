@@ -128,8 +128,11 @@ fn run_batch(args: RunArgs) -> Result<()> {
     // valid before a single request is emitted to the fulfillment directory.
     medsynth_generate::batch::check_output_dir(&paths, &args.out)?;
     // Request files are draft-adjacent artifacts: the fulfillment directory
-    // is held to the same `data/` restriction as `--out`.
-    if let Some(dir) = &args.teacher_responses {
+    // is held to the same `data/` restriction as `--out`, but only when the
+    // run can touch the teacher lane at all.
+    if !matches!(args.lane, LaneArg::Procedural)
+        && let Some(dir) = &args.teacher_responses
+    {
         medsynth_generate::batch::check_output_dir(&paths, dir)?;
     }
     let responses_dir = args.teacher_responses.clone();

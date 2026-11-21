@@ -71,10 +71,11 @@ fn request_body_text(request: &TeacherRequest) -> String {
     serde_json::to_string_pretty(&request_body(request)).unwrap()
 }
 
-/// The filename stem identifying a fulfillment: the request file's hash, so a
-/// harness that hashes the file bytes derives the same key.
+/// The filename stem identifying a fulfillment: the request file's full
+/// SHA-256, so a harness that hashes the file bytes derives the same key and
+/// distinct bodies can never collide.
 pub fn fulfillment_key(request: &TeacherRequest) -> String {
-    sha256_str(&request_body_text(request))[..16].to_owned()
+    sha256_str(&request_body_text(request))
 }
 
 /// Fulfills teacher requests from a directory of recorded responses.
@@ -111,19 +112,34 @@ impl RecordedTeacherClient {
 impl TeacherClient for RecordedTeacherClient {
     fn complete(&self, request: &TeacherRequest) -> Result<TeacherCompletion, TeacherError> {
         let (request_path, response_path) = self.paths(request);
-        std::fs::write(&request_path, request_body_text(request)).map_err(|e| {
-            TeacherError::Transport(format!(
-                "cannot write request file {}: {e}",
-                request_path.display()
-            ))
-        })?;
-        let text = std::fs::read_to_string(&response_path).map_err(|_| {
-            TeacherError::Transport(format!(
-                "no recorded response at {}; dispatch {} externally and drop the teacher's raw chat-completion JSON there",
-                response_path.display(),
-                request_path.display()
-            ))
-        })?;
+        // Stage then rename: a pre-existing symlink at the request path is
+        // replaced by the rename, never followed to truncate its target.
+        let tmp_path = request_path.with_extension("tmp");
+        std::fs::write(&tmp_path, request_body_text(request))
+            .and_then(|()| std::fs::rename(&tmp_path, &request_path))
+            .map_err(|e| {
+                let _ = std::fs::remove_file(&tmp_path);
+                TeacherError::Transport(format!(
+                    "cannot write request file {}: {e}",
+                    request_path.display()
+                ))
+            })?;
+        let text = match std::fs::read_to_string(&response_path) {
+            Ok(text) => text,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Err(TeacherError::Transport(format!(
+                    "no recorded response at {}; dispatch {} externally and drop the teacher's raw chat-completion JSON there",
+                    response_path.display(),
+                    request_path.display()
+                )));
+            }
+            Err(e) => {
+                return Err(TeacherError::Transport(format!(
+                    "cannot read response file {}: {e}",
+                    response_path.display()
+                )));
+            }
+        };
         let value: Value = serde_json::from_str(&text).map_err(|e| {
             TeacherError::Parse(format!(
                 "invalid response JSON in {}: {e}",
@@ -216,7 +232,7 @@ mod tests {
         // The key a harness derives by hashing the request file itself.
         assert_eq!(
             fulfillment_key(&request()),
-            &sha256_str(&std::fs::read_to_string(&request_path).unwrap())[..16]
+            sha256_str(&std::fs::read_to_string(&request_path).unwrap())
         );
         // Harness fulfills: same stem, `.response.json`.
         let response_path = dir

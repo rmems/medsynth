@@ -38,6 +38,14 @@ pub enum TeacherError {
         "teacher lane refused: pin `{pin_id}` does not affirm terms permitting distillation and synthetic-data generation"
     )]
     TermsDoNotPermit { pin_id: String },
+    #[error(
+        "teacher lane refused: pin endpoint `{endpoint}` is not an approved provider host (api.deepseek.com or integrate.api.nvidia.com)"
+    )]
+    UntrustedEndpoint { endpoint: String },
+    #[error(
+        "teacher lane refused: api_key_env `{env_var}` does not name a provider API-key variable"
+    )]
+    InvalidCredentialEnv { env_var: String },
     #[error("teacher lane refused: teachers pin file error: {0}")]
     PinParse(String),
     #[error(

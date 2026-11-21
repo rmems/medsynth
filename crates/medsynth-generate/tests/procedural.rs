@@ -363,6 +363,19 @@ fn custom_data_dir_still_protects_workspace_data_tree() {
 }
 
 #[test]
+fn parent_relative_out_dir_leaving_data_is_allowed() {
+    // `../data/mcq` resolves outside the workspace `data/` tree; a leading
+    // `..` must not be collapsed into `data/` and falsely refused.
+    let paths = plan_paths(&sample_config());
+    let result = check_output_dir(&paths, Path::new("../data/mcq"));
+    assert!(result.is_ok(), "unexpected refusal: {result:?}");
+
+    // A `..` that re-enters the tree still resolves to a refusal.
+    let err = check_output_dir(&paths, Path::new("data/../data/mcq")).unwrap_err();
+    assert!(err.to_string().contains("refusing to write drafts under"));
+}
+
+#[test]
 fn gold_inside_a_data_tree_protects_that_tree_at_any_cwd() {
     // The process may run outside the workspace root; an absolute `--gold`
     // inside `<ws>/data/` still protects `<ws>/data` with `--data` elsewhere.

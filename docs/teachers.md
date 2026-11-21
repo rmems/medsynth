@@ -79,7 +79,10 @@ A pin entry whose `lane` is not `teacher`, or whose `family` is not `deepseek`
 or `nvidia-nemotron`, is rejected by the gate even if its terms look
 permissive. The gate also rejects an entry that omits any required field or
 that does not affirm both `permits_distillation` and
-`permits_synthetic_data`.
+`permits_synthetic_data`, and an entry whose `endpoint` is not an approved
+provider host (`api.deepseek.com`, `integrate.api.nvidia.com`) or whose
+`api_key_env` does not name a provider API-key variable — this document is
+what the harness dispatches on, so it must stay accurate.
 
 ## Fail-closed behavior
 

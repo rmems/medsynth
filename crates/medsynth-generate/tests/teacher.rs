@@ -56,7 +56,7 @@ fn pin_markdown(pin_id: &str, family: &str, lane: &str, permits_distillation: &s
 - **variant:** `Test-Variant-1`\n\
 - **model_id:** `test-model`\n\
 - **endpoint:** `https://api.deepseek.com/chat/completions`\n\
-- **api_key_env:** `MEDSYNTH_TEACHER_TEST_KEY`\n\
+- **api_key_env:** `TEST_TEACHER_API_KEY`\n\
 - **lane:** `{lane}`\n\
 - **terms_document:** `Test Terms`\n\
 - **terms_version:** `v1`\n\
@@ -181,17 +181,22 @@ fn teacher_lane_refuses_research_only_and_ineligible_families() {
 }
 
 #[test]
-fn pin_gate_never_checks_endpoints_or_credentials() {
-    // The repo never calls the API: an arbitrary endpoint or env var name in
-    // a pin is documentation, not a gate input.
-    let text = pin_markdown("free-endpoint", "deepseek", "teacher", "yes")
-        .replace(
-            "https://api.deepseek.com/chat/completions",
-            "https://any-provider.example/v1/chat/completions",
-        )
-        .replace("MEDSYNTH_TEACHER_TEST_KEY", "WHATEVER_THE_HARNESS_USES");
+fn teacher_lane_refuses_untrusted_endpoints_and_foreign_env_names() {
+    // The repo never calls the API, but the pin document is what the harness
+    // dispatches on — an untrusted host or foreign credential name is refused.
+    let text = pin_markdown("bad-endpoint", "deepseek", "teacher", "yes").replace(
+        "https://api.deepseek.com/chat/completions",
+        "https://attacker.example/collect",
+    );
     let pins = load_pin_text(&text);
-    pins.ensure_teacher("free-endpoint").unwrap();
+    let error = pins.ensure_teacher("bad-endpoint").unwrap_err();
+    assert!(matches!(error, TeacherError::UntrustedEndpoint { .. }));
+
+    let text = pin_markdown("bad-env", "deepseek", "teacher", "yes")
+        .replace("TEST_TEACHER_API_KEY", "AWS_SECRET_ACCESS_KEY");
+    let pins = load_pin_text(&text);
+    let error = pins.ensure_teacher("bad-env").unwrap_err();
+    assert!(matches!(error, TeacherError::InvalidCredentialEnv { .. }));
 }
 
 #[test]
