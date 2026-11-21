@@ -302,12 +302,16 @@ fn request_completion(
     ctx: &AttemptCtx<'_>,
     id_text: &str,
 ) -> Result<TeacherCompletion, FailedAttempt> {
+    let pin = ctx.teacher.prepared.pin();
     let request = TeacherRequest {
-        model: ctx.teacher.prepared.pin().model_id.clone(),
+        model: pin.model_id.clone(),
         system: ctx.prompt.system.clone(),
         user: ctx.prompt.user.clone(),
         max_tokens: ctx.selection.max_output_tokens,
         temperature: ctx.selection.temperature,
+        seed: ctx.attempt,
+        pin_id: pin.pin_id.clone(),
+        pin_variant: pin.variant.clone(),
     };
     let completion = ctx.teacher.client.complete(&request).map_err(|e| {
         let stage = if matches!(e, TeacherError::Transport(_)) {

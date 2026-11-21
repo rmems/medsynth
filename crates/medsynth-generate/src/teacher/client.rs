@@ -4,8 +4,8 @@
 //! the fulfillment directory as `<key>.request.json` — an OpenAI-compatible
 //! chat-completion body an external harness can dispatch however it likes —
 //! and the harness drops the teacher's raw response at `<key>.response.json`.
-//! The key is a hash of the exact request body, so responses cannot be mixed
-//! up across cells, attempts, or runs.
+//! The key is a hash of the exact request-file bytes, so responses cannot be
+//! mixed up across cells, attempts, pins, or runs.
 
 use std::path::PathBuf;
 
@@ -23,6 +23,14 @@ pub struct TeacherRequest {
     pub user: String,
     pub max_tokens: u32,
     pub temperature: f32,
+    /// The attempt ordinal, sent as the API `seed` so each attempt of a cell
+    /// asks for a distinct sample and fulfills under its own key.
+    pub seed: u32,
+    /// The pin driving the request, carried in `metadata` so a revised pin
+    /// cannot silently reuse a previous variant's response file.
+    pub pin_id: String,
+    /// The pinned variant, for the same reason.
+    pub pin_variant: String,
 }
 
 /// The teacher's raw text output.
@@ -52,13 +60,21 @@ fn request_body(request: &TeacherRequest) -> Value {
         ],
         "temperature": request.temperature,
         "max_tokens": request.max_tokens,
+        "seed": request.seed,
+        "metadata": {"pin_id": request.pin_id, "variant": request.pin_variant},
         "response_format": {"type": "json_object"}
     })
 }
 
-/// The filename stem identifying a fulfillment: the request body's hash.
+/// The exact bytes written to `<key>.request.json`.
+fn request_body_text(request: &TeacherRequest) -> String {
+    serde_json::to_string_pretty(&request_body(request)).unwrap()
+}
+
+/// The filename stem identifying a fulfillment: the request file's hash, so a
+/// harness that hashes the file bytes derives the same key.
 pub fn fulfillment_key(request: &TeacherRequest) -> String {
-    sha256_str(&serde_json::to_string(&request_body(request)).unwrap())[..16].to_owned()
+    sha256_str(&request_body_text(request))[..16].to_owned()
 }
 
 /// Fulfills teacher requests from a directory of recorded responses.
@@ -95,15 +111,12 @@ impl RecordedTeacherClient {
 impl TeacherClient for RecordedTeacherClient {
     fn complete(&self, request: &TeacherRequest) -> Result<TeacherCompletion, TeacherError> {
         let (request_path, response_path) = self.paths(request);
-        let body = request_body(request);
-        std::fs::write(&request_path, serde_json::to_string_pretty(&body).unwrap()).map_err(
-            |e| {
-                TeacherError::Transport(format!(
-                    "cannot write request file {}: {e}",
-                    request_path.display()
-                ))
-            },
-        )?;
+        std::fs::write(&request_path, request_body_text(request)).map_err(|e| {
+            TeacherError::Transport(format!(
+                "cannot write request file {}: {e}",
+                request_path.display()
+            ))
+        })?;
         let text = std::fs::read_to_string(&response_path).map_err(|_| {
             TeacherError::Transport(format!(
                 "no recorded response at {}; dispatch {} externally and drop the teacher's raw chat-completion JSON there",
@@ -179,6 +192,9 @@ mod tests {
             user: "user".to_owned(),
             max_tokens: 64,
             temperature: 0.2,
+            seed: 0,
+            pin_id: "deepseek-v4.1-flash".to_owned(),
+            pin_variant: "DeepSeek-V4.1-Flash-1017".to_owned(),
         }
     }
 
@@ -197,6 +213,11 @@ mod tests {
             serde_json::from_str(&std::fs::read_to_string(&request_path).unwrap()).unwrap();
         assert_eq!(body["model"], "deepseek-flash");
         assert_eq!(body["response_format"]["type"], "json_object");
+        // The key a harness derives by hashing the request file itself.
+        assert_eq!(
+            fulfillment_key(&request()),
+            &sha256_str(&std::fs::read_to_string(&request_path).unwrap())[..16]
+        );
         // Harness fulfills: same stem, `.response.json`.
         let response_path = dir
             .path
@@ -227,6 +248,25 @@ mod tests {
         let error = client.complete(&request()).unwrap_err();
         assert!(matches!(error, TeacherError::Transport(_)), "{error}");
         assert!(error.to_string().contains("no recorded response"));
+    }
+
+    #[test]
+    fn fulfillment_key_changes_with_attempt_seed_and_pin() {
+        let base = fulfillment_key(&request());
+        let mut other = request();
+        other.seed = 1;
+        assert_ne!(
+            base,
+            fulfillment_key(&other),
+            "each attempt gets its own file"
+        );
+        let mut other = request();
+        other.pin_variant = "DeepSeek-V4.1-Flash-1024".to_owned();
+        assert_ne!(
+            base,
+            fulfillment_key(&other),
+            "a revised pin cannot reuse the old response"
+        );
     }
 
     #[test]

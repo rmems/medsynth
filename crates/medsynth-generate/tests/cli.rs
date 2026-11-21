@@ -148,4 +148,25 @@ fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
             .unwrap();
     assert_eq!(manifest["teacher_lane"]["status"], "refused");
     assert_eq!(manifest["totals"]["produced"], 1);
+
+    // The fulfillment directory is held to the same `data/` restriction.
+    let out2 = TempDir::new("cli-teacher-out2");
+    let output = command()
+        .args([
+            "run",
+            "--config",
+            config_path.to_str().unwrap(),
+            "--out",
+            out2.path().to_str().unwrap(),
+            "--teacher-responses",
+            workspace_root().join("data/fulfill").to_str().unwrap(),
+        ])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(
+        stderr(&output).contains("refusing to write drafts under"),
+        "{}",
+        stderr(&output)
+    );
 }

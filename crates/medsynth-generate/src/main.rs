@@ -127,6 +127,11 @@ fn run_batch(args: RunArgs) -> Result<()> {
     // Refuse a `data/` output dir before any work: the destination must be
     // valid before a single request is emitted to the fulfillment directory.
     medsynth_generate::batch::check_output_dir(&paths, &args.out)?;
+    // Request files are draft-adjacent artifacts: the fulfillment directory
+    // is held to the same `data/` restriction as `--out`.
+    if let Some(dir) = &args.teacher_responses {
+        medsynth_generate::batch::check_output_dir(&paths, dir)?;
+    }
     let responses_dir = args.teacher_responses.clone();
     let factory = move |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
         match &responses_dir {
