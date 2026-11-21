@@ -147,16 +147,29 @@ fn names_option(explanation: &str, key: &str) -> bool {
             // word itself ('option' a …), not to a label. Opening curly
             // quotes are unambiguous label openers and stay in SEPARATORS.
             const CLOSING_QUOTES: &[char] = &['"', '\'', '’', '”'];
-            // Compare in original case: labels are always uppercase, so a
-            // lowercase letter (the article "a" in "answer a question")
-            // can never pass as a label.
+            const MARKERS: &[char] = &['(', '"', '\'', '‘', '“'];
+            // Compare in original case: a bare label must be uppercase, so
+            // the article "a" in "answer a question" can never pass. A
+            // label inside parens or quotes is marked and may be lowercase
+            // ("choice (b)", "option \"a\"").
             let rest = &explanation[i + len..];
             if rest.starts_with(CLOSING_QUOTES) {
                 return false;
             }
-            let rest = rest.trim_start_matches(|c: char| SEPARATORS.contains(&c));
-            rest.starts_with(key)
-                && rest[key.len()..]
+            let trimmed = rest.trim_start_matches(|c: char| SEPARATORS.contains(&c));
+            let marked = rest[..rest.len() - trimmed.len()].ends_with(MARKERS);
+            let candidate = if marked {
+                trimmed.to_ascii_lowercase()
+            } else {
+                trimmed.to_owned()
+            };
+            let key_cmp = if marked {
+                key.to_ascii_lowercase()
+            } else {
+                key.to_owned()
+            };
+            candidate.starts_with(&key_cmp)
+                && candidate[key_cmp.len()..]
                     .chars()
                     .next()
                     .is_none_or(|c| !c.is_alphanumeric())

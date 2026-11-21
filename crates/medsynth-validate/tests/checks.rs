@@ -248,6 +248,13 @@ fn key_rationale_label_fallback_boundaries() {
         ),
         ("B", "Answer B is correct — ADP is the product.", true),
         ("C", "Choice (C) fits — AMP is the product.", true),
+        // Marked labels may be lowercase.
+        ("B", "Choice (b) fits — ADP is the product.", true),
+        (
+            "A",
+            "Option \"a\" is correct because ATP is the product.",
+            true,
+        ),
         (
             "A",
             "ADP is the best option. A phosphate group is released.",
