@@ -257,6 +257,17 @@ fn key_rationale_label_fallback_marked() {
             "Option\u{201c}A\u{201d} is correct because ATP is the product.",
             true,
         ),
+        // Mixed straight/curly pairs of the same family also count.
+        (
+            "A",
+            "Option \"A\u{201d} is correct because ATP is the product.",
+            true,
+        ),
+        (
+            "A",
+            "Option \u{201c}A\" is correct because ATP is the product.",
+            true,
+        ),
         ("C", "Choice (C) fits — AMP is the product.", true),
         // Marked labels may be lowercase, with padding before the closer.
         ("B", "Choice (b) fits — ADP is the product.", true),
