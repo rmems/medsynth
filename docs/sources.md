@@ -51,10 +51,10 @@ source.
 | Subdomain | Domain | Source ids |
 |---|---|---|
 | `bio_physical_foundations` | `bbf` | `campbell-biology-13e`, `campbell-biology-12e` |
-| `macromolecules` | `bbf` | `lippincott-biochem-9e`, `mol-bio-cell-6e` |
-| `cell_function` | `bbf` | `mol-bio-cell-6e` |
-| `cell_processes` | `bbf` | `campbell-biology-13e`, `campbell-biology-12e`, `mol-bio-cell-6e` |
-| `system_interactions` | `bbf` | `campbell-biology-13e`, `campbell-biology-12e`, `mol-bio-cell-6e`, `openstax-anatomy-physiology-2e` |
+| `macromolecules` | `bbf` | `lippincott-biochem-9e`, `mol-bio-cell-6e`, `mol-bio-cell-7e` |
+| `cell_function` | `bbf` | `mol-bio-cell-6e`, `mol-bio-cell-7e` |
+| `cell_processes` | `bbf` | `campbell-biology-13e`, `campbell-biology-12e`, `mol-bio-cell-6e`, `mol-bio-cell-7e` |
+| `system_interactions` | `bbf` | `campbell-biology-13e`, `campbell-biology-12e`, `mol-bio-cell-6e`, `mol-bio-cell-7e`, `openstax-anatomy-physiology-2e` |
 | `animal_structure` | `bbf` | `campbell-biology-13e`, `campbell-biology-12e`, `openstax-anatomy-physiology-2e` |
 | `translation` | `cpf` | `chemistry-central-science-15e` |
 | `properties_of_matter` | `cpf` | `chemistry-central-science-15e`, `openstax-university-physics-2016` |
@@ -65,15 +65,15 @@ source.
 | `culture_identity` | `psb` | `openstax-introduction-sociology-3e` |
 | `psychology` | `psb` | `myers-psychology-14e` |
 | `environment` | `psb` | `myers-psychology-14e`, `openstax-introduction-sociology-3e` |
-| `cardiovascular` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `harrison-principles-22e`, `harrison-principles-21e`, `braunwald-heart-disease-12e`, `acc-aha-af-guideline-2023`, `robbins-kumar-basic-pathology-11e` |
-| `respiratory` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
-| `renal` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
-| `gastrointestinal` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
-| `endocrine` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `harrison-principles-22e`, `harrison-principles-21e`, `ada-standards-diabetes-2025`, `robbins-kumar-basic-pathology-11e` |
+| `cardiovascular` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `braunwald-heart-disease-12e`, `acc-aha-af-guideline-2023`, `robbins-kumar-basic-pathology-11e` |
+| `respiratory` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
+| `renal` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
+| `gastrointestinal` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
+| `endocrine` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `ada-standards-diabetes-2025`, `robbins-kumar-basic-pathology-11e` |
 | `neurology` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `harrison-principles-22e`, `harrison-principles-21e`, `adams-victor-neurology-12e`, `robbins-kumar-basic-pathology-11e` |
 | `musculoskeletal` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `harrison-principles-22e`, `harrison-principles-21e`, `firestein-kelley-rheumatology-12e`, `robbins-kumar-basic-pathology-11e` |
 | `hematology_oncology` | `pre_clinical` | `harrison-principles-22e`, `harrison-principles-21e`, `williams-hematology-10e`, `robbins-kumar-basic-pathology-11e` |
-| `infectious_disease` | `pre_clinical` | `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e`, `sherris-medical-microbiology-7e`, `idsa-iai-update-2024` |
+| `infectious_disease` | `pre_clinical` | `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e`, `sherris-medical-microbiology-7e`, `sherris-medical-microbiology-8e`, `idsa-iai-update-2024` |
 | `pharmacology_principles` | `pre_clinical` | `harrison-principles-22e`, `harrison-principles-21e`, `katzung-basic-clinical-pharmacology-16e` |
 
 ## Registry entries
@@ -133,12 +133,28 @@ source.
   Bruce Alberts, Rebecca Heald, Alexander Johnson, David Morgan, Martin Raff,
   Keith Roberts, Peter Walter; Garland Science; 2015.
 - **Kind:** textbook
+- **Status:** superseded
+- **Coverage:** `macromolecules`, `cell_function`, `cell_processes`, `system_interactions`
+- **Locator convention:** `ch<N>:<section-slug>` or `p.<page>` — chapter
+  number from the print table of contents, a lowercase hyphenated slug for the
+  section, or a stable page number. Examples: `ch3:protein-structure`,
+  `ch17:cell-cycle-control`.
+- **Added by:** rmems
+- **Rationale:** Retained so historical anchors citing the 6th edition remain
+  interpretable after the 7th edition superseded it (contract §7).
+
+### `mol-bio-cell-7e`
+
+- **Bibliographic identity:** *Molecular Biology of the Cell*, 7th ed. —
+  Bruce Alberts, Rebecca Heald, Alexander Johnson, David Morgan, Martin Raff,
+  Keith Roberts, Peter Walter, John Wilson, Tim Hunt; W. W. Norton; 2022.
+- **Kind:** textbook
 - **Status:** current
 - **Coverage:** `macromolecules`, `cell_function`, `cell_processes`, `system_interactions`
 - **Locator convention:** `ch<N>:<section-slug>` or `p.<page>` — chapter
   number from the print table of contents, a lowercase hyphenated slug for the
-  section, or a stable page number. Examples: `ch4:protein-structure`,
-  `ch12:cell-cycle-control`.
+  section, or a stable page number. Examples: `ch3:protein-structure`,
+  `ch17:cell-cycle-control`.
 - **Added by:** rmems
 - **Rationale:** The definitive molecular cell-biology text (Alberts);
   authoritative for macromolecule structure/function, cell physiology, and
@@ -156,7 +172,7 @@ source.
 - **Locator convention:** `ch<N>:<section-slug>` or `sec<N>.<M>:<section-slug>`
   — the book is organized into units of numbered chapters; cite the chapter
   number plus a section slug, or section number within the chapter. Examples:
-  `ch19:heart-structure`, `ch20:coronary-circulation`.
+  `ch19:cardiac-cycle`, `ch20:circulatory-pathways`.
 - **Added by:** rmems
 - **Rationale:** Widely adopted open anatomy and physiology text organized by
   body system; provides the structural and organ-system basis for
@@ -190,7 +206,7 @@ source.
 - **Locator convention:** `vol<N>:ch<N>:<section-slug>` — physics is split
   across three volumes; cite the volume number, then chapter number and
   section slug as in the print or web table of contents. Examples:
-  `vol1:ch15:wave-speed`, `vol3:ch1:law-of-reflection`.
+  `vol1:ch16:wave-speed`, `vol3:ch1:law-of-reflection`.
 - **Added by:** rmems
 - **Rationale:** Standard calculus-based physics reference; covers mechanics,
   oscillations, waves, electricity and magnetism, and optics — the
@@ -233,12 +249,27 @@ source.
 - **Bibliographic identity:** *Guyton and Hall Textbook of Medical
   Physiology*, 14th ed. — John E. Hall, Michael E. Hall; Elsevier; 2020.
 - **Kind:** textbook
+- **Status:** superseded
+- **Coverage:** `cardiovascular`, `respiratory`, `renal`, `gastrointestinal`, `endocrine`
+- **Locator convention:** `ch<N>:<section-slug>` or `p.<page>` — chapter
+  number from the print table of contents, a lowercase hyphenated slug for the
+  section, or a stable page number. Examples: `ch21:coronary-circulation`,
+  `ch20:cardiac-output`.
+- **Added by:** rmems
+- **Rationale:** Retained so historical anchors citing the 14th edition remain
+  interpretable after the 15th edition superseded it (contract §7).
+
+### `guyton-hall-physiology-15e`
+
+- **Bibliographic identity:** *Guyton and Hall Textbook of Medical
+  Physiology*, 15th ed. — John E. Hall, Michael E. Hall; Elsevier; 2025.
+- **Kind:** textbook
 - **Status:** current
 - **Coverage:** `cardiovascular`, `respiratory`, `renal`, `gastrointestinal`, `endocrine`
 - **Locator convention:** `ch<N>:<section-slug>` or `p.<page>` — chapter
   number from the print table of contents, a lowercase hyphenated slug for the
   section, or a stable page number. Examples: `ch21:coronary-circulation`,
-  `ch69:gastric-secretion`.
+  `ch18:cardiac-output`.
 - **Added by:** rmems
 - **Rationale:** The standard medical physiology text; authoritative for the
   integrative physiology of the cardiovascular, respiratory, renal,
@@ -404,12 +435,30 @@ source.
   Michael Lagunoff, Paul Pottinger, L. Barth Reller, Megan E. Reller,
   Charles R. Sterling, Scott Weissman (eds.); McGraw Hill; 2018.
 - **Kind:** textbook
+- **Status:** superseded
+- **Coverage:** `infectious_disease`
+- **Locator convention:** `ch<N>:<section-slug>` or `p.<page>` — chapter
+  number from the print table of contents, a lowercase hyphenated slug for the
+  section, or a stable page number. Examples: `ch24:staphylococci`,
+  `ch9:respiratory-viruses`.
+- **Added by:** rmems
+- **Rationale:** Retained so historical anchors citing the 7th edition remain
+  interpretable after the 8th edition superseded it (contract §7).
+
+### `sherris-medical-microbiology-8e`
+
+- **Bibliographic identity:** *Sherris & Ryan's Medical Microbiology*, 8th
+  ed. — Kenneth J. Ryan, Nafees Ahmad, J. Andrew Alspaugh, W. Lawrence Drew,
+  Michael Lagunoff, Paul Pottinger, L. Barth Reller, Megan E. Reller, Julie M.
+  Steinbrink, Gayatri Vedantam, Charles R. Sterling, Scott Weissman (eds.);
+  McGraw Hill; 2022.
+- **Kind:** textbook
 - **Status:** current
 - **Coverage:** `infectious_disease`
 - **Locator convention:** `ch<N>:<section-slug>` or `p.<page>` — chapter
   number from the print table of contents, a lowercase hyphenated slug for the
-  section, or a stable page number. Examples: `ch45:staphylococcus-aureus`,
-  `p.410`.
+  section, or a stable page number. Examples: `ch30:neisseria`,
+  `ch16:arthropod-borne-viruses`.
 - **Added by:** rmems
 - **Rationale:** The standard medical microbiology text; authoritative for
   pathogen biology, virulence, and infectious disease mechanisms.

@@ -8,10 +8,11 @@
 //! * every registry `source_id` matches `SOURCE_ID_PATTERN`;
 //! * every `coverage` slug is a taxonomy §3.2 subdomain;
 //! * every `### \`id\`` entry heading in `docs/sources.md` corresponds to a
-//!   JSON entry (and vice versa), with matching status, coverage, and
-//!   citation;
-//! * every taxonomy §3.2 subdomain has at least one `current` approved
-//!   source;
+//!   JSON entry (and vice versa), with matching status, coverage, citation,
+//!   kind, added-by, and access date;
+//! * every taxonomy §3.2 subdomain (read from `docs/taxonomy.md`, so
+//!   taxonomy amendments are picked up automatically) has at least one
+//!   `current` approved source;
 //! * every `source_id` cited by a `valid-*.json` fixture exists in the
 //!   registry. (`invalid-*.json` fixtures are exempt — they carry
 //!   deliberately broken fields.)
@@ -40,15 +41,26 @@ struct Registry {
 #[derive(Debug, Deserialize)]
 struct RegistryEntry {
     source_id: String,
+    kind: String,
     status: String,
     coverage: Vec<String>,
     #[serde(default)]
     citation: Option<String>,
+    #[serde(default)]
+    access_date: Option<String>,
+    added_by: String,
 }
 
-/// What the markdown mirror must agree with: status, coverage slugs, and
-/// the optional citation string.
-type MdEntry = (String, Vec<String>, Option<String>);
+/// The fields `docs/sources.md` must agree with `sources.json` on.
+#[derive(Debug, PartialEq)]
+struct MdEntry {
+    status: String,
+    coverage: Vec<String>,
+    citation: Option<String>,
+    kind: String,
+    added_by: String,
+    access_date: Option<String>,
+}
 
 fn read_text(path: &Path) -> String {
     fs::read_to_string(path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()))
@@ -65,6 +77,14 @@ fn bullet_value<'a>(lines: &[&'a str], prefix: &str) -> Option<&'a str> {
         .iter()
         .find_map(|line| line.strip_prefix(prefix))
         .map(str::trim)
+}
+
+fn first_token(value: &str) -> String {
+    value
+        .split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .to_string()
 }
 
 fn backtick_slugs(value: &str) -> Vec<String> {
@@ -99,15 +119,25 @@ fn markdown_entries() -> BTreeMap<String, MdEntry> {
             .map(|(i, _)| *i)
             .unwrap_or(lines.len());
         let section = &lines[*start..end];
-        let status = bullet_value(section, "- **Status:**")
-            .and_then(|v| v.split_whitespace().next())
-            .unwrap_or_default()
-            .to_string();
+        let status = bullet_value(section, "- **Status:**").map(first_token);
+        let kind = bullet_value(section, "- **Kind:**").map(first_token);
+        let added_by = bullet_value(section, "- **Added by:**").map(first_token);
+        let access_date = bullet_value(section, "- **Access date:**").map(first_token);
         let coverage = bullet_value(section, "- **Coverage:**")
             .map(backtick_slugs)
             .unwrap_or_default();
         let citation = bullet_value(section, "- **Citation:**").map(str::to_string);
-        entries.insert(id.clone(), (status, coverage, citation));
+        entries.insert(
+            id.clone(),
+            MdEntry {
+                status: status.unwrap_or_default(),
+                coverage,
+                citation,
+                kind: kind.unwrap_or_default(),
+                added_by: added_by.unwrap_or_default(),
+                access_date,
+            },
+        );
     }
     entries
 }
@@ -174,6 +204,25 @@ fn fixture_source_ids() -> BTreeMap<String, BTreeSet<String>> {
         .collect()
 }
 
+/// The taxonomy §3.2 subdomain slugs, read from the `subdomain:` YAML block
+/// in `docs/taxonomy.md` so amendments are picked up without touching this
+/// test.
+fn taxonomy_subdomains() -> BTreeSet<String> {
+    let text = read_text(&workspace_root().join("docs").join("taxonomy.md"));
+    let section = text
+        .split("### 3.2")
+        .nth(1)
+        .and_then(|rest| rest.split("### 3.3").next())
+        .expect("taxonomy.md has no §3.2 subdomain section");
+    section
+        .lines()
+        .filter_map(|line| line.trim_start().strip_prefix("- "))
+        .filter_map(|rest| rest.split('#').next())
+        .filter_map(|rest| rest.split_whitespace().next())
+        .map(str::to_string)
+        .collect()
+}
+
 #[test]
 fn registry_ids_match_source_id_pattern() {
     let reg = registry();
@@ -235,24 +284,42 @@ fn markdown_and_json_are_entry_for_entry_identical() {
         "sources.md entry headings and sources.json source_ids disagree"
     );
 
-    for (id, (status, coverage, citation)) in &md {
+    for (id, md_entry) in &md {
         let entry = json[id.as_str()];
         assert_eq!(
-            entry.status, *status,
-            "status mismatch for `{id}`: md `{status}` vs json `{}`",
-            entry.status
+            entry.status, md_entry.status,
+            "status mismatch for `{id}`: md `{}` vs json `{}`",
+            md_entry.status, entry.status
+        );
+        assert_eq!(
+            entry.kind, md_entry.kind,
+            "kind mismatch for `{id}`: md `{}` vs json `{}`",
+            md_entry.kind, entry.kind
+        );
+        assert_eq!(
+            entry.added_by, md_entry.added_by,
+            "added_by mismatch for `{id}`: md `{}` vs json `{}`",
+            md_entry.added_by, entry.added_by
+        );
+        assert_eq!(
+            entry.access_date.as_deref(),
+            md_entry.access_date.as_deref(),
+            "access_date mismatch for `{id}`: md {:?} vs json {:?}",
+            md_entry.access_date,
+            entry.access_date
         );
         let json_coverage: BTreeSet<&str> = entry.coverage.iter().map(String::as_str).collect();
-        let md_coverage: BTreeSet<&str> = coverage.iter().map(String::as_str).collect();
+        let md_coverage: BTreeSet<&str> = md_entry.coverage.iter().map(String::as_str).collect();
         assert_eq!(
             json_coverage, md_coverage,
-            "coverage mismatch for `{id}`: md {coverage:?} vs json {:?}",
-            entry.coverage
+            "coverage mismatch for `{id}`: md {:?} vs json {:?}",
+            md_entry.coverage, entry.coverage
         );
         assert_eq!(
             entry.citation.as_deref(),
-            citation.as_deref(),
-            "citation mismatch for `{id}`: md {citation:?} vs json {:?}",
+            md_entry.citation.as_deref(),
+            "citation mismatch for `{id}`: md {:?} vs json {:?}",
+            md_entry.citation,
             entry.citation
         );
     }
@@ -266,35 +333,14 @@ fn every_subdomain_has_a_current_source() {
             covered.extend(entry.coverage.iter().cloned());
         }
     }
-    // The 25 taxonomy §3.2 subdomains; mirrors docs/taxonomy.md.
-    const ALL_SUBDOMAINS: [&str; 25] = [
-        "bio_physical_foundations",
-        "macromolecules",
-        "cell_function",
-        "cell_processes",
-        "system_interactions",
-        "animal_structure",
-        "translation",
-        "properties_of_matter",
-        "transmission",
-        "mechanics",
-        "development",
-        "socioeconomic",
-        "culture_identity",
-        "psychology",
-        "environment",
-        "cardiovascular",
-        "respiratory",
-        "renal",
-        "gastrointestinal",
-        "endocrine",
-        "neurology",
-        "musculoskeletal",
-        "hematology_oncology",
-        "infectious_disease",
-        "pharmacology_principles",
-    ];
-    for slug in ALL_SUBDOMAINS {
+    let all = taxonomy_subdomains();
+    assert_eq!(
+        all.len(),
+        25,
+        "expected 25 taxonomy §3.2 subdomains, parsed {}: {all:?}",
+        all.len()
+    );
+    for slug in &all {
         assert!(
             covered.contains(slug),
             "taxonomy subdomain `{slug}` has no current approved source in docs/sources.json"

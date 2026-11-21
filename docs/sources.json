@@ -77,6 +77,29 @@
       "publisher": "Garland Science",
       "edition": "6th",
       "year": 2015,
+      "status": "superseded",
+      "coverage": [
+        "macromolecules",
+        "cell_function",
+        "cell_processes",
+        "system_interactions"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch3:protein-structure", "ch17:cell-cycle-control"]
+      },
+      "added_by": "rmems",
+      "rationale": "Retained so historical anchors citing the 6th edition remain interpretable after the 7th edition superseded it (contract §7)."
+    },
+    {
+      "source_id": "mol-bio-cell-7e",
+      "kind": "textbook",
+      "title": "Molecular Biology of the Cell",
+      "author_or_issuer": "Bruce Alberts, Rebecca Heald, Alexander Johnson, David Morgan, Martin Raff, Keith Roberts, Peter Walter, John Wilson, Tim Hunt",
+      "publisher": "W. W. Norton",
+      "edition": "7th",
+      "year": 2022,
       "status": "current",
       "coverage": [
         "macromolecules",
@@ -87,7 +110,7 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch4:protein-structure", "ch12:cell-cycle-control"]
+        "examples": ["ch3:protein-structure", "ch17:cell-cycle-control"]
       },
       "added_by": "rmems",
       "rationale": "The definitive molecular cell-biology text (Alberts); authoritative for macromolecule structure/function, cell physiology, and cell-cell and tissue interactions."
@@ -115,7 +138,7 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or sec<N>.<M>:<section-slug>",
         "description": "The book is organized into units of numbered chapters; cite the chapter number plus a section slug, or section number within the chapter.",
-        "examples": ["ch19:heart-structure", "ch20:coronary-circulation"]
+        "examples": ["ch19:cardiac-cycle", "ch20:circulatory-pathways"]
       },
       "added_by": "rmems",
       "rationale": "Widely adopted open anatomy and physiology text organized by body system; provides the structural and organ-system basis for animal_structure and the pre-clinical systems."
@@ -158,7 +181,7 @@
       "locator_convention": {
         "format": "vol<N>:ch<N>:<section-slug>",
         "description": "Physics is split across three volumes; cite the volume number, then chapter number and section slug as in the print or web table of contents.",
-        "examples": ["vol1:ch15:wave-speed", "vol3:ch1:law-of-reflection"]
+        "examples": ["vol1:ch16:wave-speed", "vol3:ch1:law-of-reflection"]
       },
       "added_by": "rmems",
       "rationale": "Standard calculus-based physics reference; covers mechanics, oscillations, waves, electricity and magnetism, and optics — the transmission and mechanics foundations of the CPF domain."
@@ -215,6 +238,30 @@
       "publisher": "Elsevier",
       "edition": "14th",
       "year": 2020,
+      "status": "superseded",
+      "coverage": [
+        "cardiovascular",
+        "respiratory",
+        "renal",
+        "gastrointestinal",
+        "endocrine"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch21:coronary-circulation", "ch20:cardiac-output"]
+      },
+      "added_by": "rmems",
+      "rationale": "Retained so historical anchors citing the 14th edition remain interpretable after the 15th edition superseded it (contract §7)."
+    },
+    {
+      "source_id": "guyton-hall-physiology-15e",
+      "kind": "textbook",
+      "title": "Guyton and Hall Textbook of Medical Physiology",
+      "author_or_issuer": "John E. Hall, Michael E. Hall",
+      "publisher": "Elsevier",
+      "edition": "15th",
+      "year": 2025,
       "status": "current",
       "coverage": [
         "cardiovascular",
@@ -226,7 +273,7 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch21:coronary-circulation", "ch69:gastric-secretion"]
+        "examples": ["ch21:coronary-circulation", "ch18:cardiac-output"]
       },
       "added_by": "rmems",
       "rationale": "The standard medical physiology text; authoritative for the integrative physiology of the cardiovascular, respiratory, renal, gastrointestinal, and endocrine systems."
@@ -449,6 +496,26 @@
       "publisher": "McGraw Hill",
       "edition": "7th",
       "year": 2018,
+      "status": "superseded",
+      "coverage": [
+        "infectious_disease"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch24:staphylococci", "ch9:respiratory-viruses"]
+      },
+      "added_by": "rmems",
+      "rationale": "Retained so historical anchors citing the 7th edition remain interpretable after the 8th edition superseded it (contract §7)."
+    },
+    {
+      "source_id": "sherris-medical-microbiology-8e",
+      "kind": "textbook",
+      "title": "Sherris & Ryan's Medical Microbiology",
+      "author_or_issuer": "Kenneth J. Ryan, Nafees Ahmad, J. Andrew Alspaugh, W. Lawrence Drew, Michael Lagunoff, Paul Pottinger, L. Barth Reller, Megan E. Reller, Julie M. Steinbrink, Gayatri Vedantam, Charles R. Sterling, Scott Weissman (eds.)",
+      "publisher": "McGraw Hill",
+      "edition": "8th",
+      "year": 2022,
       "status": "current",
       "coverage": [
         "infectious_disease"
@@ -456,7 +523,7 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch45:staphylococcus-aureus", "p.410"]
+        "examples": ["ch30:neisseria", "ch16:arthropod-borne-viruses"]
       },
       "added_by": "rmems",
       "rationale": "The standard medical microbiology text; authoritative for pathogen biology, virulence, and infectious disease mechanisms."
