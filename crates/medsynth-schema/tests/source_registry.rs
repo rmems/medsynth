@@ -135,23 +135,22 @@ fn collect_source_ids(value: &Value, out: &mut BTreeSet<String>) {
 
 fn valid_fixture_files() -> Vec<PathBuf> {
     let fixtures = workspace_root().join("fixtures");
-    let mut files = Vec::new();
-    for dir in fs::read_dir(&fixtures).expect("cannot read fixtures/") {
-        let dir = dir.expect("dir entry").path();
-        if !dir.is_dir() {
-            continue;
-        }
-        for file in fs::read_dir(&dir).expect("cannot read fixture dir") {
-            let path = file.expect("dir entry").path();
-            let name = path
-                .file_name()
+    let mut files: Vec<PathBuf> = fs::read_dir(&fixtures)
+        .expect("cannot read fixtures/")
+        .filter_map(|d| d.ok().map(|e| e.path()))
+        .filter(|p| p.is_dir())
+        .flat_map(|dir| {
+            fs::read_dir(&dir)
+                .expect("cannot read fixture dir")
+                .filter_map(|f| f.ok().map(|e| e.path()))
+                .collect::<Vec<_>>()
+        })
+        .filter(|p| {
+            p.file_name()
                 .and_then(|n| n.to_str())
-                .unwrap_or_default();
-            if name.starts_with("valid-") && name.ends_with(".json") {
-                files.push(path);
-            }
-        }
-    }
+                .is_some_and(|n| n.starts_with("valid-") && n.ends_with(".json"))
+        })
+        .collect();
     files.sort();
     files
 }
