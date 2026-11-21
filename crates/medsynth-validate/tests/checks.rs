@@ -212,69 +212,47 @@ fn anchor_presence_flags_unlisted_citation_mixed_with_listed() {
 }
 
 #[test]
-fn key_rationale_accepts_parenthesized_label_reference() {
-    // All-short options force the label fallback; "option (A)" must count
-    // as a reference to key A.
-    let mut r = mcq();
-    for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
-        r["options"][i]["text"] = serde_json::json!(opt);
+fn key_rationale_label_fallback_boundaries() {
+    // All-short options ("ATP" etc.) carry no content words, forcing the
+    // label fallback. Each (explanation, expect_pass) case pins down which
+    // spellings around "option <label>" count as a reference to key A.
+    fn findings_for_explanation(explanation: &str) -> Vec<medsynth_validate::Finding> {
+        let mut r = mcq();
+        for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
+            r["options"][i]["text"] = serde_json::json!(opt);
+        }
+        r["rationale"]["key_explanation"]["text"] = serde_json::json!(explanation);
+        findings_for(&[record(Format::Mcq, "label-fallback", r)])
     }
-    r["rationale"]["key_explanation"]["text"] =
-        serde_json::json!("Option (A) is correct because ATP is the product.");
-    let findings = findings_for(&[record(Format::Mcq, "paren-label", r)]);
-    assert!(
-        !findings.iter().any(|f| f.check == Check::KeyRationale),
-        "parenthesized label reference must pass: {findings:?}"
-    );
-}
-
-#[test]
-fn key_rationale_accepts_quoted_label_reference() {
-    // Quoted labels like `Option "A"` must count as explicit references.
-    let mut r = mcq();
-    for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
-        r["options"][i]["text"] = serde_json::json!(opt);
+    let cases = [
+        ("Option (A) is correct because ATP is the product.", true),
+        ("Option \"A\" is correct because ATP is the product.", true),
+        (
+            "Option\u{201c}A\u{201d} is correct because ATP is the product.",
+            true,
+        ),
+        (
+            "Option B is wrong; option A fits because ATP is the product.",
+            true,
+        ),
+        (
+            "ADP is the best option. A phosphate group is released.",
+            false,
+        ),
+        ("ADP is the best 'option' a student should pick.", false),
+        (
+            "ADP is the best option; a phosphate group is released.",
+            false,
+        ),
+    ];
+    for (explanation, expect_pass) in cases {
+        let findings = findings_for_explanation(explanation);
+        let got = !findings.iter().any(|f| f.check == Check::KeyRationale);
+        assert_eq!(
+            got, expect_pass,
+            "label fallback outcome wrong for {explanation:?}: {findings:?}"
+        );
     }
-    r["rationale"]["key_explanation"]["text"] =
-        serde_json::json!("Option \"A\" is correct because ATP is the product.");
-    let findings = findings_for(&[record(Format::Mcq, "quoted-label", r)]);
-    assert!(
-        !findings.iter().any(|f| f.check == Check::KeyRationale),
-        "quoted label reference must pass: {findings:?}"
-    );
-}
-
-#[test]
-fn key_rationale_rejects_quoted_option_word_before_label() {
-    // `'option' a` — the article following a quoted word is not a label.
-    let mut r = mcq();
-    for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
-        r["options"][i]["text"] = serde_json::json!(opt);
-    }
-    r["rationale"]["key_explanation"]["text"] =
-        serde_json::json!("ADP is the best 'option' a student should pick.");
-    let findings = findings_for(&[record(Format::Mcq, "quoted-word", r)]);
-    assert!(
-        findings.iter().any(|f| f.check == Check::KeyRationale),
-        "closing quote before 'a' must not pass: {findings:?}"
-    );
-}
-
-#[test]
-fn key_rationale_rejects_sentence_break_before_label() {
-    // "option. A ..." crosses a sentence boundary and must not count as a
-    // label reference — this rationale favors ADP, not the key A.
-    let mut r = mcq();
-    for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
-        r["options"][i]["text"] = serde_json::json!(opt);
-    }
-    r["rationale"]["key_explanation"]["text"] =
-        serde_json::json!("ADP is the best option. A phosphate group is released.");
-    let findings = findings_for(&[record(Format::Mcq, "sentence-break", r)]);
-    assert!(
-        findings.iter().any(|f| f.check == Check::KeyRationale),
-        "sentence-boundary 'option. A' must not pass: {findings:?}"
-    );
 }
 
 #[test]

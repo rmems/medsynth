@@ -141,11 +141,12 @@ fn names_option(explanation: &str, key: &str) -> bool {
                     .is_none_or(|c| !c.is_alphanumeric())
         })
         .any(|(i, _)| {
-            // A quote immediately after "option" is a closing quote on the
-            // word itself ('option' a …), not a label opener.
-            const QUOTES: &[char] = &['"', '\'', '‘', '’', '“', '”'];
+            // A closing quote immediately after "option" belongs to the
+            // word itself ('option' a …), not to a label. Opening curly
+            // quotes are unambiguous label openers and stay in SEPARATORS.
+            const CLOSING_QUOTES: &[char] = &['"', '\'', '’', '”'];
             let rest = &lower[i + "option".len()..];
-            if rest.starts_with(QUOTES) {
+            if rest.starts_with(CLOSING_QUOTES) {
                 return false;
             }
             let rest = rest.trim_start_matches(|c: char| SEPARATORS.contains(&c));
