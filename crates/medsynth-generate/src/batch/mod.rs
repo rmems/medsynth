@@ -205,6 +205,7 @@ impl BatchSinks {
         &mut self,
         written: OutputRecord,
         registry: &SourceRegistry,
+        seed: u64,
     ) -> Result<(), GenerateError> {
         let record = &written.record;
         let id = record.id().as_str().to_owned();
@@ -212,6 +213,7 @@ impl BatchSinks {
             .map_err(|reason| GenerateError::Other(format!("record `{id}`: {reason}")))?;
         self.record_entries.push(RecordEntry {
             id,
+            seed,
             format: record.format().slug().to_owned(),
             domain: domain_slug(record.domain()).to_owned(),
             subdomain: crate::config::subdomain_slug(record.subdomain()).to_owned(),

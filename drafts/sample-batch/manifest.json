@@ -231,6 +231,7 @@
   "records": [
     {
       "id": "draft-bbf-mcq-foundation-c56b05eb-000",
+      "seed": 2523,
       "format": "mcq",
       "domain": "bbf",
       "subdomain": "animal_structure",
@@ -242,6 +243,7 @@
     },
     {
       "id": "draft-cpf-mcq-foundation-c56b05eb-000",
+      "seed": 2523,
       "format": "mcq",
       "domain": "cpf",
       "subdomain": "mechanics",
@@ -253,6 +255,7 @@
     },
     {
       "id": "draft-cpf-mcq-application-c56b05eb-000",
+      "seed": 2523,
       "format": "mcq",
       "domain": "cpf",
       "subdomain": "mechanics",
@@ -264,6 +267,7 @@
     },
     {
       "id": "draft-cpf-mcq-application-c56b05eb-001",
+      "seed": 2523,
       "format": "mcq",
       "domain": "cpf",
       "subdomain": "mechanics",
@@ -275,6 +279,7 @@
     },
     {
       "id": "draft-psb-mcq-foundation-c56b05eb-000",
+      "seed": 2523,
       "format": "mcq",
       "domain": "psb",
       "subdomain": "culture_identity",
@@ -286,6 +291,7 @@
     },
     {
       "id": "draft-pre-clinical-mcq-foundation-c56b05eb-000",
+      "seed": 2523,
       "format": "mcq",
       "domain": "pre_clinical",
       "subdomain": "respiratory",
@@ -297,6 +303,7 @@
     },
     {
       "id": "draft-pre-clinical-mcq-application-c56b05eb-000",
+      "seed": 2523,
       "format": "mcq",
       "domain": "pre_clinical",
       "subdomain": "pharmacology_principles",
@@ -308,6 +315,7 @@
     },
     {
       "id": "draft-pre-clinical-mcq-application-c56b05eb-001",
+      "seed": 2523,
       "format": "mcq",
       "domain": "pre_clinical",
       "subdomain": "pharmacology_principles",

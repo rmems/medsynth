@@ -145,6 +145,17 @@ mod tests {
     use super::*;
 
     fn serve_once(status: u16, body: String) -> (String, std::thread::JoinHandle<()>) {
+        serve(status, body.clone(), body.len())
+    }
+
+    /// Serve one response, declaring `declared_len` bytes in Content-Length
+    /// while actually sending `body` — a larger value simulates a connection
+    /// that closes mid-body.
+    fn serve(
+        status: u16,
+        body: String,
+        declared_len: usize,
+    ) -> (String, std::thread::JoinHandle<()>) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         let handle = std::thread::spawn(move || {
@@ -163,8 +174,7 @@ mod tests {
             }
             let reason = if status == 200 { "OK" } else { "Error" };
             let response = format!(
-                "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
-                body.len()
+                "HTTP/1.1 {status} {reason}\r\nContent-Type: application/json\r\nContent-Length: {declared_len}\r\nConnection: close\r\n\r\n{body}"
             );
             stream.write_all(response.as_bytes()).unwrap();
         });
@@ -203,6 +213,25 @@ mod tests {
         assert!(message.contains("HTTP 500"));
         assert!(!message.contains("sensitive-body"));
         assert!(!message.contains("test-key"));
+        handle.join().unwrap();
+    }
+
+    #[test]
+    fn http_client_classifies_a_truncated_body_as_transport() {
+        let body = json!({"choices": [{"message": {"content": "{}"}}]}).to_string();
+        let (endpoint, handle) = serve(200, body, 999);
+        let client = HttpTeacherClient::from_endpoint(endpoint, "test-key").unwrap();
+        let error = client.complete(&request()).unwrap_err();
+        assert!(matches!(error, TeacherError::Transport(_)), "{error}");
+        handle.join().unwrap();
+    }
+
+    #[test]
+    fn http_client_classifies_malformed_json_as_parse() {
+        let (endpoint, handle) = serve_once(200, "not json".to_owned());
+        let client = HttpTeacherClient::from_endpoint(endpoint, "test-key").unwrap();
+        let error = client.complete(&request()).unwrap_err();
+        assert!(matches!(error, TeacherError::Parse(_)), "{error}");
         handle.join().unwrap();
     }
 }

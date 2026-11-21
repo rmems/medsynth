@@ -60,6 +60,7 @@ pub(super) fn run_procedural_cell(
                         lane: Lane::Procedural,
                     },
                     &ctx.plan.registry,
+                    ctx.plan.config.seed,
                 )?;
                 produced += 1;
             }
@@ -239,6 +240,7 @@ fn dispatch_teacher_attempts(
                         lane: Lane::Teacher,
                     },
                     &ctx.plan.registry,
+                    ctx.plan.config.seed,
                 )?;
                 if let Some(envelope) = draft.envelope {
                     sinks.envelopes.push(envelope);

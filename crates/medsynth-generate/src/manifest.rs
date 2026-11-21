@@ -125,6 +125,10 @@ pub struct Totals {
 #[derive(Debug, Clone, Serialize)]
 pub struct RecordEntry {
     pub id: String,
+    /// The batch seed the record was generated under. Record ids hash the
+    /// seed, but the manifest binds it directly so a record's provenance
+    /// never requires recomputing the tag.
+    pub seed: u64,
     pub format: String,
     pub domain: String,
     pub subdomain: String,

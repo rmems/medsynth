@@ -363,6 +363,22 @@ fn custom_data_dir_still_protects_workspace_data_tree() {
 }
 
 #[test]
+fn gold_inside_a_data_tree_protects_that_tree_at_any_cwd() {
+    // The process may run outside the workspace root; an absolute `--gold`
+    // inside `<ws>/data/` still protects `<ws>/data` with `--data` elsewhere.
+    let workspace = TempDir::new("workspace-anchor");
+    let elsewhere = TempDir::new("elsewhere-data");
+    let mut paths = plan_paths(&sample_config());
+    paths.gold = workspace.path().join("data").join("gold");
+    paths.data = elsewhere.path().to_path_buf();
+
+    let err = check_output_dir(&paths, &workspace.path().join("data/mcq")).unwrap_err();
+    assert!(err.to_string().contains("refusing to write drafts under"));
+    let free = TempDir::new("free-out");
+    check_output_dir(&paths, free.path()).unwrap();
+}
+
+#[test]
 fn out_dir_reuse_with_leftover_unattempted_shard_fails_closed() {
     // The sample plan's teacher lane is unattempted without credentials, so a
     // leftover case_vignette shard would lose its manifest coverage.
