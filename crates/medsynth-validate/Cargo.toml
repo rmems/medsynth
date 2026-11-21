@@ -1,0 +1,14 @@
+[package]
+name = "medsynth-validate"
+description = "CI data-validation gate for medsynth: schema validation, key/rationale lint, anchor-presence, and a smoke originality screen over the records under data/ and fixtures/."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+medsynth-schema = { path = "../medsynth-schema" }
+serde.workspace = true
+serde_json.workspace = true
+jsonschema.workspace = true
+clap.workspace = true
+anyhow.workspace = true
