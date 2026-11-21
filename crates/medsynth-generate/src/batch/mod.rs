@@ -14,6 +14,7 @@ pub(crate) use anchors::anchor_pack;
 pub use io::check_output_dir;
 
 use std::collections::BTreeSet;
+use std::ffi::OsStr;
 use std::path::PathBuf;
 
 use serde_json::Value;
@@ -111,6 +112,17 @@ pub struct BatchOutput {
 /// unprotects the workspace tree) and the gold corpus directory.
 pub(crate) fn protected_dirs(paths: &PlanPaths) -> Vec<PathBuf> {
     let mut dirs = vec![PathBuf::from("data"), paths.gold.clone()];
+    // A `--gold` inside a `data/` tree (the default `data/gold`, absolute or
+    // not) protects that tree even when the process runs outside the
+    // workspace root and `data/` resolves elsewhere.
+    if let Some(parent) = paths
+        .gold
+        .parent()
+        .filter(|dir| dir.file_name() == Some(OsStr::new("data")))
+        && !dirs.contains(&parent.to_path_buf())
+    {
+        dirs.push(parent.to_path_buf());
+    }
     if !dirs.contains(&paths.data) {
         dirs.push(paths.data.clone());
     }

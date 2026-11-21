@@ -109,11 +109,22 @@ fn allowlist(pairs: &[(&str, &str)]) -> BTreeSet<(String, String)> {
 fn pin_registry_parses_both_teachers() {
     let pins = docs_pins();
     let deepseek = pins.ensure_teacher("deepseek-v4.1-flash").unwrap();
-    assert_eq!(deepseek.variant, "DeepSeek-V4.1-Flash-1017");
-    assert_eq!(deepseek.model_id, "deepseek-flash");
-    assert_eq!(deepseek.api_key_env, "MEDSYNTH_TEACHER_DEEPSEEK_API_KEY");
-    assert!(deepseek.terms_clause.contains("model distillation"));
-    assert!(deepseek.entry_text.starts_with("### Pin:"));
+    assert_eq!(
+        (
+            deepseek.variant.as_str(),
+            deepseek.model_id.as_str(),
+            deepseek.api_key_env.as_str(),
+        ),
+        (
+            "DeepSeek-V4.1-Flash-1017",
+            "deepseek-flash",
+            "MEDSYNTH_TEACHER_DEEPSEEK_API_KEY",
+        )
+    );
+    assert!(
+        deepseek.terms_clause.contains("model distillation")
+            && deepseek.entry_text.starts_with("### Pin:")
+    );
 
     let nemotron = pins.ensure_teacher("nemotron-3-ultra").unwrap();
     assert_eq!(nemotron.variant, "NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4");
@@ -258,17 +269,21 @@ fn assert_unverified_provenance(
     record: &medsynth_generate::GeneratedRecord,
     pin: &medsynth_generate::TeacherPin,
 ) {
-    assert_eq!(
-        record.verification_status(),
-        medsynth_schema::VerificationStatus::Unverified
-    );
     let provenance = record.provenance();
-    assert_eq!(provenance.model.as_deref(), Some(pin.variant.as_str()));
     assert_eq!(
-        provenance.prompt_version.as_deref(),
-        Some("teacher-draft-v1")
+        (
+            record.verification_status(),
+            provenance.model.as_deref(),
+            provenance.prompt_version.as_deref(),
+            provenance.generator.as_str(),
+        ),
+        (
+            medsynth_schema::VerificationStatus::Unverified,
+            Some(pin.variant.as_str()),
+            Some("teacher-draft-v1"),
+            "teacher-pipeline-v1",
+        )
     );
-    assert_eq!(provenance.generator, "teacher-pipeline-v1");
 }
 
 #[test]
@@ -353,14 +368,26 @@ fn indented_closing_fence_parses_and_double_fenced_output_fails() {
 }
 
 #[test]
+fn closing_fence_must_be_at_least_as_long_as_the_opening_fence() {
+    let body = fixture_content("mcq_response.json");
+    let long = format!("````json\n{body}\n````");
+    assert!(parse_completion_json(Format::Mcq, &long).is_ok());
+    // Three backticks cannot close a four-backtick block (CommonMark).
+    let short_close = format!("````json\n{body}\n```");
+    assert!(parse_completion_json(Format::Mcq, &short_close).is_err());
+}
+
+#[test]
 fn rights_envelope_requires_every_piece() {
     let pins = docs_pins();
     let mut pin = pins.ensure_teacher("deepseek-v4.1-flash").unwrap().clone();
     let raw = "{\"id\":\"draft-test-000\"}";
     let envelope = RightsEnvelope::build("draft-test-000", raw, &pin, None).unwrap();
-    assert_eq!(envelope.content_sha256, sha256_str(raw));
+    assert_eq!(
+        (&envelope.content_sha256, &envelope.pin_entry_sha256),
+        (&sha256_str(raw), &pin.entry_sha256)
+    );
     assert!(envelope.pin_entry.starts_with("### Pin:"));
-    assert_eq!(envelope.pin_entry_sha256, pin.entry_sha256);
 
     pin.variant.clear();
     assert!(RightsEnvelope::build("draft-test-000", raw, &pin, None).is_err());
@@ -389,13 +416,19 @@ fn prompt_forbids_borrowed_items_and_limits_anchors() {
     };
     let prompt = build_prompt(&cell, &anchors, &[], &selection).unwrap();
     assert!(prompt.token_count > 0);
-    assert!(prompt.system.contains("Do not reproduce"));
-    assert!(prompt.system.contains("MCAT"));
-    assert!(prompt.system.contains("USMLE"));
-    assert!(prompt.system.contains("fictional"));
-    assert!(prompt.user.contains("Approved anchor points"));
-    assert!(prompt.user.contains("proposed_key"));
-    assert!(prompt.user.contains("openstax-anatomy-physiology-2e"));
+    assert!(
+        prompt.system.contains("Do not reproduce")
+            && prompt.system.contains("MCAT")
+            && prompt.system.contains("USMLE")
+            && prompt.system.contains("fictional"),
+        "system prompt must forbid borrowed items"
+    );
+    assert!(
+        prompt.user.contains("Approved anchor points")
+            && prompt.user.contains("proposed_key")
+            && prompt.user.contains("openstax-anatomy-physiology-2e"),
+        "user prompt must list the approved anchors"
+    );
 }
 
 struct FakeTeacher {
@@ -448,18 +481,32 @@ fn teacher_batch_writes_an_enveloped_unverified_draft_from_a_recorded_response()
     };
     let output = execute(&plan, &options).unwrap();
     assert!(output.lane_error.is_none());
-    assert_eq!(output.records.len(), 1);
-    assert_eq!(output.manifest.teacher_lane.status, "ran");
-    assert_eq!(output.manifest.dropped_by_self_validation, 0);
-    assert_eq!(output.manifest.rights_envelopes.len(), 1);
+    assert_eq!(
+        (
+            output.records.len(),
+            output.manifest.rights_envelopes.len(),
+            output.manifest.dropped_by_self_validation,
+            output.manifest.teacher_lane.status.as_str(),
+        ),
+        (1, 1, 0, "ran")
+    );
     assert!(!output.manifest.anchor_receipts.is_empty());
 
     let record = &output.records[0];
     let envelope = &output.manifest.rights_envelopes[0];
-    assert_eq!(envelope.record_id, record.record.id().as_str());
-    assert_eq!(envelope.teacher_variant, "DeepSeek-V4.1-Flash-1017");
+    assert_eq!(
+        (
+            envelope.record_id.as_str(),
+            envelope.teacher_variant.as_str(),
+            envelope.content_sha256.as_str(),
+        ),
+        (
+            record.record.id().as_str(),
+            "DeepSeek-V4.1-Flash-1017",
+            sha256_str(&record.raw).as_str(),
+        )
+    );
     assert!(envelope.pin_entry.starts_with("### Pin:"));
-    assert_eq!(envelope.content_sha256, sha256_str(&record.raw));
     assert_eq!(
         record.record.verification_status(),
         medsynth_schema::VerificationStatus::Unverified
@@ -515,16 +562,20 @@ fn batch_drops_a_draft_with_an_incomplete_rights_envelope() {
         teacher_client_factory: &factory,
     };
     let output = execute(&plan, &options).unwrap();
-    assert!(output.records.is_empty());
-    assert_eq!(output.manifest.dropped_by_self_validation, 1);
-    assert_eq!(output.manifest.dropped[0].stage, "rights_envelope");
+    assert!(output.records.is_empty() && output.manifest.rights_envelopes.is_empty());
+    assert_eq!(
+        (
+            output.manifest.dropped_by_self_validation,
+            output.manifest.dropped[0].stage.as_str(),
+        ),
+        (1, "rights_envelope")
+    );
     assert!(
         output.manifest.dropped[0]
             .reasons
             .iter()
             .any(|reason| reason.contains("missing docs/teachers.md pin entry"))
     );
-    assert!(output.manifest.rights_envelopes.is_empty());
 
     let out_dir = TempDir::new("teacher-envelope-out");
     output.write_output(out_dir.path()).unwrap();
@@ -558,11 +609,15 @@ fn teacher_batch_drops_an_over_budget_completion() {
         teacher_client_factory: &factory,
     };
     let output = execute(&plan, &options).unwrap();
-    assert!(output.lane_error.is_none());
-    assert!(output.records.is_empty());
-    assert_eq!(output.manifest.dropped_by_generation, 1);
-    assert_eq!(output.manifest.dropped[0].stage, "teacher_budget");
-    assert_eq!(output.manifest.cells[0].status, "all_dropped");
+    assert!(output.lane_error.is_none() && output.records.is_empty());
+    assert_eq!(
+        (
+            output.manifest.dropped_by_generation,
+            output.manifest.dropped[0].stage.as_str(),
+            output.manifest.cells[0].status.as_str(),
+        ),
+        (1, "teacher_budget", "all_dropped")
+    );
 }
 
 #[test]
@@ -594,8 +649,13 @@ fn teacher_batch_drops_a_draft_with_an_unapproved_anchor() {
     };
     let output = execute(&plan, &options).unwrap();
     assert!(output.records.is_empty());
-    assert_eq!(output.manifest.dropped_by_self_validation, 1);
-    assert_eq!(output.manifest.dropped[0].stage, "self_validation");
+    assert_eq!(
+        (
+            output.manifest.dropped_by_self_validation,
+            output.manifest.dropped[0].stage.as_str(),
+        ),
+        (1, "self_validation")
+    );
     assert!(
         output.manifest.dropped[0]
             .reasons
@@ -643,9 +703,14 @@ fn missing_pin_file_refuses_the_teacher_lane_and_keeps_procedural_output() {
         teacher_client_factory: &factory,
     };
     let output = execute(&plan, &options).unwrap();
-    assert_eq!(output.records.len(), 1);
+    assert_eq!(
+        (
+            output.records.len(),
+            output.manifest.teacher_lane.status.as_str(),
+        ),
+        (1, "refused")
+    );
     assert!(output.lane_error.is_some());
-    assert_eq!(output.manifest.teacher_lane.status, "refused");
     assert!(
         output
             .manifest
@@ -692,9 +757,14 @@ fn refused_teacher_lane_still_runs_the_procedural_lane() {
         teacher_client_factory: &factory,
     };
     let output = execute(&plan, &options).unwrap();
-    assert_eq!(output.records.len(), 1);
+    assert_eq!(
+        (
+            output.records.len(),
+            output.manifest.teacher_lane.status.as_str(),
+        ),
+        (1, "refused")
+    );
     assert!(output.lane_error.is_some());
-    assert_eq!(output.manifest.teacher_lane.status, "refused");
     assert!(
         output
             .manifest
@@ -710,13 +780,18 @@ fn refused_teacher_lane_still_runs_the_procedural_lane() {
         .iter()
         .find(|cell| cell.lane == "teacher")
         .unwrap();
-    assert_eq!(teacher_cell.status, "lane_refused");
-    assert_eq!(teacher_cell.dispatched, 0);
     let procedural = output
         .manifest
         .cells
         .iter()
         .find(|cell| cell.lane == "procedural")
         .unwrap();
-    assert_eq!(procedural.produced, 1);
+    assert_eq!(
+        (
+            teacher_cell.status.as_str(),
+            teacher_cell.dispatched,
+            procedural.produced,
+        ),
+        ("lane_refused", 0, 1)
+    );
 }

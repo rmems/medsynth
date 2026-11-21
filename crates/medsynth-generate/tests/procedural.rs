@@ -156,14 +156,16 @@ fn fact_keys_come_from_the_anchored_fact() {
                 record.options.iter().any(|o| o.label == record.key),
                 "key must match an option"
             );
-            assert_eq!(record.options.len(), 4);
             assert_eq!(
-                record
-                    .options
-                    .iter()
-                    .filter(|option| option.text == fact.correct)
-                    .count(),
-                1,
+                (
+                    record.options.len(),
+                    record
+                        .options
+                        .iter()
+                        .filter(|option| option.text == fact.correct)
+                        .count(),
+                ),
+                (4, 1),
                 "template {} must have one option for the fact's answer",
                 fact.id
             );
@@ -218,12 +220,12 @@ fn assert_template_provenance(record: &medsynth_generate::GeneratedRecord) {
         provenance
             .template_version
             .as_deref()
-            .is_some_and(|version| !version.trim().is_empty()),
-        "record {} lacks template_version",
+            .is_some_and(|version| !version.trim().is_empty())
+            && provenance.model.is_none()
+            && provenance.prompt_version.is_none(),
+        "record {} lacks pinned template provenance",
         record.id()
     );
-    assert!(provenance.model.is_none());
-    assert!(provenance.prompt_version.is_none());
     assert_eq!(record.verification_status(), VerificationStatus::Unverified);
     assert!(!record.anchors().is_empty());
 }
@@ -280,14 +282,18 @@ fn run_budget_cell(config: &Value, name: &str) -> medsynth_generate::batch::Batc
 fn budget_cap_limits_dispatch_to_remaining_attempts() {
     let output = run_budget_cell(&budget_cell_config(18, 30, 10), "budget-capped");
     let cell = &output.manifest.cells[0];
-    assert_eq!(cell.matrix_target, 18);
-    assert_eq!(cell.budget_cap, 54);
-    assert_eq!(cell.resolved_attempts, 30);
-    assert_eq!(cell.in_flight_attempts, 10);
-    assert_eq!(cell.dispatched, 14);
-    assert_eq!(cell.produced, 14);
-    assert!(cell.budget_limited);
-    assert!(!cell.escalated);
+    assert_eq!(
+        (
+            cell.matrix_target,
+            cell.budget_cap,
+            cell.resolved_attempts,
+            cell.in_flight_attempts,
+            cell.dispatched,
+            cell.produced,
+        ),
+        (18, 54, 30, 10, 14, 14)
+    );
+    assert!(cell.budget_limited && !cell.escalated);
     assert_eq!(output.manifest.dropped_by_self_validation, 0);
 }
 
@@ -295,23 +301,22 @@ fn budget_cap_limits_dispatch_to_remaining_attempts() {
 fn budget_counts_resolved_attempts_against_replacement_targets() {
     let output = run_budget_cell(&budget_cell_config(54, 40, 0), "budget-replacement");
     let cell = &output.manifest.cells[0];
-    assert_eq!(cell.requested, 54);
-    assert_eq!(cell.dispatched, 14);
-    assert_eq!(cell.produced, 14);
-    assert!(cell.budget_limited);
-    assert!(!cell.escalated);
+    assert_eq!(
+        (cell.requested, cell.dispatched, cell.produced),
+        (54, 14, 14)
+    );
+    assert!(cell.budget_limited && !cell.escalated);
 }
 
 #[test]
 fn exhausted_budget_escalates_the_cell() {
     let output = run_budget_cell(&budget_cell_config(18, 54, 0), "budget-exhausted");
     let cell = &output.manifest.cells[0];
-    assert_eq!(cell.dispatched, 0);
-    assert_eq!(cell.produced, 0);
-    assert!(cell.budget_limited);
-    assert!(cell.escalated);
-    assert_eq!(cell.status, "escalated");
-    assert!(output.records.is_empty());
+    assert_eq!(
+        (cell.dispatched, cell.produced, cell.status.as_str()),
+        (0, 0, "escalated")
+    );
+    assert!(cell.budget_limited && cell.escalated && output.records.is_empty());
 }
 
 #[test]
@@ -333,8 +338,10 @@ fn output_directory_may_not_be_under_data() {
 
     let dir = TempDir::new("write-output");
     let written = output.write_output(dir.path()).unwrap();
-    assert!(written.iter().any(|path| path.ends_with("mcq.jsonl")));
-    assert!(written.iter().any(|path| path.ends_with("manifest.json")));
+    assert!(
+        written.iter().any(|path| path.ends_with("mcq.jsonl"))
+            && written.iter().any(|path| path.ends_with("manifest.json"))
+    );
     assert_eq!(read_jsonl(&dir.path().join("mcq.jsonl")).len(), 8);
 }
 

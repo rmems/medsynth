@@ -103,8 +103,10 @@ impl TeacherClient for HttpTeacherClient {
                 status.as_u16()
             )));
         }
-        let value: Value = response
-            .json()
+        let bytes = response
+            .bytes()
+            .map_err(|e| TeacherError::Transport(format!("response body read failed: {e}")))?;
+        let value: Value = serde_json::from_slice(&bytes)
             .map_err(|e| TeacherError::Parse(format!("invalid response JSON: {e}")))?;
         parse_chat_completion(&value)
     }

@@ -178,7 +178,6 @@ fn check_anchors(
     context: &ValidationContext<'_>,
     errors: &mut Vec<String>,
 ) {
-    let mut seen = BTreeSet::new();
     for (source_id, locator) in record.anchors() {
         if locator.trim().is_empty() {
             errors.push(format!("anchor `{source_id}` has a blank locator"));
@@ -188,10 +187,26 @@ fn check_anchors(
                 "anchor cites `{source_id}`, which is not in docs/sources.json"
             ));
         }
-        if let Some(allowlist) = context.anchor_allowlist
-            && !allowlist.contains(&(source_id.to_owned(), locator.to_owned()))
-            && seen.insert((source_id.to_owned(), locator.to_owned()))
-        {
+    }
+    if let Some(allowlist) = context.anchor_allowlist {
+        check_anchor_allowlist(record, allowlist, errors);
+    }
+}
+
+/// Teacher drafts may only cite the anchors supplied in the prompt. Duplicate
+/// anchors report once.
+fn check_anchor_allowlist(
+    record: &GeneratedRecord,
+    allowlist: &BTreeSet<(String, String)>,
+    errors: &mut Vec<String>,
+) {
+    let mut seen = BTreeSet::new();
+    for (source_id, locator) in record.anchors() {
+        let pair = (source_id.to_owned(), locator.to_owned());
+        if !seen.insert(pair.clone()) {
+            continue;
+        }
+        if !allowlist.contains(&pair) {
             errors.push(format!(
                 "teacher anchor `{source_id}` / `{locator}` is not in the cell's approved anchor list"
             ));
