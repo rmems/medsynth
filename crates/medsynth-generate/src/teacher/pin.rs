@@ -28,7 +28,11 @@ pub struct TeacherPin {
     pub family: String,
     pub variant: String,
     pub model_id: String,
+    /// Informational: the service the pin describes. The pipeline never calls
+    /// it — the external fulfillment harness owns the endpoint and the key.
     pub endpoint: String,
+    /// Informational: the env var the external harness reads its credential
+    /// from. Optional now that the pipeline holds no credentials.
     pub api_key_env: String,
     pub lane: Option<PinLane>,
     pub terms_document: String,
@@ -58,7 +62,6 @@ impl TeacherPin {
             ("variant", self.variant.as_str()),
             ("model_id", self.model_id.as_str()),
             ("endpoint", self.endpoint.as_str()),
-            ("api_key_env", self.api_key_env.as_str()),
             ("terms_document", self.terms_document.as_str()),
             ("terms_version", self.terms_version.as_str()),
             ("terms_date", self.terms_date.as_str()),
@@ -162,8 +165,6 @@ impl TeacherPinRegistry {
         require_complete(pin)?;
         require_teacher_lane(pin)?;
         require_approved_family(pin)?;
-        require_trusted_endpoint(pin)?;
-        require_credential_env(pin)?;
         require_terms(pin)?;
         Ok(pin)
     }
@@ -209,51 +210,6 @@ fn require_approved_family(pin: &TeacherPin) -> Result<(), TeacherError> {
         return Ok(());
     }
     Err(TeacherError::IneligibleFamily { family })
-}
-
-/// The pin's endpoint must be the family's approved HTTPS host — credentials
-/// must never be sent to an arbitrary endpoint named in the pin file.
-fn require_trusted_endpoint(pin: &TeacherPin) -> Result<(), TeacherError> {
-    let family = pin.family.to_ascii_lowercase();
-    let host = endpoint_host(&pin.endpoint);
-    let trusted = matches!(
-        (family.as_str(), host),
-        ("deepseek", Some("api.deepseek.com"))
-            | (
-                "nvidia-nemotron" | "nemotron",
-                Some("integrate.api.nvidia.com")
-            )
-    );
-    if trusted {
-        return Ok(());
-    }
-    Err(TeacherError::UntrustedEndpoint {
-        pin_id: pin.pin_id.clone(),
-        endpoint: pin.endpoint.clone(),
-    })
-}
-
-/// The lowercase host of an `https://` URL, or `None` when the endpoint is
-/// not HTTPS (never send credentials over plaintext).
-fn endpoint_host(endpoint: &str) -> Option<&str> {
-    let rest = endpoint.strip_prefix("https://")?;
-    rest.split(['/', '?'])
-        .next()?
-        .split(':')
-        .next()
-        .filter(|&h| !h.is_empty())
-}
-
-/// Credentials are read only from `MEDSYNTH_TEACHER_*` variables, so a pin
-/// cannot point the pipeline at an unrelated secret in the environment.
-fn require_credential_env(pin: &TeacherPin) -> Result<(), TeacherError> {
-    if pin.api_key_env.starts_with("MEDSYNTH_TEACHER_") {
-        return Ok(());
-    }
-    Err(TeacherError::InvalidCredentialEnv {
-        pin_id: pin.pin_id.clone(),
-        env_var: pin.api_key_env.clone(),
-    })
 }
 
 fn require_terms(pin: &TeacherPin) -> Result<(), TeacherError> {

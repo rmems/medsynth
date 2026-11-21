@@ -7,8 +7,8 @@ mod pin;
 mod prompt;
 
 pub use client::{
-    HttpTeacherClient, TeacherClient, TeacherCompletion, TeacherRequest, completion_tokens,
-    parse_chat_completion,
+    RecordedTeacherClient, TeacherClient, TeacherCompletion, TeacherRequest, completion_tokens,
+    fulfillment_key, parse_chat_completion,
 };
 pub use parse::{RecordStamp, TeacherContent, build_record, parse_completion_json};
 pub use pin::{PinLane, TeacherPin, TeacherPinRegistry};
@@ -41,17 +41,9 @@ pub enum TeacherError {
     #[error("teacher lane refused: teachers pin file error: {0}")]
     PinParse(String),
     #[error(
-        "teacher lane refused: pin `{pin_id}` endpoint `{endpoint}` is not the approved HTTPS host for its family"
+        "teacher lane refused: teacher cells need a fulfillment directory (--teacher-responses) of recorded teacher responses; the pipeline never calls teacher APIs itself"
     )]
-    UntrustedEndpoint { pin_id: String, endpoint: String },
-    #[error(
-        "teacher lane refused: pin `{pin_id}` api_key_env `{env_var}` must be a MEDSYNTH_TEACHER_* variable"
-    )]
-    InvalidCredentialEnv { pin_id: String, env_var: String },
-    #[error(
-        "teacher lane cannot start: credential env var `{env_var}` is not set for pin `{pin_id}`"
-    )]
-    MissingCredentials { pin_id: String, env_var: String },
+    MissingFulfillmentDir,
     #[error("teacher request failed: {0}")]
     Transport(String),
     #[error("teacher response could not be parsed: {0}")]
@@ -64,20 +56,16 @@ pub enum TeacherError {
     MissingContent,
 }
 
-/// A teacher that passed every pin and credential check.
+/// A teacher that passed every pin check. Credentials belong to the external
+/// harness that fulfills requests — the pipeline never holds or reads them.
 #[derive(Clone)]
 pub struct PreparedTeacher {
     pin: TeacherPin,
-    credentials: String,
 }
 
 impl PreparedTeacher {
     pub fn pin(&self) -> &TeacherPin {
         &self.pin
-    }
-
-    pub(crate) fn credentials(&self) -> &str {
-        &self.credentials
     }
 }
 
@@ -86,26 +74,15 @@ impl fmt::Debug for PreparedTeacher {
         f.debug_struct("PreparedTeacher")
             .field("pin_id", &self.pin.pin_id)
             .field("variant", &self.pin.variant)
-            .field("credentials", &"<redacted>")
             .finish()
     }
 }
 
-/// Run the fail-closed startup checks: pin first, then credentials.
-///
-/// The environment lookup is injected so tests never touch process globals and
-/// no credential value can appear in an error or log line.
+/// Run the fail-closed pin checks.
 pub fn prepare(
     registry: &TeacherPinRegistry,
     pin_id: &str,
-    env: &dyn Fn(&str) -> Option<String>,
 ) -> Result<PreparedTeacher, TeacherError> {
     let pin = registry.ensure_teacher(pin_id)?.clone();
-    let credentials = env(&pin.api_key_env)
-        .filter(|value| !value.trim().is_empty())
-        .ok_or_else(|| TeacherError::MissingCredentials {
-            pin_id: pin.pin_id.clone(),
-            env_var: pin.api_key_env.clone(),
-        })?;
-    Ok(PreparedTeacher { pin, credentials })
+    Ok(PreparedTeacher { pin })
 }

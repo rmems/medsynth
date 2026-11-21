@@ -8,7 +8,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use medsynth_generate::batch::{ExecuteOptions, LaneFilter, PlanPaths, execute, load_plan};
 use medsynth_generate::procedural;
 use medsynth_generate::teacher::{
-    HttpTeacherClient, PreparedTeacher, TeacherClient, TeacherError, TeacherPinRegistry,
+    PreparedTeacher, RecordedTeacherClient, TeacherClient, TeacherError, TeacherPinRegistry,
 };
 
 #[derive(Parser)]
@@ -61,6 +61,12 @@ struct RunArgs {
     /// Which lane(s) to run.
     #[arg(long, value_enum, default_value_t = LaneArg::All)]
     lane: LaneArg,
+    /// Fulfillment directory for the teacher lane. Each request is written
+    /// as `<key>.request.json`; the external harness drops the teacher's raw
+    /// chat-completion JSON at `<key>.response.json`. Required when any cell
+    /// uses the teacher lane — the pipeline never calls teacher APIs itself.
+    #[arg(long)]
+    teacher_responses: Option<PathBuf>,
 }
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -118,12 +124,15 @@ fn run_batch(args: RunArgs) -> Result<()> {
         data: args.data,
     };
     let plan = load_plan(&paths, args.seed)?;
-    // Refuse a `data/` output dir before any work: teacher requests burn API
-    // quota, so the destination must be valid before the first request.
+    // Refuse a `data/` output dir before any work: the destination must be
+    // valid before a single request is emitted to the fulfillment directory.
     medsynth_generate::batch::check_output_dir(&paths, &args.out)?;
-    let env = |name: &str| std::env::var(name).ok();
-    let factory = |prepared: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
-        Ok(Box::new(HttpTeacherClient::new(prepared)?))
+    let responses_dir = args.teacher_responses.clone();
+    let factory = move |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
+        match &responses_dir {
+            Some(dir) => Ok(Box::new(RecordedTeacherClient::new(dir.clone())?)),
+            None => Err(TeacherError::MissingFulfillmentDir),
+        }
     };
     let options = ExecuteOptions {
         lane_filter: match args.lane {
@@ -131,7 +140,6 @@ fn run_batch(args: RunArgs) -> Result<()> {
             LaneArg::Procedural => LaneFilter::Procedural,
             LaneArg::Teacher => LaneFilter::Teacher,
         },
-        env: &env,
         teacher_client_factory: &factory,
     };
     let output = execute(&plan, &options)?;

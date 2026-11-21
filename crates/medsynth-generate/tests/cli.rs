@@ -126,9 +126,9 @@ fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
     let config_dir = TempDir::new("cli-teacher-config");
     let config_path = write_config(&config_dir, &config);
     let out = TempDir::new("cli-teacher-out");
+    // No --teacher-responses: the teacher lane must refuse — the pipeline
+    // never calls teacher APIs itself.
     let output = command()
-        .env_remove("MEDSYNTH_TEACHER_DEEPSEEK_API_KEY")
-        .env_remove("MEDSYNTH_TEACHER_NEMOTRON_API_KEY")
         .args([
             "run",
             "--config",
@@ -141,10 +141,7 @@ fn run_command_reports_teacher_refusal_and_keeps_procedural_output() {
     assert!(!output.status.success());
     let error = stderr(&output);
     assert!(error.contains("teacher lane did not run"), "{error}");
-    assert!(
-        error.contains("MEDSYNTH_TEACHER_DEEPSEEK_API_KEY"),
-        "{error}"
-    );
+    assert!(error.contains("fulfillment directory"), "{error}");
     assert!(out.path().join("mcq.jsonl").exists());
     let manifest: Value =
         serde_json::from_str(&std::fs::read_to_string(out.path().join("manifest.json")).unwrap())

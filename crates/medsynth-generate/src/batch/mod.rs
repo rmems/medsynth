@@ -72,17 +72,16 @@ pub enum LaneFilter {
     Teacher,
 }
 
-/// Builds a client for a teacher that passed the pin and credential checks.
+/// Builds a client for a teacher that passed the pin checks.
 pub type TeacherClientFactory<'a> =
     dyn Fn(&PreparedTeacher) -> Result<Box<dyn TeacherClient>, TeacherError> + 'a;
 
-/// Caller-supplied teacher environment and transport.
+/// Caller-supplied teacher fulfillment.
 pub struct ExecuteOptions<'a> {
     pub lane_filter: LaneFilter,
-    /// Credential lookup. Injected so tests never mutate process globals.
-    pub env: &'a dyn Fn(&str) -> Option<String>,
-    /// Construct a client for a teacher that passed the pin and credential
-    /// checks. Production builds an HTTP client; tests supply fixtures.
+    /// Construct a client for a teacher that passed the pin checks.
+    /// Production reads recorded responses from a fulfillment directory;
+    /// tests supply fixtures.
     pub teacher_client_factory: &'a TeacherClientFactory<'a>,
 }
 
@@ -316,7 +315,7 @@ pub(super) struct TeacherLane {
     pub(super) stats: TeacherStats,
 }
 
-/// Pin + credential + client construction, once per run.
+/// Pin + client construction, once per run.
 fn prepare_teacher_lane(plan: &BatchPlan, options: &ExecuteOptions<'_>) -> TeacherLane {
     let mut lane = TeacherLane {
         report: TeacherLaneReport::not_requested(),
@@ -366,7 +365,7 @@ fn prepare_teacher(
     selection: &TeacherSelection,
     options: &ExecuteOptions<'_>,
 ) -> Result<(PreparedTeacher, Box<dyn TeacherClient>), TeacherError> {
-    let prepared = prepare(pins, &selection.pin_id, options.env)?;
+    let prepared = prepare(pins, &selection.pin_id)?;
     let client = (options.teacher_client_factory)(&prepared)?;
     Ok((prepared, client))
 }

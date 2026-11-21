@@ -28,23 +28,25 @@ medsynth-generate` asserts that.
 
 ## Why there are no vignette or tutoring shards
 
-The teacher lane was not run for this batch because no teacher credential was
-available in the generation environment. The pin (`docs/teachers.md`) is in
-place and the gate is tested, but the issue says teacher drafts are included
-only when the pin is in place **and credentials were available**; inventing
-teacher output would be worse than leaving the format absent.
+The teacher lane was not run for this batch because no recorded teacher
+responses existed yet. The pin (`docs/teachers.md`) is in place and the gate
+is tested, but the issue says teacher drafts are included only when real
+teacher output is available; inventing teacher output would be worse than
+leaving the format absent.
 
 The teacher lane's prompt, response parsing, rights-envelope, allowlist, and
 drop behavior are exercised by the recorded fixtures under
 `crates/medsynth-generate/tests/fixtures/teacher/` with no live API calls. To
-add real teacher drafts, export the pin's credential variable and run a teacher
-config:
+add real teacher drafts, run a teacher config with a fulfillment directory;
+the pipeline writes `<key>.request.json` files there, an external harness
+dispatches them to the pinned endpoint (it owns the API key), and writes the
+raw responses back as `<key>.response.json`:
 
 ```sh
-# DeepSeek pin: MEDSYNTH_TEACHER_DEEPSEEK_API_KEY
 cargo run -p medsynth-generate -- run \
   --config path/to/teacher-config.json \
-  --out drafts/teacher-batch
+  --out drafts/teacher-batch \
+  --teacher-responses path/to/fulfillments
 ```
 
 A teacher cell looks like this (omit `template`; the lane is chosen by `lane`):

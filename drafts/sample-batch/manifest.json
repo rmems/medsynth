@@ -92,7 +92,7 @@
   },
   "teachers": {
     "path": "docs/teachers.md",
-    "sha256": "ff2e54e5947d68a78af1f92c7ea51a5e5c2ac8da42b44033ad076e0112d84c8c",
+    "sha256": "24b01f54752d7afe16b4d6b991e722cb453e4c38b7638bc0acba63a97b4ac41a",
     "pins": [
       {
         "pin_id": "deepseek-v4.1-flash",
