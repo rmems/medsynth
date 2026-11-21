@@ -7,12 +7,14 @@ on:
 
 permissions:
   contents: read
-  id-token: write # Qlty coverage upload via OIDC
 
 jobs:
   test:
     name: test + coverage
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Qlty coverage upload via OIDC
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
