@@ -224,15 +224,14 @@ impl<'a> LabelTail<'a> {
     }
 }
 
-/// The closer allowed by an opener: `(` pairs only with `)`, straight and
-/// curly quotes pair with their own kind (curly singles accept either
-/// single-quote closer, curly doubles either double-quote closer).
+/// The closer allowed by an opener: `(` pairs only with `)`; a quote
+/// opener accepts any closer of its family — straight and curly singles
+/// interchange, as do straight and curly doubles.
 fn closes(opener: char, closer: char) -> bool {
     match opener {
         '(' => closer == ')',
-        '"' => closer == '"',
+        '"' | '“' => matches!(closer, '"' | '”'),
         '\'' | '‘' => matches!(closer, '\'' | '’'),
-        '“' => matches!(closer, '"' | '”'),
         _ => false,
     }
 }
