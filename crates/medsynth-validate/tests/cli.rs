@@ -148,3 +148,58 @@ fn fails_when_the_corpus_is_empty() {
         "an empty corpus must not pass silently"
     );
 }
+
+#[test]
+fn gold_discovery_excludes_only_probes_and_review_metadata() {
+    let scratch = Scratch::new("gold-discovery");
+    let good = fixture_text("mcq", "valid-enzyme-kinetics.json");
+    scratch.write(
+        "data/gold/mcq.jsonl",
+        &format!(
+            "{}\n",
+            serde_json::to_string(&serde_json::from_str::<serde_json::Value>(&good).unwrap())
+                .unwrap()
+        ),
+    );
+    scratch.write("data/gold/review-manifest.json", "{\"records\": []}");
+    scratch.write("data/gold/near-miss/manifest.json", "{\"records\": []}");
+    scratch.write(
+        "data/gold/near-miss/mcq/probe.json",
+        "not a positive record",
+    );
+    scratch.write(
+        "docs/sources.json",
+        &std::fs::read_to_string(workspace_root().join("docs/sources.json")).unwrap(),
+    );
+    let out = bin().arg(&scratch.0).output().expect("binary runs");
+    assert!(
+        out.status.success(),
+        "flat gold shard loads without probes/metadata: {}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    scratch.write("data/gold/unexpected.json", "{\"not\": \"a record\"}");
+    let out = bin().arg(&scratch.0).output().expect("binary runs");
+    assert!(
+        !out.status.success(),
+        "unknown data must not silently disappear"
+    );
+    assert!(String::from_utf8_lossy(&out.stderr).contains("unexpected.json"));
+}
+
+#[test]
+fn flat_format_shards_are_scoped_to_gold() {
+    use medsynth_validate::{Format, format_of};
+    for format in Format::all() {
+        assert_eq!(
+            format_of(&PathBuf::from(format!("data/gold/{}.jsonl", format.slug()))),
+            Some(format)
+        );
+        for parent in ["data", "fixtures", "other/gold"] {
+            assert_eq!(
+                format_of(&PathBuf::from(format!("{parent}/{}.jsonl", format.slug()))),
+                None
+            );
+        }
+    }
+    assert_eq!(format_of(Path::new("data/gold/mcq.json")), None);
+}

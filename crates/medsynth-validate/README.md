@@ -7,10 +7,13 @@ scripts. Run from the workspace root:
 cargo run -p medsynth-validate -- .
 ```
 
-It validates every `*.json` record under `data/` (including `data/gold/`)
+It validates every `*.json` record and `*.jsonl` shard under `data/`
+(including the three flat `data/gold/<format>.jsonl` shards)
 and every `valid-*.json` fixture under `fixtures/`, reports every failure
 with the file, record id, check name, and the failing rule/path, and exits
-nonzero if any record fails.
+nonzero if any record fails. The intentionally defective
+`data/gold/near-miss/` subtree and `data/gold/review-manifest.json` metadata
+are excluded from the positive corpus. Unknown data files are not excluded.
 
 ## Checks
 
@@ -36,22 +39,19 @@ A copied record shares ~1.0 containment; two records merely on the same
 topic share few 5-grams. This is the smoke screen only — the full
 originality & contamination audit is #11.
 
-## Near-miss fixtures (#7)
+## Gold and near-miss probes (#7)
 
-`fixtures/near-miss/manifest.json` (from #7) lists records that must fail,
-each with the check its planted defect trips:
+`data/gold/near-miss/manifest.json` identifies each planted defect and its
+required #9 rejection stage. These probes are never loaded as positive
+corpus records. The fixture-behavior integration test loads them explicitly:
+all must pass schema/deserialization/cross-field checks, and the two wrong
+keys must fail only `key-rationale`. The four claim-level omissions
+intentionally pass the shallow smoke gate at `unverified`; #9 stage 3 must
+reject them by examining attached anchors and actual passage support.
+The `ci_check` field is null for these semantic defects, not a promised
+rejection by a nonexistent verifier.
 
-```json
-{
-  "records": [
-    { "file": "mcq/wrong-key.json",      "expected_check": "key-rationale" },
-    { "file": "mcq/missing-anchor.json", "expected_check": "anchor-presence" },
-    { "file": "mcq/unanchored-claim.json", "expected_check": "anchor-presence" }
-  ]
-}
-```
-
-The `near_miss` integration test reads this manifest, asserts every listed
-record fails and that the failure output names `expected_check`. Until #7
-lands the test skips with a message; `gold_set` likewise asserts every
-record under `data/gold/` passes once that directory exists.
+`cargo test -p medsynth-schema` checks the gold/near-miss record shapes,
+coverage, registry locator syntax, and per-record independent review
+evidence, bound to the exact record content by SHA-256. Neither suite
+advances a verification status or substitutes for #9 admission.

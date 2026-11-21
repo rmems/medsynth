@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "id": "near-miss-tut-unanchored-claim-0001",
+  "domain": "bbf",
+  "subdomain": "animal_structure",
+  "tier": "foundation",
+  "learner_prompt": {"text": "Explain the cell-layer distinction between simple and stratified epithelium, then give one separate hormone fact.", "anchors": []},
+  "tutor_response": {
+    "style": "explanatory",
+    "text": "Simple epithelium consists of one cell layer; stratified epithelium consists of more than one layer. Count the layers rather than assuming that a tall cell means several layers. Separately, ADH is synthesized by hypothalamic neurons rather than by the posterior pituitary.",
+    "anchors": [{"source_id": "openstax-anatomy-physiology-2e", "locator": "sec4.2:epithelial-tissue"}]
+  },
+  "provenance": {"generator": "factory-droid-draft-rm2522-v1; checklist=gold-review-v1", "model": null, "prompt_version": null, "template_version": null},
+  "verification_status": "unverified",
+  "labels": [],
+  "taxonomy_version": "0.1",
+  "contract_version": "0.1"
+}

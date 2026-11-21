@@ -119,6 +119,65 @@ fn key_rationale_fails_when_key_disagrees_with_rationale() {
 }
 
 #[test]
+fn gold_short_and_numeric_choices_use_explicit_labels_on_overlap_ties() {
+    let text = std::fs::read_to_string(workspace_root().join("data/gold/mcq.jsonl")).unwrap();
+    let seeds: Vec<serde_json::Value> = text
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    for index in [0, 2, 3] {
+        let seed = &seeds[index];
+        let findings = findings_for(&[record(Format::Mcq, "tied-gold", seed.clone())]);
+        assert!(findings.is_empty(), "gold tie must pass: {findings:?}");
+        for option in seed["options"].as_array().unwrap() {
+            if option["label"] == seed["key"] {
+                continue;
+            }
+            let mut wrong = seed.clone();
+            wrong["key"] = option["label"].clone();
+            let findings = findings_for(&[record(Format::Mcq, "rekeyed-gold", wrong)]);
+            assert!(
+                findings.iter().any(|f| f.check == Check::KeyRationale),
+                "re-keying to {} must still fail: {findings:?}",
+                option["label"]
+            );
+        }
+    }
+}
+
+#[test]
+fn overlap_ties_without_an_unambiguous_label_still_fail() {
+    for explanation in [
+        "A junction connects the cells.",
+        "Option A and option B are junction candidates.",
+    ] {
+        let mut value = mcq();
+        value["options"] = serde_json::json!([
+            {"label": "A", "text": "Gap junction"},
+            {"label": "B", "text": "Tight junction"},
+            {"label": "C", "text": "Desmosome"},
+            {"label": "D", "text": "Hemidesmosome"}
+        ]);
+        value["rationale"]["key_explanation"]["text"] = serde_json::json!(explanation);
+        let findings = findings_for(&[record(Format::Mcq, "ambiguous-tie", value)]);
+        assert!(findings.iter().any(|f| f.check == Check::KeyRationale));
+    }
+}
+
+#[test]
+fn an_explicit_label_does_not_override_stronger_overlap_with_another_option() {
+    let mut value = mcq();
+    value["key"] = serde_json::json!("B");
+    let explanation = value["rationale"]["key_explanation"]["text"]
+        .as_str()
+        .unwrap();
+    value["rationale"]["key_explanation"]["text"] =
+        serde_json::json!(format!("Option B. {explanation}"));
+    let findings = findings_for(&[record(Format::Mcq, "contradictory-label", value)]);
+    assert!(findings.iter().any(|f| f.check == Check::KeyRationale));
+}
+
+#[test]
 fn key_rationale_fails_on_blank_rationale_text() {
     let mut bad = mcq();
     // Whitespace-only passes the schema's min-length rule; the lint must

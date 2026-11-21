@@ -14,3 +14,13 @@ written here — `unverified` drafts never enter `data/`.
 
 Generation and admission are handled by the pipeline crates (#8, #9); this
 directory is the published artifact, not a staging area.
+
+## Gold seed staging exception (#7)
+
+`gold/<format>.jsonl` holds agent-authored reference seeds pending pipeline
+admission, always at `unverified`. The separate agent review evidence is in
+`gold/review-manifest.json`; it does not advance verification status.
+Only these three explicit shards are candidate few-shot material. Records
+under `gold/near-miss/` are deliberately defective verification probes,
+never examples for generation and never published dataset records.
+Neither seeds nor probes belong in the admitted format directories above.

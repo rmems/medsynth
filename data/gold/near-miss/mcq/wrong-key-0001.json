@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "id": "near-miss-mcq-wrong-key-0001",
+  "domain": "bbf",
+  "subdomain": "animal_structure",
+  "tier": "foundation",
+  "stem": {
+    "text": "Which gland category releases secretions through a duct onto an epithelial surface?",
+    "anchors": [{"source_id": "openstax-anatomy-physiology-2e", "locator": "sec4.2:epithelial-tissue"}]
+  },
+  "options": [
+    {"label": "A", "text": "Exocrine gland"},
+    {"label": "B", "text": "Endocrine gland"},
+    {"label": "C", "text": "A gland defined solely by deep anatomical location"},
+    {"label": "D", "text": "A gland defined solely by superficial anatomical location"}
+  ],
+  "key": "B",
+  "rationale": {
+    "key_explanation": {
+      "text": "Option A, an exocrine gland, sends its secretion through a duct onto an epithelial surface. The route of secretion defines this category.",
+      "anchors": [{"source_id": "openstax-anatomy-physiology-2e", "locator": "sec4.2:epithelial-tissue"}]
+    },
+    "strongest_distractor": {
+      "text": "B, an endocrine gland, releases hormones without a duct to an epithelial surface. C and D use anatomical depth, which does not define the endocrine-exocrine distinction.",
+      "anchors": [{"source_id": "openstax-anatomy-physiology-2e", "locator": "sec4.2:epithelial-tissue"}]
+    }
+  },
+  "provenance": {"generator": "factory-droid-draft-rm2522-v1; checklist=gold-review-v1", "model": null, "prompt_version": null, "template_version": null},
+  "verification_status": "unverified",
+  "labels": [],
+  "taxonomy_version": "0.1",
+  "contract_version": "0.1"
+}
