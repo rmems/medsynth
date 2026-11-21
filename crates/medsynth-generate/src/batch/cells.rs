@@ -311,7 +311,10 @@ fn request_completion(
         temperature: ctx.selection.temperature,
         // Fold the batch seed into the API seed so a shared fulfillment
         // directory serves fresh samples per batch, not cross-batch dupes.
-        seed: (ctx.cell_ctx.plan.config.seed as u32) ^ ctx.attempt,
+        // Packing, not mixing: the full 64-bit seed sits in the high bits and
+        // the attempt ordinal in the low bits, so (seed, attempt) maps to the
+        // API seed — and thus the fulfillment key — injectively.
+        seed: (ctx.cell_ctx.plan.config.seed << 32) | u64::from(ctx.attempt),
         pin_id: pin.pin_id.clone(),
         pin_variant: pin.variant.clone(),
     };

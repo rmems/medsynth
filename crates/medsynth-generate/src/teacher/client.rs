@@ -23,9 +23,10 @@ pub struct TeacherRequest {
     pub user: String,
     pub max_tokens: u32,
     pub temperature: f32,
-    /// The attempt ordinal, sent as the API `seed` so each attempt of a cell
-    /// asks for a distinct sample and fulfills under its own key.
-    pub seed: u32,
+    /// Batch seed and attempt ordinal packed into the API `seed` so each
+    /// attempt of a cell asks for a distinct sample and fulfills under its
+    /// own key.
+    pub seed: u64,
     /// The pin driving the request, carried in `metadata` so a revised pin
     /// cannot silently reuse a previous variant's response file.
     pub pin_id: String,
