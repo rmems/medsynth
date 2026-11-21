@@ -211,20 +211,22 @@ fn anchor_presence_flags_unlisted_citation_mixed_with_listed() {
     );
 }
 
+/// Build the short-option MCQ used by the label-fallback cases.
+fn label_fallback_findings(key: &str, explanation: &str) -> Vec<medsynth_validate::Finding> {
+    let mut r = mcq();
+    for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
+        r["options"][i]["text"] = serde_json::json!(opt);
+    }
+    r["key"] = serde_json::json!(key);
+    r["rationale"]["key_explanation"]["text"] = serde_json::json!(explanation);
+    findings_for(&[record(Format::Mcq, "label-fallback", r)])
+}
+
 #[test]
 fn key_rationale_label_fallback_boundaries() {
     // All-short options ("ATP" etc.) carry no content words, forcing the
     // label fallback. Each (key, explanation, expect_pass) case pins down
     // which spellings around an explicit label count as a reference.
-    fn findings_for_explanation(key: &str, explanation: &str) -> Vec<medsynth_validate::Finding> {
-        let mut r = mcq();
-        for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
-            r["options"][i]["text"] = serde_json::json!(opt);
-        }
-        r["key"] = serde_json::json!(key);
-        r["rationale"]["key_explanation"]["text"] = serde_json::json!(explanation);
-        findings_for(&[record(Format::Mcq, "label-fallback", r)])
-    }
     let cases = [
         (
             "A",
@@ -282,9 +284,15 @@ fn key_rationale_label_fallback_boundaries() {
             false,
         ),
         ("A", "The answer a student should pick is ADP.", false),
+        // An unclosed parenthetical article is not a marked label.
+        (
+            "A",
+            "The best answer (a nucleotide with two phosphate groups) is ADP.",
+            false,
+        ),
     ];
     for (key, explanation, expect_pass) in cases {
-        let findings = findings_for_explanation(key, explanation);
+        let findings = label_fallback_findings(key, explanation);
         let got = !findings.iter().any(|f| f.check == Check::KeyRationale);
         assert_eq!(
             got, expect_pass,

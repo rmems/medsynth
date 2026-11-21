@@ -168,11 +168,18 @@ fn names_option(explanation: &str, key: &str) -> bool {
             } else {
                 key.to_owned()
             };
-            candidate.starts_with(&key_cmp)
-                && candidate[key_cmp.len()..]
-                    .chars()
-                    .next()
-                    .is_none_or(|c| !c.is_alphanumeric())
+            if !candidate.starts_with(&key_cmp) {
+                return false;
+            }
+            let after = candidate[key_cmp.len()..].chars().next();
+            if marked {
+                // A lowercase label must be enclosed — "(a)" or `"a"`
+                // count, "(a nucleotide" does not: the article stays
+                // rejected.
+                const CLOSERS: &[char] = &[')', '"', '\'', '’', '”'];
+                return after.is_some_and(|c| CLOSERS.contains(&c));
+            }
+            after.is_none_or(|c| !c.is_alphanumeric())
         })
 }
 
