@@ -1,6 +1,6 @@
 {
   "manifest_version": 1,
-  "batch_id": "batch-8208decad4483c3c",
+  "batch_id": "batch-14dc89d05222c480",
   "seed": 2523,
   "config_sha256": "8aa57a5b96d6f37fa675c540997b02d93e3968de0035fe724372cfb572f0b269",
   "config": {
@@ -56,7 +56,7 @@
   "taxonomy": {
     "path": "docs/taxonomy.md",
     "version": "0.1",
-    "sha256": "a6a0133126c21d1b6292bfcb9cdba004493522f90befad502d97acd7a9e88f12"
+    "sha256": "608fa13f1916e0f78855ec0ae35b7450401fa0b9111bccda96b245036aac4e66"
   },
   "sources": {
     "path": "docs/sources.json",

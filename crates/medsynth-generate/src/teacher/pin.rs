@@ -8,7 +8,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use crate::hash::{file_sha256, sha256_str};
+use crate::hash::{sha256_str, text_file_sha256};
 use crate::teacher::TeacherError;
 
 /// How a pin may be used.
@@ -114,7 +114,7 @@ impl TeacherPinRegistry {
                 ));
             }
         }
-        let file_sha256 = file_sha256(path)
+        let file_sha256 = text_file_sha256(path)
             .map_err(|e| TeacherError::PinParse(format!("cannot hash {}: {e}", path.display())))?;
         Ok(Self {
             path: path.to_path_buf(),
@@ -137,7 +137,7 @@ impl TeacherPinRegistry {
                 ));
             }
         }
-        let file_sha256 = file_sha256(&path).unwrap_or_else(|_| sha256_str(""));
+        let file_sha256 = text_file_sha256(&path).unwrap_or_else(|_| sha256_str(""));
         Ok(Self {
             path,
             file_sha256,

@@ -11,7 +11,7 @@ use serde::Deserialize;
 use serde_json::value::RawValue;
 
 use crate::error::GenerateError;
-use crate::hash::{file_sha256, sha256_hex};
+use crate::hash::{normalize_newlines, sha256_str, text_file_sha256};
 
 /// Locator convention published for a source.
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -96,7 +96,7 @@ impl SourceRegistry {
         }
         let mut entries = BTreeMap::new();
         for raw in parsed.sources {
-            let raw_text = raw.get().to_owned();
+            let raw_text = normalize_newlines(raw.get());
             let entry: SourceEntryJson = serde_json::from_str(&raw_text).map_err(|e| {
                 GenerateError::Registry(format!("{}: invalid source entry: {e}", path.display()))
             })?;
@@ -106,7 +106,7 @@ impl SourceRegistry {
                     path.display()
                 )));
             }
-            let sha256 = sha256_hex(raw_text.as_bytes());
+            let sha256 = sha256_str(&raw_text);
             let source = SourceEntry {
                 source_id: entry.source_id.clone(),
                 kind: entry.kind,
@@ -132,7 +132,7 @@ impl SourceRegistry {
             )));
         }
         let file_sha256 =
-            file_sha256(path).map_err(|e| GenerateError::io(path.to_path_buf(), e))?;
+            text_file_sha256(path).map_err(|e| GenerateError::io(path.to_path_buf(), e))?;
         Ok(Self {
             path: path.to_path_buf(),
             registry_version: parsed.registry_version,

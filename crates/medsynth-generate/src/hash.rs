@@ -1,9 +1,14 @@
 //! Stable SHA-256 helpers.
 //!
 //! Record hashes cover the exact compact JSON text written as a JSONL line
-//! (without the trailing newline). Registry-entry hashes cover the exact bytes
-//! of the entry as it appears inside `docs/sources.json`, so an anchor receipt
-//! pins the registry state the draft was made against.
+//! (without the trailing newline). Registry-entry hashes cover the entry as it
+//! appears inside `docs/sources.json`, so an anchor receipt pins the registry
+//! state the draft was made against.
+//!
+//! Text documents are hashed after LF-normalization. The repository stores
+//! text with `eol=lf` (`.gitattributes`), but a Windows working copy can still
+//! hold CRLF until Git rewrites it; hashing raw bytes would make manifests
+//! platform-dependent.
 
 use std::path::Path;
 
@@ -32,10 +37,15 @@ pub fn sha256_str(text: &str) -> String {
     sha256_hex(text.as_bytes())
 }
 
-/// SHA-256 of a file's bytes.
-pub fn file_sha256(path: &Path) -> std::io::Result<String> {
-    let bytes = std::fs::read(path)?;
-    Ok(sha256_hex(&bytes))
+/// Normalize CRLF and lone CR to LF.
+pub fn normalize_newlines(text: &str) -> String {
+    text.replace("\r\n", "\n").replace('\r', "\n")
+}
+
+/// SHA-256 of a UTF-8 text file after LF-normalization.
+pub fn text_file_sha256(path: &Path) -> std::io::Result<String> {
+    let text = std::fs::read_to_string(path)?;
+    Ok(sha256_str(&normalize_newlines(&text)))
 }
 
 /// A path rendered with `/` separators, for deterministic manifests across

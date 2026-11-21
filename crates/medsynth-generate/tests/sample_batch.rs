@@ -3,7 +3,7 @@ mod common;
 use std::collections::{BTreeMap, BTreeSet};
 
 use common::{load_sample_plan, read_json, run_all, workspace_root};
-use medsynth_generate::hash::{file_sha256, sha256_str};
+use medsynth_generate::hash::{sha256_str, text_file_sha256};
 use medsynth_generate::validate::{DraftValidator, ExpectedProvenance, ValidationContext};
 use medsynth_generate::{Format, SourceRegistry};
 use serde_json::Value;
@@ -68,7 +68,7 @@ fn sample_batch_manifest_matches_records_and_current_inputs() {
     ] {
         assert_eq!(
             manifest[key]["sha256"].as_str().unwrap(),
-            file_sha256(&root.join(path)).unwrap(),
+            text_file_sha256(&root.join(path)).unwrap(),
             "{key} hash drifted; regenerate the sample batch"
         );
     }

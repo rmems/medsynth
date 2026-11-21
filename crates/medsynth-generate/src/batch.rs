@@ -15,7 +15,7 @@ use crate::config::{Lane, RunConfig, TargetCell, TeacherSelection};
 use crate::error::GenerateError;
 use crate::format::Format;
 use crate::gold::GoldCorpus;
-use crate::hash::{display_path, file_sha256, sha256_str};
+use crate::hash::{display_path, sha256_str, text_file_sha256};
 use crate::manifest::{
     AnchorReceipt, BatchManifest, CellReport, DocumentRef, DroppedDraft, MANIFEST_VERSION,
     RecordEntry, RightsEnvelope, TeacherLaneReport, TeacherPinRef, TeachersRef, Totals,
@@ -123,7 +123,7 @@ pub fn load_plan(
         Ok(pins) => (Some(pins), None),
         Err(error) => (None, Some(error.to_string())),
     };
-    let teachers_sha256 = match file_sha256(&paths.teachers) {
+    let teachers_sha256 = match text_file_sha256(&paths.teachers) {
         Ok(hash) => hash,
         Err(_) => sha256_str(""),
     };

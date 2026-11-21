@@ -12,7 +12,7 @@ use medsynth_schema::{Domain, Tier};
 
 use crate::error::GenerateError;
 use crate::format::Format;
-use crate::hash::sha256_hex;
+use crate::hash::{normalize_newlines, sha256_str};
 
 /// A matrix cell: domain × format × tier.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -132,7 +132,7 @@ impl CoverageMatrix {
                 path.display()
             )));
         }
-        let sha256 = sha256_hex(text.as_bytes());
+        let sha256 = sha256_str(&normalize_newlines(&text));
         Ok(Self {
             path: path.to_path_buf(),
             version,
