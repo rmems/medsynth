@@ -23,10 +23,13 @@ pub struct TeacherRequest {
     pub user: String,
     pub max_tokens: u32,
     pub temperature: f32,
-    /// Batch seed and attempt ordinal packed into the API `seed` so each
-    /// attempt of a cell asks for a distinct sample and fulfills under its
-    /// own key.
-    pub seed: u64,
+    /// The attempt ordinal, sent as the API `seed` so each attempt of a cell
+    /// asks for a distinct sample and fulfills under its own key.
+    pub seed: u32,
+    /// The batch seed, carried in `metadata` so two batches that differ only
+    /// in `--seed` cannot share a fulfillment key — no u64 packing is
+    /// injective, so the full seed travels as its own field.
+    pub batch_seed: u64,
     /// The pin driving the request, carried in `metadata` so a revised pin
     /// cannot silently reuse a previous variant's response file.
     pub pin_id: String,
@@ -62,7 +65,11 @@ fn request_body(request: &TeacherRequest) -> Value {
         "temperature": request.temperature,
         "max_tokens": request.max_tokens,
         "seed": request.seed,
-        "metadata": {"pin_id": request.pin_id, "variant": request.pin_variant},
+        "metadata": {
+            "pin_id": request.pin_id,
+            "variant": request.pin_variant,
+            "batch_seed": request.batch_seed
+        },
         "response_format": {"type": "json_object"}
     })
 }
@@ -211,6 +218,7 @@ mod tests {
             max_tokens: 64,
             temperature: 0.2,
             seed: 0,
+            batch_seed: 0,
             pin_id: "deepseek-v4.1-flash".to_owned(),
             pin_variant: "DeepSeek-V4.1-Flash-1017".to_owned(),
         }
@@ -277,6 +285,13 @@ mod tests {
             base,
             fulfillment_key(&other),
             "each attempt gets its own file"
+        );
+        let mut other = request();
+        other.batch_seed = u64::MAX;
+        assert_ne!(
+            base,
+            fulfillment_key(&other),
+            "each batch seed gets its own files, high bits included"
         );
         let mut other = request();
         other.pin_variant = "DeepSeek-V4.1-Flash-1024".to_owned();
