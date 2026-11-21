@@ -13,8 +13,10 @@ slugs).
 The crate's fixture tests (`cargo test -p medsynth-schema`) enforce both
 directions.
 
-**Source ids are placeholders.** Anchor `source_id` values like
-`example-biochemistry-9e` are pattern-valid stand-ins until the anchor source
-registry (#5) publishes real ids. Swapping them for registry ids is part of
-wiring #5 into #4/#9, and only matters once validation resolves anchors
-against the registry rather than just checking the id pattern.
+**Source ids are real registry ids.** Anchor `source_id` values cite the
+approved sources in `docs/sources.md` / `docs/sources.json` (#5); the
+`source_registry` test in `medsynth-schema` proves every id cited by the
+valid fixtures exists in the registry and that every registry id matches
+`SOURCE_ID_PATTERN`. Only `valid-*.json` fixtures are checked against the
+registry — `invalid-*.json` fixtures carry deliberately broken fields (e.g.
+`tutoring_example/invalid-bad-source-id.json`).
