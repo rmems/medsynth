@@ -178,6 +178,45 @@ fn an_explicit_label_does_not_override_stronger_overlap_with_another_option() {
 }
 
 #[test]
+fn tied_overlap_with_an_explicit_keyed_label_passes_by_design() {
+    // Numeric/short-option items can tie on lexical overlap; the accepted
+    // escape is the rationale naming the keyed label and no other. This
+    // test pins that escape as intentional.
+    let mut value = mcq();
+    value["options"] = serde_json::json!([
+        {"label": "A", "text": "Gap junction"},
+        {"label": "B", "text": "Tight junction"},
+        {"label": "C", "text": "Desmosome"},
+        {"label": "D", "text": "Hemidesmosome"}
+    ]);
+    value["rationale"]["key_explanation"]["text"] =
+        serde_json::json!("Option A, a junction for direct cytoplasmic exchange.");
+    let findings = findings_for(&[record(Format::Mcq, "tie-label-escape", value)]);
+    assert!(
+        findings.is_empty(),
+        "tie with keyed label must pass: {findings:?}"
+    );
+}
+
+#[test]
+fn tied_overlap_naming_a_non_key_label_still_fails() {
+    let mut value = mcq();
+    value["options"] = serde_json::json!([
+        {"label": "A", "text": "Gap junction"},
+        {"label": "B", "text": "Tight junction"},
+        {"label": "C", "text": "Desmosome"},
+        {"label": "D", "text": "Hemidesmosome"}
+    ]);
+    value["rationale"]["key_explanation"]["text"] =
+        serde_json::json!("Option B, a junction sealing the paracellular space.");
+    let findings = findings_for(&[record(Format::Mcq, "tie-wrong-label", value)]);
+    assert!(
+        findings.iter().any(|f| f.check == Check::KeyRationale),
+        "tie naming a non-key label must fail: {findings:?}"
+    );
+}
+
+#[test]
 fn key_rationale_fails_on_blank_rationale_text() {
     let mut bad = mcq();
     // Whitespace-only passes the schema's min-length rule; the lint must

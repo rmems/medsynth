@@ -340,7 +340,13 @@ pub fn format_of(path: &Path) -> Option<Format> {
     });
     directory_format.or_else(|| {
         // #7 uses one flat shard per format. This exception is deliberately
-        // confined to the corpus-relative gold staging directory.
+        // confined to the corpus-relative gold staging directory; callers
+        // must pass the corpus-relative display path, as load_corpus does.
+        debug_assert!(
+            path.is_relative(),
+            "format_of expects a corpus-relative path, got {}",
+            path.display()
+        );
         if path.parent() != Some(Path::new("data/gold"))
             || path.extension().is_none_or(|e| e != "jsonl")
         {

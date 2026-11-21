@@ -92,7 +92,13 @@ fn anchors(value: &Value, out: &mut Vec<Value>) {
         Value::Object(map) => {
             for (key, child) in map {
                 if key == "anchors" {
-                    out.extend(child.as_array().expect("anchors array").iter().cloned());
+                    out.extend(
+                        child
+                            .as_array()
+                            .expect("anchors must be an array (schema-validated)")
+                            .iter()
+                            .cloned(),
+                    );
                 } else {
                     anchors(child, out);
                 }
@@ -121,7 +127,7 @@ fn locator_pattern(convention: &str) -> &'static str {
             r"^(sec[1-9][0-9]*\.[1-9][0-9]*:[a-z0-9]+(-[a-z0-9]+)*|rec[1-9][0-9]*)(?![\s\S])"
         }
         "sec<N>:<title-slug>@YYYY-MM-DD" => {
-            r"^sec[1-9][0-9]*:[a-z0-9]+(-[a-z0-9]+)*@[0-9]{4}-[0-9]{2}-[0-9]{2}(?![\s\S])"
+            r"^sec[1-9][0-9]*:[a-z0-9]+(-[a-z0-9]+)*@[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])(?![\s\S])"
         }
         "rec<N> or sec<N>:<title-slug>" => {
             r"^(rec[1-9][0-9]*|sec[1-9][0-9]*:[a-z0-9]+(-[a-z0-9]+)*)(?![\s\S])"
@@ -201,13 +207,14 @@ fn gold_schema_registry_and_coverage() {
     }
     assert!(ids.len() >= 24, "at least 24 gold records required");
     for format in FORMATS {
-        assert_eq!(
-            format_tiers[format].len(),
-            3,
-            "{format}: all tiers required"
-        );
+        let tiers = format_tiers
+            .get(format)
+            .unwrap_or_else(|| panic!("{format}: no records for format"));
+        assert_eq!(tiers.len(), 3, "{format}: all tiers required");
         for domain in DOMAINS {
-            let cell = &cells[&(format.to_owned(), domain.to_owned())];
+            let cell = cells
+                .get(&(format.to_owned(), domain.to_owned()))
+                .unwrap_or_else(|| panic!("{format}/{domain}: cell missing"));
             assert!(cell.len() >= 2, "{format}/{domain}: at least two records");
             for field in ["subdomain", "tier"] {
                 let values: BTreeSet<_> = cell.iter().map(|r| r[field].as_str().unwrap()).collect();
@@ -297,23 +304,46 @@ fn near_misses_are_schema_valid_and_manifested() {
         );
     }
     let mut actual = BTreeSet::new();
-    for format in FORMATS {
-        let dir = root().join("data/gold/near-miss").join(format);
-        if !dir.exists() {
-            continue;
-        }
-        for entry in fs::read_dir(dir).unwrap() {
-            let path = entry.unwrap().path();
-            assert!(path.is_file(), "nested near-miss directories not supported");
-            if path.extension().is_some_and(|e| e == "json") {
-                actual.insert(format!(
-                    "{format}/{}",
-                    path.file_name().unwrap().to_str().unwrap()
-                ));
-            }
+    let near_root = root().join("data/gold/near-miss");
+    collect_probes(&near_root, &near_root, &mut actual);
+    assert_eq!(files, actual, "every near-miss must be in the manifest");
+}
+
+/// Recursively collect probe files under the near-miss root, rejecting
+/// anything that is not manifest.json, README.md, or a .json probe inside
+/// a format directory — a probe the sweep cannot see must not be able to
+/// hide from the completeness check above.
+fn collect_probes(root_dir: &Path, dir: &Path, actual: &mut BTreeSet<String>) {
+    for entry in fs::read_dir(dir).unwrap() {
+        let path = entry.unwrap().path();
+        let name = path.file_name().unwrap().to_str().unwrap().to_owned();
+        if path.is_dir() {
+            assert!(
+                FORMATS.contains(&name.as_str()),
+                "unexpected near-miss directory: {}",
+                path.display()
+            );
+            collect_probes(root_dir, &path, actual);
+        } else if dir == root_dir {
+            assert!(
+                name == "manifest.json" || name == "README.md",
+                "unexpected file at near-miss root: {name}"
+            );
+        } else {
+            assert!(
+                path.extension().is_some_and(|e| e == "json"),
+                "unexpected file in near-miss dir: {}",
+                path.display()
+            );
+            let rel = path
+                .strip_prefix(root_dir)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .replace('\\', "/");
+            actual.insert(rel);
         }
     }
-    assert_eq!(files, actual, "every near-miss must be in the manifest");
 }
 
 fn assert_review(entry: &Value, reviewer: &str, raw: &[u8]) {
