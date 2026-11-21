@@ -31,10 +31,14 @@ fn valid_siblings(root: &Path, format: medsynth_validate::Format) -> Vec<RecordF
         })
         .collect();
     let root2 = root.to_path_buf();
-    load_paths(paths, move |p| {
+    let (records, load_findings) = load_paths(paths, move |p| {
         p.strip_prefix(&root2).unwrap_or(p).to_path_buf()
-    })
-    .0
+    });
+    assert!(
+        load_findings.is_empty(),
+        "valid siblings must load cleanly: {load_findings:?}"
+    );
+    records
 }
 
 #[test]

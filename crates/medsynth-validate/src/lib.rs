@@ -340,31 +340,7 @@ pub fn load_paths(
             }
         };
         if is_jsonl {
-            for (idx, raw) in text.lines().enumerate() {
-                let line = idx + 1;
-                if raw.trim().is_empty() {
-                    // A blank line inside a shard is not a record —
-                    // skipping it silently would let malformed JSONL pass.
-                    findings.push(Finding {
-                        path: display_path.clone(),
-                        line: Some(line),
-                        record_id: "<unreadable>".into(),
-                        check: Check::Schema,
-                        detail: "blank line in JSONL shard".into(),
-                    });
-                    continue;
-                }
-                push_record(
-                    &mut records,
-                    &mut findings,
-                    PendingRecord {
-                        path: &display_path,
-                        line: Some(line),
-                        format,
-                        raw,
-                    },
-                );
-            }
+            load_jsonl(&text, &display_path, format, &mut records, &mut findings);
         } else {
             push_record(
                 &mut records,
@@ -379,6 +355,40 @@ pub fn load_paths(
         }
     }
     (records, findings)
+}
+
+/// Load each non-blank line of a `.jsonl` shard as its own record; blank
+/// lines are findings (a malformed shard must not pass silently).
+fn load_jsonl(
+    text: &str,
+    display_path: &Path,
+    format: Format,
+    records: &mut Vec<RecordFile>,
+    findings: &mut Vec<Finding>,
+) {
+    for (idx, raw) in text.lines().enumerate() {
+        let line = idx + 1;
+        if raw.trim().is_empty() {
+            findings.push(Finding {
+                path: display_path.to_path_buf(),
+                line: Some(line),
+                record_id: "<unreadable>".into(),
+                check: Check::Schema,
+                detail: "blank line in JSONL shard".into(),
+            });
+            continue;
+        }
+        push_record(
+            records,
+            findings,
+            PendingRecord {
+                path: display_path,
+                line: Some(line),
+                format,
+                raw,
+            },
+        );
+    }
 }
 
 /// One parsed-but-unvalidated record found by [`load_paths`].

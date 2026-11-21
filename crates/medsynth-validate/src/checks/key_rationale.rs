@@ -80,16 +80,7 @@ fn key_references_option(
         .max()
         .unwrap_or(0);
     if own == 0 && best_other == 0 {
-        // All-short options (e.g. "ATP"/"ADP") carry no ≥4-letter content
-        // words, so overlap cannot discriminate — fall back to requiring
-        // the rationale to name the keyed label ("option B" or a bare "B").
-        let names_key = explanation
-            .split(|c: char| !c.is_alphanumeric())
-            .any(|t| t == key)
-            || explanation
-                .to_lowercase()
-                .contains(&format!("option {}", key.to_lowercase()));
-        if !names_key {
+        if !references_label(explanation, key) {
             push_lint(
                 record,
                 findings,
@@ -113,22 +104,43 @@ fn key_references_option(
     }
 }
 
-fn key_rationale_vignette(record: &RecordFile, findings: &mut Vec<Finding>) {
-    let v = &record.value;
-    if let Some(items) = v.get("questions").and_then(|q| q.as_array()) {
-        for (i, q) in items.iter().enumerate() {
-            lint_claim(
-                record,
-                findings,
-                &format!("questions[{i}].answer"),
-                &q["answer"],
-            );
-        }
+/// All-short options (e.g. "ATP"/"ADP") carry no ≥4-letter content words,
+/// so overlap cannot discriminate — fall back to the rationale naming the
+/// keyed label. Requires the explicit "option <X>" phrasing for `A` so the
+/// article "a" cannot pass as a reference, and accepts a bare letter
+/// token for `B`–`E`, which have no article collision.
+fn references_label(explanation: &str, key: &str) -> bool {
+    if explanation
+        .to_lowercase()
+        .contains(&format!("option {}", key.to_lowercase()))
+    {
+        return true;
     }
-    if let Some(items) = v.get("teaching_points").and_then(|q| q.as_array()) {
-        for (i, p) in items.iter().enumerate() {
-            lint_claim(record, findings, &format!("teaching_points[{i}]"), p);
-        }
+    key != "A"
+        && explanation
+            .split(|c: char| !c.is_alphanumeric())
+            .any(|t| t == key)
+}
+
+fn key_rationale_vignette(record: &RecordFile, findings: &mut Vec<Finding>) {
+    lint_claims(record, findings, "questions", "answer");
+    lint_claims(record, findings, "teaching_points", "");
+}
+
+/// Lint every `AnchoredClaim` under `field` (each item itself when `sub`
+/// is empty, else `item[sub]`).
+fn lint_claims(record: &RecordFile, findings: &mut Vec<Finding>, field: &str, sub: &str) {
+    let Some(items) = record.value.get(field).and_then(|q| q.as_array()) else {
+        return;
+    };
+    for (i, item) in items.iter().enumerate() {
+        let claim = if sub.is_empty() { item } else { &item[sub] };
+        let label = if sub.is_empty() {
+            format!("{field}[{i}]")
+        } else {
+            format!("{field}[{i}].{sub}")
+        };
+        lint_claim(record, findings, &label, claim);
     }
 }
 

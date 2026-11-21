@@ -34,6 +34,19 @@ pub(super) fn anchor_presence_check(
     let Some(rank) = status_rank(&record.value) else {
         return; // missing/garbage status is the schema check's finding
     };
+    // Every citation must be into the registry (contract §4) at any
+    // status — a listed anchor must not mask unlisted ones.
+    let mut unlisted = BTreeSet::new();
+    collect_unlisted(&record.value, registry, &mut unlisted);
+    for source_id in unlisted {
+        findings.push(Finding {
+            path: record.path.clone(),
+            line: record.line,
+            record_id: record.record_id(),
+            check: Check::AnchorPresence,
+            detail: format!("cites source id `{source_id}`, which is not in the approved registry"),
+        });
+    }
     if rank == 0 {
         return;
     }
@@ -48,19 +61,6 @@ pub(super) fn anchor_presence_check(
                  carries no anchors into the approved source registry",
                 record.value["verification_status"].as_str().unwrap_or("?")
             ),
-        });
-    }
-    // Every citation must be into the registry (contract §4) — a listed
-    // anchor must not mask unlisted ones.
-    let mut unlisted = BTreeSet::new();
-    collect_unlisted(&record.value, registry, &mut unlisted);
-    for source_id in unlisted {
-        findings.push(Finding {
-            path: record.path.clone(),
-            line: record.line,
-            record_id: record.record_id(),
-            check: Check::AnchorPresence,
-            detail: format!("cites source id `{source_id}`, which is not in the approved registry"),
         });
     }
 }
