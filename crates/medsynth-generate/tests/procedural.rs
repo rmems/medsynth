@@ -369,9 +369,11 @@ fn parent_relative_out_dir_leaving_data_is_allowed() {
     let paths = plan_paths(&sample_config());
     let result = check_output_dir(&paths, Path::new("../data/mcq"));
     assert!(result.is_ok(), "unexpected refusal: {result:?}");
-    // Stacked traversals keep every `..`: they too resolve outside `data/`.
-    let result = check_output_dir(&paths, Path::new("../../../data/mcq"));
-    assert!(result.is_ok(), "unexpected refusal: {result:?}");
+    // Stacked traversals keep every `..`: `../../data/mcq` must resolve back
+    // into the workspace tree and be refused — a normalization that drops a
+    // `..` would land it outside and wrongly allow it.
+    let err = check_output_dir(&paths, Path::new("../../data/mcq")).unwrap_err();
+    assert!(err.to_string().contains("refusing to write drafts under"));
 
     // A `..` that re-enters the tree still resolves to a refusal.
     let err = check_output_dir(&paths, Path::new("data/../data/mcq")).unwrap_err();
