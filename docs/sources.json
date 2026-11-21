@@ -1,0 +1,573 @@
+{
+  "registry_version": "0.1",
+  "description": "Anchor source registry for medsynth (issue #5). Machine-readable copy of docs/sources.md; the two files must stay entry-for-entry identical. Governing rules: docs/contract.md §4 (source anchoring) and §7 (currency rule), docs/taxonomy.md §3.2 (coverage vocabulary).",
+  "sources": [
+    {
+      "source_id": "campbell-biology-13e",
+      "kind": "textbook",
+      "title": "Campbell Biology",
+      "author_or_issuer": "Lisa A. Urry, Peter V. Minorsky, Kerry L. Hull, Rebecca B. Orr",
+      "publisher": "Pearson",
+      "edition": "13th",
+      "year": 2025,
+      "status": "current",
+      "coverage": [
+        "bio_physical_foundations",
+        "cell_processes",
+        "system_interactions",
+        "animal_structure"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section or topic, or a stable page number.",
+        "examples": ["ch8:enzyme-kinetics", "p.1247"]
+      },
+      "added_by": "rmems",
+      "rationale": "The standard introductory biology text; its chemistry-of-life, cell-process, and animal form-and-function units map directly onto the BB&F subdomains."
+    },
+    {
+      "source_id": "campbell-biology-12e",
+      "kind": "textbook",
+      "title": "Campbell Biology",
+      "author_or_issuer": "Lisa A. Urry, Michael L. Cain, Steven A. Wasserman, Peter V. Minorsky, Rebecca B. Orr",
+      "publisher": "Pearson",
+      "edition": "12th",
+      "year": 2021,
+      "status": "superseded",
+      "superseded_by": "campbell-biology-13e",
+      "coverage": [
+        "bio_physical_foundations",
+        "cell_processes",
+        "system_interactions",
+        "animal_structure"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section or topic, or a stable page number.",
+        "examples": ["ch8:enzyme-kinetics", "p.1158"]
+      },
+      "added_by": "rmems",
+      "rationale": "Retained so historical anchors citing the 12th edition remain interpretable after the 13th edition superseded it (contract §7)."
+    },
+    {
+      "source_id": "lippincott-biochem-9e",
+      "kind": "textbook",
+      "title": "Lippincott Illustrated Reviews: Biochemistry",
+      "author_or_issuer": "Emine Ercikan Abali, Susan D. Cline, David S. Franklin, Susan M. Viselli",
+      "publisher": "Wolters Kluwer Health (Lippincott)",
+      "edition": "9th",
+      "year": 2025,
+      "status": "current",
+      "coverage": [
+        "macromolecules"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents (enzyme kinetics and enzyme inhibition are in the early enzyme chapter), a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch5:enzyme-kinetics", "ch5:competitive-inhibition"]
+      },
+      "added_by": "rmems",
+      "rationale": "The standard medical-school biochemistry review; authoritative for protein/enzyme structure, function, and kinetics."
+    },
+    {
+      "source_id": "mol-bio-cell-6e",
+      "kind": "textbook",
+      "title": "Molecular Biology of the Cell",
+      "author_or_issuer": "Bruce Alberts, Rebecca Heald, Alexander Johnson, David Morgan, Martin Raff, Keith Roberts, Peter Walter",
+      "publisher": "Garland Science",
+      "edition": "6th",
+      "year": 2015,
+      "status": "superseded",
+      "coverage": [
+        "macromolecules",
+        "cell_function",
+        "cell_processes",
+        "system_interactions"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch3:protein-structure", "ch17:cell-cycle-control"]
+      },
+      "added_by": "rmems",
+      "rationale": "Retained so historical anchors citing the 6th edition remain interpretable after the 7th edition superseded it (contract §7)."
+    },
+    {
+      "source_id": "mol-bio-cell-7e",
+      "kind": "textbook",
+      "title": "Molecular Biology of the Cell",
+      "author_or_issuer": "Bruce Alberts, Rebecca Heald, Alexander Johnson, David Morgan, Martin Raff, Keith Roberts, Peter Walter, John Wilson, Tim Hunt",
+      "publisher": "W. W. Norton",
+      "edition": "7th",
+      "year": 2022,
+      "status": "current",
+      "coverage": [
+        "macromolecules",
+        "cell_function",
+        "cell_processes",
+        "system_interactions"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch3:protein-structure", "ch17:cell-cycle-control"]
+      },
+      "added_by": "rmems",
+      "rationale": "The definitive molecular cell-biology text (Alberts); authoritative for macromolecule structure/function, cell physiology, and cell-cell and tissue interactions."
+    },
+    {
+      "source_id": "openstax-anatomy-physiology-2e",
+      "kind": "textbook",
+      "title": "Anatomy and Physiology",
+      "author_or_issuer": "J. Gordon Betts, Peter Desaix, Eddie Johnson, Jody E. Johnson, Oksana Korol, Dean Kruse, Brandon Poe, James A. Wise, Mark Womble, Kelly A. Young; OpenStax (issuing body)",
+      "publisher": "OpenStax / Rice University",
+      "edition": "2nd",
+      "year": 2022,
+      "status": "current",
+      "coverage": [
+        "animal_structure",
+        "system_interactions",
+        "cardiovascular",
+        "respiratory",
+        "renal",
+        "gastrointestinal",
+        "endocrine",
+        "neurology",
+        "musculoskeletal"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or sec<N>.<M>:<section-slug>",
+        "description": "The book is organized into units of numbered chapters; cite the chapter number plus a section slug, or section number within the chapter.",
+        "examples": ["ch19:cardiac-cycle", "ch20:circulatory-pathways"]
+      },
+      "added_by": "rmems",
+      "rationale": "Widely adopted open anatomy and physiology text organized by body system; provides the structural and organ-system basis for animal_structure and the pre-clinical systems."
+    },
+    {
+      "source_id": "chemistry-central-science-15e",
+      "kind": "textbook",
+      "title": "Chemistry: The Central Science",
+      "author_or_issuer": "Theodore E. Brown, H. Eugene LeMay, Bruce E. Bursten, Catherine Murphy, Patrick Woodward, Matthew E. Stoltzfus",
+      "publisher": "Pearson",
+      "edition": "15th",
+      "year": 2023,
+      "status": "current",
+      "coverage": [
+        "translation",
+        "properties_of_matter"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch1:units-measurement", "ch10:gas-laws"]
+      },
+      "added_by": "rmems",
+      "rationale": "The standard general-chemistry text; authoritative for matter, measurement, bonding, and the chemical principles MCAT chemical-physical foundations build on."
+    },
+    {
+      "source_id": "openstax-university-physics-2016",
+      "kind": "textbook",
+      "title": "University Physics (Volumes 1-3): Mechanics, Fluids, and Thermal Physics; Electricity and Magnetism; Optics and Modern Physics",
+      "author_or_issuer": "William Moebs, Samuel J. Ling, Jeff Sanny; OpenStax (issuing body)",
+      "publisher": "OpenStax / Rice University",
+      "edition": "Volumes 1-3",
+      "year": 2016,
+      "status": "current",
+      "coverage": [
+        "mechanics",
+        "transmission",
+        "properties_of_matter"
+      ],
+      "locator_convention": {
+        "format": "vol<N>:ch<N>:<section-slug>",
+        "description": "Physics is split across three volumes; cite the volume number, then chapter number and section slug as in the print or web table of contents.",
+        "examples": ["vol1:ch16:wave-speed", "vol3:ch1:law-of-reflection"]
+      },
+      "added_by": "rmems",
+      "rationale": "Standard calculus-based physics reference; covers mechanics, oscillations, waves, electricity and magnetism, and optics — the transmission and mechanics foundations of the CPF domain."
+    },
+    {
+      "source_id": "myers-psychology-14e",
+      "kind": "textbook",
+      "title": "Psychology",
+      "author_or_issuer": "David G. Myers, C. Nathan DeWall, June Gruber",
+      "publisher": "Macmillan Learning (Worth Publishers)",
+      "edition": "14th",
+      "year": 2024,
+      "status": "current",
+      "coverage": [
+        "development",
+        "psychology",
+        "environment"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch6:operant-conditioning", "ch11:social-psychology"]
+      },
+      "added_by": "rmems",
+      "rationale": "The most widely adopted introductory psychology text; covers lifespan development, learning and social behavior, and environmental influences on behavior."
+    },
+    {
+      "source_id": "openstax-introduction-sociology-3e",
+      "kind": "textbook",
+      "title": "Introduction to Sociology",
+      "author_or_issuer": "Tonja R. Conerly, Kathleen Holmes, Asha Lal Tamang; OpenStax (issuing body)",
+      "publisher": "OpenStax / Rice University",
+      "edition": "3rd",
+      "year": 2021,
+      "status": "current",
+      "coverage": [
+        "socioeconomic",
+        "culture_identity",
+        "environment"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug>",
+        "description": "Chapter number from the table of contents plus a lowercase hyphenated slug for the section.",
+        "examples": ["ch8:social-stratification", "ch12:gender-sexuality"]
+      },
+      "added_by": "rmems",
+      "rationale": "Standard open introductory sociology text; authoritative for social stratification, education and poverty, culture, language, and identity."
+    },
+    {
+      "source_id": "guyton-hall-physiology-14e",
+      "kind": "textbook",
+      "title": "Guyton and Hall Textbook of Medical Physiology",
+      "author_or_issuer": "John E. Hall, Michael E. Hall",
+      "publisher": "Elsevier",
+      "edition": "14th",
+      "year": 2020,
+      "status": "superseded",
+      "coverage": [
+        "cardiovascular",
+        "respiratory",
+        "renal",
+        "gastrointestinal",
+        "endocrine"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch21:coronary-circulation", "ch20:cardiac-output"]
+      },
+      "added_by": "rmems",
+      "rationale": "Retained so historical anchors citing the 14th edition remain interpretable after the 15th edition superseded it (contract §7)."
+    },
+    {
+      "source_id": "guyton-hall-physiology-15e",
+      "kind": "textbook",
+      "title": "Guyton and Hall Textbook of Medical Physiology",
+      "author_or_issuer": "John E. Hall, Michael E. Hall",
+      "publisher": "Elsevier",
+      "edition": "15th",
+      "year": 2025,
+      "status": "current",
+      "coverage": [
+        "cardiovascular",
+        "respiratory",
+        "renal",
+        "gastrointestinal",
+        "endocrine"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch21:coronary-circulation", "ch20:cardiac-output"]
+      },
+      "added_by": "rmems",
+      "rationale": "The standard medical physiology text; authoritative for the integrative physiology of the cardiovascular, respiratory, renal, gastrointestinal, and endocrine systems."
+    },
+    {
+      "source_id": "harrison-principles-22e",
+      "kind": "textbook",
+      "title": "Harrison's Principles of Internal Medicine",
+      "author_or_issuer": "Dan L. Longo, Anthony S. Fauci, Dennis L. Kasper, Stephen L. Hauser, J. Larry Jameson, Joseph Loscalzo, Steven M. Holland, Carol A. Langford (eds.)",
+      "publisher": "McGraw Hill",
+      "edition": "22nd",
+      "year": 2025,
+      "status": "current",
+      "coverage": [
+        "cardiovascular",
+        "respiratory",
+        "renal",
+        "gastrointestinal",
+        "endocrine",
+        "neurology",
+        "musculoskeletal",
+        "hematology_oncology",
+        "infectious_disease",
+        "pharmacology_principles"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch293:stemi", "ch416:community-acquired-pneumonia"]
+      },
+      "added_by": "rmems",
+      "rationale": "The leading internal-medicine reference; system-by-system chapters give authoritative pathophysiology, diagnosis, and management coverage across all pre-clinical domains."
+    },
+    {
+      "source_id": "harrison-principles-21e",
+      "kind": "textbook",
+      "title": "Harrison's Principles of Internal Medicine",
+      "author_or_issuer": "Joseph Loscalzo, Anthony S. Fauci, Dennis L. Kasper, Stephen L. Hauser, Dan L. Longo, J. Larry Jameson (eds.)",
+      "publisher": "McGraw Hill",
+      "edition": "21st",
+      "year": 2022,
+      "status": "superseded",
+      "superseded_by": "harrison-principles-22e",
+      "coverage": [
+        "cardiovascular",
+        "respiratory",
+        "renal",
+        "gastrointestinal",
+        "endocrine",
+        "neurology",
+        "musculoskeletal",
+        "hematology_oncology",
+        "infectious_disease",
+        "pharmacology_principles"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch290:stemi", "p.2140"]
+      },
+      "added_by": "rmems",
+      "rationale": "Retained so historical anchors citing the 21st edition remain interpretable after the 22nd edition superseded it (contract §7)."
+    },
+    {
+      "source_id": "braunwald-heart-disease-12e",
+      "kind": "textbook",
+      "title": "Braunwald's Heart Disease: A Textbook of Cardiovascular Medicine",
+      "author_or_issuer": "Peter Libby, Robert O. Bonow, Douglas L. Mann, Gordon F. Tomaselli, Deepak L. Bhatt, Scott D. Solomon, Eugene Braunwald (eds.)",
+      "publisher": "Elsevier",
+      "edition": "12th",
+      "year": 2021,
+      "status": "current",
+      "coverage": [
+        "cardiovascular"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents (e.g. ch14 is Electrocardiography), a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch14:ecg-lead-groups", "ch57:stemi-localization"]
+      },
+      "added_by": "rmems",
+      "rationale": "The definitive cardiovascular medicine text; authoritative for cardiac physiology, ECG interpretation, and ischemic heart disease."
+    },
+    {
+      "source_id": "acc-aha-af-guideline-2023",
+      "kind": "guideline",
+      "title": "2023 ACC/AHA/ACCP/HRS Guideline for the Diagnosis and Management of Atrial Fibrillation",
+      "author_or_issuer": "American College of Cardiology / American Heart Association Joint Committee on Clinical Practice Guidelines (Joglar et al., writing committee)",
+      "publisher": "Circulation",
+      "citation": "Circulation 2024;149(1):e1-e156",
+      "edition": "2023",
+      "year": 2024,
+      "status": "current",
+      "coverage": [
+        "cardiovascular"
+      ],
+      "locator_convention": {
+        "format": "sec<N>.<M>:<section-slug> or rec<N>",
+        "description": "Guideline sections are numbered (e.g. sec4.2); numbered recommendations are cited as rec<N>.",
+        "examples": ["sec4.2:anticoagulation", "rec12"]
+      },
+      "added_by": "rmems",
+      "rationale": "Current ACC/AHA-class guideline for atrial fibrillation; the cardiology guideline-body anchor for rhythm and anticoagulation recommendations (contract §7: edition/year named)."
+    },
+    {
+      "source_id": "ada-standards-diabetes-2025",
+      "kind": "guideline",
+      "title": "Standards of Care in Diabetes-2025",
+      "author_or_issuer": "American Diabetes Association Professional Practice Committee",
+      "publisher": "Diabetes Care",
+      "citation": "Diabetes Care 2025;48(Suppl. 1)",
+      "edition": "2025",
+      "year": 2025,
+      "status": "current",
+      "access_date": "2026-11-20",
+      "coverage": [
+        "endocrine"
+      ],
+      "locator_convention": {
+        "format": "sec<N>:<title-slug>@YYYY-MM-DD",
+        "description": "The Standards are organized into numbered sections; cite the section number and its title slug. This is a living document (contract §7): every locator must carry the access date of the anchor check as a @YYYY-MM-DD suffix.",
+        "examples": ["sec2:diagnosis-classification@2026-11-20", "sec8:pharmacologic-approaches@2026-11-20"]
+      },
+      "added_by": "rmems",
+      "rationale": "The ADA Standards of Care are the gold-standard evidence-based guideline for diabetes and prediabetes; a living document updated continuously, so the access date is carried per contract §7."
+    },
+    {
+      "source_id": "adams-victor-neurology-12e",
+      "kind": "textbook",
+      "title": "Adams and Victor's Principles of Neurology",
+      "author_or_issuer": "Allan H. Ropper, Martin A. Samuels, Joshua P. Klein",
+      "publisher": "McGraw Hill",
+      "edition": "12th",
+      "year": 2023,
+      "status": "current",
+      "coverage": [
+        "neurology"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch37:stroke", "p.842"]
+      },
+      "added_by": "rmems",
+      "rationale": "The classic neurology text; authoritative for neurologic disease mechanisms, clinical manifestations, and management."
+    },
+    {
+      "source_id": "firestein-kelley-rheumatology-12e",
+      "kind": "textbook",
+      "title": "Firestein & Kelley's Textbook of Rheumatology",
+      "author_or_issuer": "Gary S. Firestein, Iain B. McInnes, Gary Koretzky, Ted Mikuls, Tuhina Neogi, James R. O'Dell (eds.)",
+      "publisher": "Elsevier",
+      "edition": "12th",
+      "year": 2024,
+      "status": "current",
+      "coverage": [
+        "musculoskeletal"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch89:rheumatoid-arthritis", "p.1904"]
+      },
+      "added_by": "rmems",
+      "rationale": "The comprehensive rheumatology reference; authoritative for inflammatory and degenerative musculoskeletal disease."
+    },
+    {
+      "source_id": "williams-hematology-10e",
+      "kind": "textbook",
+      "title": "Williams Hematology",
+      "author_or_issuer": "Kenneth Kaushansky, Marshall A. Lichtman, Josef T. Prchal, Marcel M. Levi, Linda J. Burns, David C. Linch (eds.)",
+      "publisher": "McGraw Hill",
+      "edition": "10th",
+      "year": 2021,
+      "status": "current",
+      "coverage": [
+        "hematology_oncology"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch107:iron-deficiency", "p.1401"]
+      },
+      "added_by": "rmems",
+      "rationale": "The landmark hematology reference; authoritative for disorders of blood and marrow cells and coagulation."
+    },
+    {
+      "source_id": "robbins-kumar-basic-pathology-11e",
+      "kind": "textbook",
+      "title": "Robbins & Kumar Basic Pathology",
+      "author_or_issuer": "Vinay Kumar, Abul K. Abbas, Jon C. Aster, Andrea T. Deyrup, Abhijit Das (eds.)",
+      "publisher": "Elsevier",
+      "edition": "11th",
+      "year": 2023,
+      "status": "current",
+      "coverage": [
+        "cardiovascular",
+        "respiratory",
+        "renal",
+        "gastrointestinal",
+        "endocrine",
+        "neurology",
+        "musculoskeletal",
+        "hematology_oncology",
+        "infectious_disease"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch13:myocardial-infarction", "ch15:pneumonia"]
+      },
+      "added_by": "rmems",
+      "rationale": "The standard pathology text; its organ-system chapters give the pathologic basis for disease across the pre-clinical systems."
+    },
+    {
+      "source_id": "sherris-medical-microbiology-7e",
+      "kind": "textbook",
+      "title": "Sherris Medical Microbiology",
+      "author_or_issuer": "Kenneth J. Ryan, Nafees Ahmad, J. Andrew Alspaugh, W. Lawrence Drew, Michael Lagunoff, Paul Pottinger, L. Barth Reller, Megan E. Reller, Charles R. Sterling, Scott Weissman (eds.)",
+      "publisher": "McGraw Hill",
+      "edition": "7th",
+      "year": 2018,
+      "status": "superseded",
+      "coverage": [
+        "infectious_disease"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch24:staphylococci", "ch9:respiratory-viruses"]
+      },
+      "added_by": "rmems",
+      "rationale": "Retained so historical anchors citing the 7th edition remain interpretable after the 8th edition superseded it (contract §7)."
+    },
+    {
+      "source_id": "sherris-medical-microbiology-8e",
+      "kind": "textbook",
+      "title": "Sherris & Ryan's Medical Microbiology",
+      "author_or_issuer": "Kenneth J. Ryan, Nafees Ahmad, J. Andrew Alspaugh, W. Lawrence Drew, Michael Lagunoff, Paul Pottinger, L. Barth Reller, Megan E. Reller, Julie M. Steinbrink, Gayatri Vedantam, Charles R. Sterling, Scott Weissman (eds.)",
+      "publisher": "McGraw Hill",
+      "edition": "8th",
+      "year": 2022,
+      "status": "current",
+      "coverage": [
+        "infectious_disease"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch30:neisseria", "ch16:arthropod-borne-viruses"]
+      },
+      "added_by": "rmems",
+      "rationale": "The standard medical microbiology text; authoritative for pathogen biology, virulence, and infectious disease mechanisms."
+    },
+    {
+      "source_id": "katzung-basic-clinical-pharmacology-16e",
+      "kind": "textbook",
+      "title": "Katzung's Basic and Clinical Pharmacology",
+      "author_or_issuer": "Todd W. Vanderah (ed.)",
+      "publisher": "McGraw Hill",
+      "edition": "16th",
+      "year": 2023,
+      "status": "current",
+      "coverage": [
+        "pharmacology_principles"
+      ],
+      "locator_convention": {
+        "format": "ch<N>:<section-slug> or p.<page>",
+        "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
+        "examples": ["ch10:beta-adrenergic-antagonists", "ch4:pharmacokinetics"]
+      },
+      "added_by": "rmems",
+      "rationale": "The leading pharmacology textbook; authoritative for drug mechanisms, pharmacokinetics, and principles of drug action."
+    },
+    {
+      "source_id": "idsa-iai-update-2024",
+      "kind": "guideline",
+      "title": "2024 Clinical Practice Guideline Update by the Infectious Diseases Society of America on Complicated Intra-abdominal Infections: Risk Assessment, Diagnostic Imaging, and Microbiological Evaluation in Adults, Children, and Pregnant People",
+      "author_or_issuer": "Infectious Diseases Society of America (Bonomo et al., writing committee)",
+      "publisher": "Clinical Infectious Diseases",
+      "citation": "Clinical Infectious Diseases 2024;79(Suppl. 3):S81-S87",
+      "edition": "2024",
+      "year": 2024,
+      "status": "current",
+      "coverage": [
+        "infectious_disease"
+      ],
+      "locator_convention": {
+        "format": "rec<N> or sec<N>:<title-slug>",
+        "description": "IDSA guidelines use numbered recommendations and section headings; cite rec<N> for a recommendation or the section slug.",
+        "examples": ["rec3", "sec2:risk-assessment"]
+      },
+      "added_by": "rmems",
+      "rationale": "Current IDSA evidence-based guideline update for complicated intra-abdominal infections; the infectious-disease guideline-body anchor (contract §7: edition/year named)."
+    }
+  ]
+}

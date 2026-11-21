@@ -8,8 +8,8 @@
     "text": "A researcher adds a competitive inhibitor to an enzyme-catalyzed reaction and measures kinetics at increasing substrate concentrations. Which change in the enzyme's kinetic parameters is expected?",
     "anchors": [
       {
-        "source_id": "example-biochemistry-9e",
-        "locator": "ch8:enzyme-kinetics"
+        "source_id": "lippincott-biochem-9e",
+        "locator": "ch5:enzyme-kinetics"
       }
     ]
   },
@@ -37,8 +37,8 @@
       "text": "A competitive inhibitor competes with substrate for the active site. At saturating substrate concentrations the substrate outcompetes the inhibitor, so Vmax is unchanged; however, more substrate is required to reach half-maximal velocity, so the apparent Km increases.",
       "anchors": [
         {
-          "source_id": "example-biochemistry-9e",
-          "locator": "ch8:competitive-inhibition"
+          "source_id": "lippincott-biochem-9e",
+          "locator": "ch5:competitive-inhibition"
         }
       ]
     },
@@ -46,8 +46,8 @@
       "text": "Option B describes pure noncompetitive inhibition, not competitive inhibition: a noncompetitive inhibitor binds a site other than the active site and reduces the effective enzyme concentration, lowering Vmax while leaving Km unchanged.",
       "anchors": [
         {
-          "source_id": "example-biochemistry-9e",
-          "locator": "ch8:noncompetitive-inhibition"
+          "source_id": "lippincott-biochem-9e",
+          "locator": "ch5:noncompetitive-inhibition"
         }
       ]
     }

@@ -17,8 +17,8 @@
         "text": "The right coronary artery. ST-segment elevation in the inferior leads (II, III, aVF) localizes the injury to the inferior wall of the left ventricle, which is supplied by the right coronary artery in the majority of patients with right-dominant circulation.",
         "anchors": [
           {
-            "source_id": "example-cardiology-5e",
-            "locator": "ch12:stemi-localization"
+            "source_id": "braunwald-heart-disease-12e",
+            "locator": "ch57:stemi-localization"
           }
         ]
       }
@@ -29,8 +29,8 @@
       "text": "ST-segment elevation in contiguous leads localizes acute myocardial injury to the wall those leads view; leads II, III, and aVF view the inferior wall.",
       "anchors": [
         {
-          "source_id": "example-cardiology-5e",
-          "locator": "ch9:ecg-lead-groups"
+          "source_id": "braunwald-heart-disease-12e",
+          "locator": "ch14:ecg-lead-groups"
         }
       ]
     },
@@ -38,8 +38,8 @@
       "text": "In most patients the posterior descending artery arises from the right coronary artery (right-dominant circulation), so an inferior-wall infarct most often reflects right coronary artery occlusion.",
       "anchors": [
         {
-          "source_id": "example-anatomy-4e",
-          "locator": "ch5:coronary-circulation"
+          "source_id": "guyton-hall-physiology-15e",
+          "locator": "ch21:coronary-circulation"
         }
       ]
     }
@@ -49,8 +49,8 @@
       "text": "Leads II, III, and aVF view the inferior wall of the left ventricle; ST elevation there indicates inferior-wall injury.",
       "anchors": [
         {
-          "source_id": "example-cardiology-5e",
-          "locator": "ch9:ecg-lead-groups"
+          "source_id": "braunwald-heart-disease-12e",
+          "locator": "ch14:ecg-lead-groups"
         }
       ]
     },
@@ -58,8 +58,8 @@
       "text": "Coronary dominance is determined by which artery gives rise to the posterior descending artery; roughly 70-80% of people are right-dominant.",
       "anchors": [
         {
-          "source_id": "example-anatomy-4e",
-          "locator": "ch5:coronary-circulation"
+          "source_id": "guyton-hall-physiology-15e",
+          "locator": "ch21:coronary-circulation"
         }
       ]
     }
