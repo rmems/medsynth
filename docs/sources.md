@@ -269,7 +269,7 @@ source.
 - **Locator convention:** `ch<N>:<section-slug>` or `p.<page>` — chapter
   number from the print table of contents, a lowercase hyphenated slug for the
   section, or a stable page number. Examples: `ch21:coronary-circulation`,
-  `ch18:cardiac-output`.
+  `ch20:cardiac-output`.
 - **Added by:** rmems
 - **Rationale:** The standard medical physiology text; authoritative for the
   integrative physiology of the cardiovascular, respiratory, renal,

@@ -273,7 +273,7 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch21:coronary-circulation", "ch18:cardiac-output"]
+        "examples": ["ch21:coronary-circulation", "ch20:cardiac-output"]
       },
       "added_by": "rmems",
       "rationale": "The standard medical physiology text; authoritative for the integrative physiology of the cardiovascular, respiratory, renal, gastrointestinal, and endocrine systems."
