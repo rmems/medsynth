@@ -452,6 +452,29 @@ fn teacher_run_config(cells: Value) -> Value {
     })
 }
 
+/// One procedural MCQ cell plus one teacher vignette cell — the refusal tests.
+fn mixed_lane_cells() -> Value {
+    json!([
+        {
+            "domain": "cpf",
+            "format": "mcq",
+            "tier": "application",
+            "count": 1,
+            "lane": "procedural",
+            "template": "calc.newtons_second_law",
+            "subdomain": "mechanics"
+        },
+        {
+            "domain": "bbf",
+            "format": "case_vignette",
+            "tier": "foundation",
+            "count": 1,
+            "lane": "teacher",
+            "subdomain": "animal_structure"
+        }
+    ])
+}
+
 #[test]
 fn teacher_batch_writes_an_enveloped_unverified_draft_from_a_recorded_response() {
     let config = teacher_run_config(json!([{
@@ -666,25 +689,7 @@ fn teacher_batch_drops_a_draft_with_an_unapproved_anchor() {
 
 #[test]
 fn missing_pin_file_refuses_the_teacher_lane_and_keeps_procedural_output() {
-    let config = teacher_run_config(json!([
-        {
-            "domain": "cpf",
-            "format": "mcq",
-            "tier": "application",
-            "count": 1,
-            "lane": "procedural",
-            "template": "calc.newtons_second_law",
-            "subdomain": "mechanics"
-        },
-        {
-            "domain": "bbf",
-            "format": "case_vignette",
-            "tier": "foundation",
-            "count": 1,
-            "lane": "teacher",
-            "subdomain": "animal_structure"
-        }
-    ]));
+    let config = teacher_run_config(mixed_lane_cells());
     let dir = TempDir::new("teacher-missing-pin");
     let config_path = write_config(&dir, &config);
     let mut paths = plan_paths(&config_path);
@@ -724,25 +729,7 @@ fn missing_pin_file_refuses_the_teacher_lane_and_keeps_procedural_output() {
 
 #[test]
 fn refused_teacher_lane_still_runs_the_procedural_lane() {
-    let config = teacher_run_config(json!([
-        {
-            "domain": "cpf",
-            "format": "mcq",
-            "tier": "application",
-            "count": 1,
-            "lane": "procedural",
-            "template": "calc.newtons_second_law",
-            "subdomain": "mechanics"
-        },
-        {
-            "domain": "bbf",
-            "format": "case_vignette",
-            "tier": "foundation",
-            "count": 1,
-            "lane": "teacher",
-            "subdomain": "animal_structure"
-        }
-    ]));
+    let config = teacher_run_config(mixed_lane_cells());
     let dir = TempDir::new("teacher-refused");
     let config_path = write_config(&dir, &config);
     let plan = load_plan(&plan_paths(&config_path), None).unwrap();
