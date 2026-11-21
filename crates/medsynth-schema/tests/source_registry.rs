@@ -8,7 +8,10 @@
 //! * every registry `source_id` matches `SOURCE_ID_PATTERN`;
 //! * every `coverage` slug is a taxonomy §3.2 subdomain;
 //! * every `### \`id\`` entry heading in `docs/sources.md` corresponds to a
-//!   JSON entry (and vice versa), with matching status and coverage;
+//!   JSON entry (and vice versa), with matching status, coverage, and
+//!   citation;
+//! * every taxonomy §3.2 subdomain has at least one `current` approved
+//!   source;
 //! * every `source_id` cited by a `valid-*.json` fixture exists in the
 //!   registry. (`invalid-*.json` fixtures are exempt — they carry
 //!   deliberately broken fields.)
@@ -39,53 +42,72 @@ struct RegistryEntry {
     source_id: String,
     status: String,
     coverage: Vec<String>,
+    #[serde(default)]
+    citation: Option<String>,
+}
+
+/// What the markdown mirror must agree with: status, coverage slugs, and
+/// the optional citation string.
+type MdEntry = (String, Vec<String>, Option<String>);
+
+fn read_text(path: &Path) -> String {
+    fs::read_to_string(path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()))
 }
 
 fn registry() -> Registry {
     let path = workspace_root().join("docs").join("sources.json");
-    let text =
-        fs::read_to_string(&path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+    let text = read_text(&path);
     serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()))
 }
 
-/// Entries in `docs/sources.md` under `## Registry entries`, keyed by the
-/// `### \`source-id\`` heading. Returns (source_id, status, coverage).
-fn markdown_entries() -> BTreeMap<String, (String, Vec<String>)> {
+fn bullet_value<'a>(lines: &[&'a str], prefix: &str) -> Option<&'a str> {
+    lines
+        .iter()
+        .find_map(|line| line.strip_prefix(prefix))
+        .map(str::trim)
+}
+
+fn backtick_slugs(value: &str) -> Vec<String> {
+    value
+        .split('`')
+        .skip(1)
+        .step_by(2)
+        .map(str::to_string)
+        .collect()
+}
+
+fn entry_heading(line: &str) -> Option<String> {
+    line.strip_prefix("### `")?
+        .strip_suffix('`')
+        .map(str::to_string)
+}
+
+/// Entries in `docs/sources.md` keyed by their `### \`source-id\`` heading.
+fn markdown_entries() -> BTreeMap<String, MdEntry> {
     let path = workspace_root().join("docs").join("sources.md");
-    let text =
-        fs::read_to_string(&path).unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+    let text = read_text(&path);
+    let lines: Vec<&str> = text.lines().collect();
+    let headings: Vec<(usize, String)> = lines
+        .iter()
+        .enumerate()
+        .filter_map(|(i, line)| entry_heading(line).map(|id| (i, id)))
+        .collect();
     let mut entries = BTreeMap::new();
-    let mut current: Option<String> = None;
-    for line in text.lines() {
-        if let Some(rest) = line.strip_prefix("### `") {
-            let id = rest
-                .strip_suffix('`')
-                .expect("entry heading must end with a backtick")
-                .to_string();
-            current = Some(id.clone());
-            entries.insert(id, (String::new(), Vec::new()));
-        } else if let Some(id) = current.clone() {
-            if let Some(value) = line.strip_prefix("- **Status:**") {
-                let status = value
-                    .split_whitespace()
-                    .next()
-                    .expect("status line is empty")
-                    .to_string();
-                entries.get_mut(&id).unwrap().0 = status;
-            } else if let Some(value) = line.strip_prefix("- **Coverage:**") {
-                let slugs: Vec<String> = value
-                    .split('`')
-                    .skip(1)
-                    .step_by(2)
-                    .map(str::to_string)
-                    .collect();
-                assert!(
-                    !slugs.is_empty(),
-                    "coverage line for {id} has no backticked slugs"
-                );
-                entries.get_mut(&id).unwrap().1 = slugs;
-            }
-        }
+    for (idx, (start, id)) in headings.iter().enumerate() {
+        let end = headings
+            .get(idx + 1)
+            .map(|(i, _)| *i)
+            .unwrap_or(lines.len());
+        let section = &lines[*start..end];
+        let status = bullet_value(section, "- **Status:**")
+            .and_then(|v| v.split_whitespace().next())
+            .unwrap_or_default()
+            .to_string();
+        let coverage = bullet_value(section, "- **Coverage:**")
+            .map(backtick_slugs)
+            .unwrap_or_default();
+        let citation = bullet_value(section, "- **Citation:**").map(str::to_string);
+        entries.insert(id.clone(), (status, coverage, citation));
     }
     entries
 }
@@ -111,9 +133,9 @@ fn collect_source_ids(value: &Value, out: &mut BTreeSet<String>) {
     }
 }
 
-fn fixture_source_ids() -> BTreeMap<String, BTreeSet<String>> {
+fn valid_fixture_files() -> Vec<PathBuf> {
     let fixtures = workspace_root().join("fixtures");
-    let mut cited: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+    let mut files = Vec::new();
     for dir in fs::read_dir(&fixtures).expect("cannot read fixtures/") {
         let dir = dir.expect("dir entry").path();
         if !dir.is_dir() {
@@ -124,23 +146,33 @@ fn fixture_source_ids() -> BTreeMap<String, BTreeSet<String>> {
             let name = path
                 .file_name()
                 .and_then(|n| n.to_str())
-                .unwrap_or_default()
-                .to_string();
-            if !(name.starts_with("valid-") && name.ends_with(".json")) {
-                continue;
-            }
-            let text = fs::read_to_string(&path)
-                .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
-            let instance: Value = serde_json::from_str(&text)
-                .unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
-            let mut ids = BTreeSet::new();
-            collect_source_ids(&instance, &mut ids);
-            if !ids.is_empty() {
-                cited.insert(name, ids);
+                .unwrap_or_default();
+            if name.starts_with("valid-") && name.ends_with(".json") {
+                files.push(path);
             }
         }
     }
-    cited
+    files.sort();
+    files
+}
+
+fn cited_source_ids(path: &Path) -> BTreeSet<String> {
+    let text = read_text(path);
+    let instance: Value =
+        serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
+    let mut ids = BTreeSet::new();
+    collect_source_ids(&instance, &mut ids);
+    ids
+}
+
+/// `source_id`s cited by each `valid-*.json` fixture, keyed by fixture path
+/// so same-named fixtures in different format dirs cannot mask each other.
+fn fixture_source_ids() -> BTreeMap<String, BTreeSet<String>> {
+    valid_fixture_files()
+        .into_iter()
+        .map(|path| (path.display().to_string(), cited_source_ids(&path)))
+        .filter(|(_, ids)| !ids.is_empty())
+        .collect()
 }
 
 #[test]
@@ -190,22 +222,22 @@ fn registry_coverage_uses_taxonomy_slugs() {
 #[test]
 fn markdown_and_json_are_entry_for_entry_identical() {
     let reg = registry();
-    let json_ids: BTreeMap<&str, (&RegistryEntry,)> = reg
+    let json: BTreeMap<&str, &RegistryEntry> = reg
         .sources
         .iter()
-        .map(|e| (e.source_id.as_str(), (e,)))
+        .map(|e| (e.source_id.as_str(), e))
         .collect();
     let md = markdown_entries();
 
-    let json_set: BTreeSet<&str> = json_ids.keys().copied().collect();
+    let json_set: BTreeSet<&str> = json.keys().copied().collect();
     let md_set: BTreeSet<&str> = md.keys().map(String::as_str).collect();
     assert_eq!(
         json_set, md_set,
         "sources.md entry headings and sources.json source_ids disagree"
     );
 
-    for (id, (status, coverage)) in &md {
-        let entry = &json_ids[id.as_str()].0;
+    for (id, (status, coverage, citation)) in &md {
+        let entry = json[id.as_str()];
         assert_eq!(
             entry.status, *status,
             "status mismatch for `{id}`: md `{status}` vs json `{}`",
@@ -218,14 +250,22 @@ fn markdown_and_json_are_entry_for_entry_identical() {
             "coverage mismatch for `{id}`: md {coverage:?} vs json {:?}",
             entry.coverage
         );
+        assert_eq!(
+            entry.citation.as_deref(),
+            citation.as_deref(),
+            "citation mismatch for `{id}`: md {citation:?} vs json {:?}",
+            entry.citation
+        );
     }
 }
 
 #[test]
-fn every_subdomain_has_an_approved_source() {
+fn every_subdomain_has_a_current_source() {
     let mut covered = BTreeSet::new();
     for entry in &registry().sources {
-        covered.extend(entry.coverage.iter().cloned());
+        if entry.status == "current" {
+            covered.extend(entry.coverage.iter().cloned());
+        }
     }
     // The 25 taxonomy §3.2 subdomains; mirrors docs/taxonomy.md.
     const ALL_SUBDOMAINS: [&str; 25] = [
@@ -258,7 +298,7 @@ fn every_subdomain_has_an_approved_source() {
     for slug in ALL_SUBDOMAINS {
         assert!(
             covered.contains(slug),
-            "taxonomy subdomain `{slug}` has no approved source in docs/sources.json"
+            "taxonomy subdomain `{slug}` has no current approved source in docs/sources.json"
         );
     }
 }

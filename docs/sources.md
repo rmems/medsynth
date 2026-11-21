@@ -28,7 +28,10 @@ An anchor is `{ "source_id": "...", "locator": "..." }` where:
   reused or re-spelled once published.
 - `locator` is written in the locator convention published for that source —
   typically `ch<N>:<section-slug>` for textbooks or `sec<N>` / `rec<N>` for
-  guidelines — so #9 can resolve it mechanically.
+  guidelines — so #9 can resolve it mechanically. Anchors to living-document
+  entries (those carrying an access date, e.g. `ada-standards-diabetes-2025`)
+  must carry the access date of the anchor check in the locator per contract
+  §7.
 
 Adding a source is a reviewed change: new entries must be verifiable against
 the publisher or issuing body and name who added them and why the source is
@@ -293,8 +296,8 @@ source.
 - **Bibliographic identity:** *2023 ACC/AHA/ACCP/HRS Guideline for the
   Diagnosis and Management of Atrial Fibrillation* — American College of
   Cardiology / American Heart Association Joint Committee on Clinical Practice
-  Guidelines (Joglar et al., writing committee); Circulation 2024;149(1):
-  e1–e156; 2024.
+  Guidelines (Joglar et al., writing committee); Circulation; 2024.
+- **Citation:** Circulation 2024;149(1):e1-e156
 - **Kind:** guideline
 - **Status:** current
 - **Coverage:** `cardiovascular`
@@ -309,15 +312,19 @@ source.
 ### `ada-standards-diabetes-2025`
 
 - **Bibliographic identity:** *Standards of Care in Diabetes—2025* — American
-  Diabetes Association Professional Practice Committee; Diabetes Care
-  48(Suppl. 1); 2025. **Access date:** 2026-11-20 (living document — updated
-  continuously through the year).
+  Diabetes Association Professional Practice Committee; Diabetes Care; 2025.
+- **Citation:** Diabetes Care 2025;48(Suppl. 1)
+- **Access date:** 2026-11-20 (living document — updated continuously through
+  the year)
 - **Kind:** guideline
 - **Status:** current
 - **Coverage:** `endocrine`
-- **Locator convention:** `sec<N>:<title-slug>` — the Standards are organized
-  into numbered sections; cite the section number and its title slug. Examples:
-  `sec2:diagnosis-classification`, `sec8:pharmacologic-approaches`.
+- **Locator convention:** `sec<N>:<title-slug>@YYYY-MM-DD` — the Standards
+  are organized into numbered sections; cite the section number and its title
+  slug. This is a living document (contract §7): every locator must carry the
+  access date of the anchor check as a `@YYYY-MM-DD` suffix. Examples:
+  `sec2:diagnosis-classification@2026-11-20`,
+  `sec8:pharmacologic-approaches@2026-11-20`.
 - **Added by:** rmems
 - **Rationale:** The ADA Standards of Care are the gold-standard evidence-based
   guideline for diabetes and prediabetes; a living document updated
@@ -425,7 +432,8 @@ source.
   Infections: Risk Assessment, Diagnostic Imaging, and Microbiological
   Evaluation in Adults, Children, and Pregnant People* — Infectious Diseases
   Society of America (Bonomo et al., writing committee); Clinical Infectious
-  Diseases 79(Suppl. 3); 2024.
+  Diseases; 2024.
+- **Citation:** Clinical Infectious Diseases 2024;79(Suppl. 3):S81-S87
 - **Kind:** guideline
 - **Status:** current
 - **Coverage:** `infectious_disease`

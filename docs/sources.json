@@ -316,6 +316,7 @@
       "title": "2023 ACC/AHA/ACCP/HRS Guideline for the Diagnosis and Management of Atrial Fibrillation",
       "author_or_issuer": "American College of Cardiology / American Heart Association Joint Committee on Clinical Practice Guidelines (Joglar et al., writing committee)",
       "publisher": "Circulation",
+      "citation": "Circulation 2024;149(1):e1-e156",
       "edition": "2023",
       "year": 2024,
       "status": "current",
@@ -336,6 +337,7 @@
       "title": "Standards of Care in Diabetes-2025",
       "author_or_issuer": "American Diabetes Association Professional Practice Committee",
       "publisher": "Diabetes Care 48(Suppl. 1)",
+      "citation": "Diabetes Care 2025;48(Suppl. 1)",
       "edition": "2025",
       "year": 2025,
       "status": "current",
@@ -344,9 +346,9 @@
         "endocrine"
       ],
       "locator_convention": {
-        "format": "sec<N>:<title-slug>",
-        "description": "The Standards are organized into numbered sections; cite the section number and its title slug.",
-        "examples": ["sec2:diagnosis-classification", "sec8:pharmacologic-approaches"]
+        "format": "sec<N>:<title-slug>@YYYY-MM-DD",
+        "description": "The Standards are organized into numbered sections; cite the section number and its title slug. This is a living document (contract §7): every locator must carry the access date of the anchor check as a @YYYY-MM-DD suffix.",
+        "examples": ["sec2:diagnosis-classification@2026-11-20", "sec8:pharmacologic-approaches@2026-11-20"]
       },
       "added_by": "rmems",
       "rationale": "The ADA Standards of Care are the gold-standard evidence-based guideline for diabetes and prediabetes; a living document updated continuously, so the access date is carried per contract §7."
@@ -485,6 +487,7 @@
       "title": "2024 Clinical Practice Guideline Update by the Infectious Diseases Society of America on Complicated Intra-abdominal Infections: Risk Assessment, Diagnostic Imaging, and Microbiological Evaluation in Adults, Children, and Pregnant People",
       "author_or_issuer": "Infectious Diseases Society of America (Bonomo et al., writing committee)",
       "publisher": "Clinical Infectious Diseases 79(Suppl. 3)",
+      "citation": "Clinical Infectious Diseases 2024;79(Suppl. 3):S81-S87",
       "edition": "2024",
       "year": 2024,
       "status": "current",
