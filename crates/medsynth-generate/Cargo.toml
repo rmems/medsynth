@@ -1,0 +1,24 @@
+[package]
+name = "medsynth-generate"
+description = "Candidate-record generation for medsynth: deterministic procedural templates plus pinned teacher-model drafting, with per-record provenance, rights envelopes, anchor receipts, and self-validation."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "medsynth-generate"
+path = "src/main.rs"
+
+[dependencies]
+medsynth-schema = { path = "../medsynth-schema" }
+serde.workspace = true
+serde_json.workspace = true
+jsonschema.workspace = true
+clap.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+rand_pcg.workspace = true
+rand_core.workspace = true
+tiktoken-rs.workspace = true
+reqwest = { workspace = true, features = ["blocking", "json"] }

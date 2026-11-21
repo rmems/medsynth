@@ -57,11 +57,14 @@ domains (`bbf`, `cpf`, `psb`) plus `pre_clinical` systems.
 
 ```
 crates/            Rust workspace — record types, validation, pipelines
-  medsynth-schema/ Record types (serde + schemars), JSON Schema generation
+  medsynth-schema/   Record types (serde + schemars), JSON Schema generation
+  medsynth-validate/ CI data-validation gate
+  medsynth-generate/ Candidate generation: procedural templates + pinned teacher drafting
 schemas/           Generated JSON Schemas (do not hand-edit; see schemas/README.md)
 fixtures/          Valid/invalid fixture records for data-validation CI
 data/              Dataset records, one directory per format
-docs/              contract.md (binding), taxonomy.md
+drafts/            Generated candidate batches; only the reviewed sample batch is committed
+docs/              contract.md (binding), taxonomy.md, sources.json, teachers.md
 scripts/           Generation + verification entry points (planned)
 ```
 
@@ -72,10 +75,12 @@ scripts/           Generation + verification entry points (planned)
 ## Status
 
 **v0.1 in construction.** Landed so far: content contract (#2), curriculum
-taxonomy + coverage matrix (#3), record schemas (#4). In flight: gold seed
-set, generation pipeline, verification & admission pipeline, CI data
-validation, originality audit, eval harness, dataset assembly, and Hugging
-Face publication. See the [issue tracker](https://github.com/rmems/medsynth/issues)
+taxonomy + coverage matrix (#3), record schemas (#4), anchor source registry
+(#5), CI data validation (#10), gold seed set (#7), and the generation pipeline
+(#8). Every generated draft is `unverified` and stays outside `data/` until
+the verification & admission pipeline (#9) admits it. In flight: verification &
+admission, originality audit, eval harness, dataset assembly, and Hugging Face
+publication. See the [issue tracker](https://github.com/rmems/medsynth/issues)
 for the live plan.
 
 ## Development
@@ -85,6 +90,9 @@ Rust workspace, pinned toolchain (`rust-toolchain.toml`, edition 2024).
 ```sh
 cargo test -p medsynth-schema   # schema + fixture + taxonomy tests
 cargo run -p medsynth-schema --bin schema-gen   # regenerate schemas/
+cargo test -p medsynth-generate # generation reproducibility + teacher-lane gate
+cargo run -p medsynth-generate -- run \
+  --config drafts/sample-batch/config.json --out drafts/sample-batch
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) — the content contract is binding on

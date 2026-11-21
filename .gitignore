@@ -1,4 +1,7 @@
 /target
+/drafts/*
+!/drafts/sample-batch
+!/drafts/sample-batch/**
 .qlty/logs
 .qlty/out
 .qlty/results

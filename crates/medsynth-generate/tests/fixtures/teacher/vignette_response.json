@@ -1,0 +1,21 @@
+{
+    "id":  "chatcmpl-fixture-vignette",
+    "object":  "chat.completion",
+    "created":  1795000000,
+    "model":  "deepseek-flash",
+    "choices":  [
+                    {
+                        "index":  0,
+                        "message":  {
+                                        "role":  "assistant",
+                                        "content":  "{\"presentation\":\"In a fictional teaching encounter, a 24-year-old patient reports several days of increased thirst and frequent urination. The patient takes no medications and has no known medical conditions.\",\"findings\":[\"Serum sodium 148 mmol/L\",\"Plasma osmolality 302 mOsm/kg\",\"Urine osmolality 850 mOsm/kg\"],\"questions\":[{\"question\":\"Which physiologic response best explains the concentrated urine?\",\"answer\":{\"text\":\"Increased antidiuretic hormone release increases water reabsorption in the collecting ducts.\",\"anchors\":[{\"source_id\":\"openstax-anatomy-physiology-2e\",\"locator\":\"sec17.3:the-pituitary-gland-and-hypothalamus\"}]}}],\"reasoning_chain\":[{\"text\":\"The high plasma osmolality stimulates hypothalamic osmoreceptors.\",\"anchors\":[{\"source_id\":\"openstax-anatomy-physiology-2e\",\"locator\":\"sec17.3:the-pituitary-gland-and-hypothalamus\"}]},{\"text\":\"Posterior pituitary antidiuretic hormone increases collecting-duct water permeability, concentrating the urine.\",\"anchors\":[{\"source_id\":\"openstax-anatomy-physiology-2e\",\"locator\":\"sec26.2:water-balance\"}]}],\"teaching_points\":[{\"text\":\"Concentrated urine with high plasma osmolality reflects water conservation mediated by antidiuretic hormone.\",\"anchors\":[{\"source_id\":\"openstax-anatomy-physiology-2e\",\"locator\":\"sec26.2:water-balance\"}]}]}"
+                                    },
+                        "finish_reason":  "stop"
+                    }
+                ],
+    "usage":  {
+                  "prompt_tokens":  120,
+                  "completion_tokens":  180,
+                  "total_tokens":  300
+              }
+}

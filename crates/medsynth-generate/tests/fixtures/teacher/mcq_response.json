@@ -1,0 +1,21 @@
+{
+    "id":  "chatcmpl-fixture-mcq",
+    "object":  "chat.completion",
+    "created":  1795000000,
+    "model":  "deepseek-flash",
+    "choices":  [
+                    {
+                        "index":  0,
+                        "message":  {
+                                        "role":  "assistant",
+                                        "content":  "{\"stem\":\"Which epithelial type lines the alveoli and minimizes the diffusion distance for gas exchange?\",\"anchors\":[{\"source_id\":\"openstax-anatomy-physiology-2e\",\"locator\":\"sec22.2:the-lungs\"}],\"options\":[{\"label\":\"A\",\"text\":\"Simple cuboidal epithelium\"},{\"label\":\"B\",\"text\":\"Simple squamous epithelium\"},{\"label\":\"C\",\"text\":\"Stratified squamous epithelium\"},{\"label\":\"D\",\"text\":\"Pseudostratified columnar epithelium\"}],\"proposed_key\":\"B\",\"key_explanation\":{\"text\":\"Simple squamous epithelium is a single layer of flattened cells; its thinness supports rapid diffusion across the alveolar wall.\",\"anchors\":[{\"source_id\":\"openstax-anatomy-physiology-2e\",\"locator\":\"sec22.2:the-lungs\"}]},\"strongest_distractor\":{\"text\":\"Cuboidal and columnar epithelia are thicker and specialized for secretion or absorption, and stratified squamous epithelium is protective rather than optimized for diffusion.\",\"anchors\":[{\"source_id\":\"openstax-anatomy-physiology-2e\",\"locator\":\"sec4.2:epithelial-tissue\"}]}}"
+                                    },
+                        "finish_reason":  "stop"
+                    }
+                ],
+    "usage":  {
+                  "prompt_tokens":  120,
+                  "completion_tokens":  180,
+                  "total_tokens":  300
+              }
+}
