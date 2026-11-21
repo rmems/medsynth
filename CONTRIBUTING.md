@@ -11,7 +11,9 @@ version:
 - Fictional patients only — no real cases, no PHI.
 - Original items only — board-style format, never board content.
 - Every clinical or scientific fact carries a source anchor to an approved
-  reference; unanchored facts do not ship.
+  reference; unanchored facts do not ship. (Invented patient observations —
+  vitals, labs, histories, imaging findings — are fictional and
+  plausibility-checked, not anchored; contract §4.)
 - Records teach and test knowledge — they are not medical advice.
 - Guideline anchors name edition/year.
 
@@ -37,5 +39,5 @@ exactly as it does to human-written code.
 
 ## License
 
-By contributing you agree your contributions are licensed under the same
-dual license as the project: **Apache-2.0 OR MIT** (your choice).
+By contributing you agree your contributions are licensed under **both**
+Apache-2.0 **and** MIT — downstream users choose which license to take.

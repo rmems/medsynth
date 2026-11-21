@@ -4,7 +4,7 @@
 [![Status](https://img.shields.io/badge/status-v0.1%20in%20construction-orange.svg)](https://github.com/rmems/medsynth/issues)
 
 Synthetic training and evaluation data for pre-medical and early medical
-education — every fact traceable to a reference.
+education — every clinical and scientific claim traceable to a reference.
 
 medsynth produces three record formats: multiple-choice questions (MCQs),
 clinical-style case vignettes, and tutoring examples with explicit reasoning.
@@ -28,7 +28,9 @@ Contract highlights:
   reproduced or paraphrased MCAT/USMLE/commercial items.
 - **Source anchoring** — every clinical or scientific fact carries a source
   anchor to an approved reference plus a locator. A fact that cannot be
-  anchored does not ship.
+  anchored does not ship. (Invented patient observations — vitals, labs,
+  histories — are fictional and plausibility-checked, not anchored; see
+  contract §4.)
 - **Educational framing** — records teach and test knowledge; they are not
   medical advice.
 - **Currency** — guideline anchors name edition/year so staleness is visible.

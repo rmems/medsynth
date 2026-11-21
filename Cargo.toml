@@ -5,6 +5,7 @@ members = ["crates/medsynth-schema"]
 [workspace.package]
 version = "0.1.0"
 edition = "2024"
+license = "MIT OR Apache-2.0"
 
 # Shared dependencies are declared centrally; member crates opt in via
 # `workspace = true` (see issue #6 implementation note for the base stack).
@@ -14,3 +15,13 @@ serde_json = { version = "1", features = ["arbitrary_precision", "raw_value"] }
 schemars = "1"
 jsonschema = "0.61"
 thiserror = "2"
+rand_pcg = "0.3"
+reqwest = "0.12"
+tokio = "1"
+rayon = "1"
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+sha2 = "0.10"
+parquet = "57"
+hf-hub = "0.4"
+tiktoken-rs = "0.9"

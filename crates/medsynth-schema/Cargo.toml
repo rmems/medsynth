@@ -3,6 +3,7 @@ name = "medsynth-schema"
 description = "Canonical Rust record types for medsynth's three record formats; the JSON Schemas in schemas/ are generated from these types with schemars."
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 
 [dependencies]
 serde.workspace = true

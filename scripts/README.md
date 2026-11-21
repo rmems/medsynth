@@ -2,8 +2,8 @@
 
 Thin entry points for the generation and verification pipelines.
 
-The pipeline logic lives in the Rust workspace (`crates/`) — these scripts
-are conveniences for humans and CI, not a second implementation.
+The pipeline logic will live in the Rust workspace (`crates/`) — these
+scripts are conveniences for humans and CI, not a second implementation.
 
 Planned:
 
