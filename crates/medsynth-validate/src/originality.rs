@@ -10,7 +10,9 @@
 /// source, while two records merely on the same topic share few 5-grams.
 /// Both records of an offending pair are reported. This is the smoke
 /// screen only; the full originality and contamination audit is #11.
-use super::*;
+use std::collections::{HashMap, HashSet};
+
+use crate::{Check, Finding, RecordFile};
 
 /// Word n-gram size for the overlap shingles.
 pub const NGRAM: usize = 5;
@@ -65,7 +67,7 @@ fn shingles(text: &str) -> HashSet<u64> {
     let tokens: Vec<String> = text
         .split(|c: char| !c.is_alphanumeric())
         .filter(|w| !w.is_empty())
-        .map(|w| w.to_lowercase())
+        .map(str::to_lowercase)
         .collect();
     tokens
         .windows(NGRAM)

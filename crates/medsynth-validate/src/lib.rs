@@ -30,10 +30,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use medsynth_schema::{
-    CaseVignetteRecord, McqRecord, TutoringExampleRecord, ValidationError, VerificationStatus,
-    schema_files,
-};
+use medsynth_schema::schema_files;
 
 /// The check a [`Finding`] names. The near-miss manifest's `expected_check`
 /// values are these names in kebab-case.
@@ -230,7 +227,7 @@ pub fn json_files(dir: &Path) -> Vec<PathBuf> {
 }
 
 fn is_record_file(path: &Path, prefix: Option<&str>) -> bool {
-    let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+    let Some(name) = path.file_name().and_then(std::ffi::OsStr::to_str) else {
         return false;
     };
     if let Some(prefix) = prefix

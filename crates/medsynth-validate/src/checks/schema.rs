@@ -1,4 +1,6 @@
-use crate::*;
+use medsynth_schema::{CaseVignetteRecord, McqRecord, TutoringExampleRecord, ValidationError};
+
+use crate::{Check, Finding, Format, RecordFile, Validators};
 
 /// `schema` — JSON Schema validation plus deserialize (of the raw record
 /// text, so duplicate fields fail) + cross-field `validate()`.

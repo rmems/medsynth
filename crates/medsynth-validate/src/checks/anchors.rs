@@ -1,6 +1,8 @@
 use std::collections::{BTreeSet, HashSet};
 
-use crate::*;
+use medsynth_schema::VerificationStatus;
+
+use crate::{Check, Finding, RecordFile};
 
 /// Rank of a [`VerificationStatus`] in the provenance ordering —
 /// `unverified` < `key-checked` < `anchor-checked` < `admitted`, the

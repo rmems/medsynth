@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::*;
+use crate::{Check, Finding, Format, RecordFile};
 
 /// `key-rationale` — rationale present, non-empty, referencing the keyed
 /// answer; answer fields non-empty; `AnchoredClaim` anchors non-empty.
@@ -211,6 +211,6 @@ fn key_rationale_tutoring(record: &RecordFile, findings: &mut Vec<Finding>) {
 fn words(text: &str) -> HashSet<String> {
     text.split(|c: char| !c.is_alphanumeric())
         .filter(|w| w.len() >= 4)
-        .map(|w| w.to_lowercase())
+        .map(str::to_lowercase)
         .collect()
 }
