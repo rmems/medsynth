@@ -150,7 +150,12 @@ pub(super) fn run_teacher_cell(
             return Ok(crate::batch::refused_report(cell, ctx.budget, "lane_error"));
         }
     };
-    let (produced, cell_dropped) = dispatch_teacher_attempts(ctx, teacher, &setup, sinks, stats)?;
+    let run = TeacherRun {
+        ctx,
+        teacher,
+        setup: &setup,
+    };
+    let (produced, cell_dropped) = dispatch_teacher_attempts(&run, sinks, stats)?;
     Ok(cell_report(
         cell,
         ctx.budget,
@@ -198,15 +203,21 @@ fn teacher_setup<'a>(ctx: &'a CellCtx<'a>) -> Result<TeacherSetup<'a>, TeacherEr
     })
 }
 
+/// The fixed inputs every attempt in a teacher cell shares.
+struct TeacherRun<'a> {
+    ctx: &'a CellCtx<'a>,
+    teacher: &'a TeacherCtx<'a>,
+    setup: &'a TeacherSetup<'a>,
+}
+
 /// Dispatch every attempt the budget allows, folding outcomes into the sinks
 /// and the lane-wide transport counters. Returns (produced, dropped).
 fn dispatch_teacher_attempts(
-    ctx: &CellCtx<'_>,
-    teacher: &TeacherCtx<'_>,
-    setup: &TeacherSetup<'_>,
+    run: &TeacherRun<'_>,
     sinks: &mut BatchSinks,
     stats: &mut TeacherStats,
 ) -> Result<(u32, u32), GenerateError> {
+    let ctx = run.ctx;
     let mut produced = 0u32;
     let mut cell_dropped = 0u32;
     for index in 0..ctx.budget.dispatch {
@@ -214,10 +225,10 @@ fn dispatch_teacher_attempts(
         let attempt = AttemptCtx {
             cell_ctx: ctx,
             attempt: ctx.budget.attempt_base + index,
-            teacher,
-            selection: setup.selection,
-            prompt: &setup.prompt,
-            allowlist: &setup.allowlist,
+            teacher: run.teacher,
+            selection: run.setup.selection,
+            prompt: &run.setup.prompt,
+            allowlist: &run.setup.allowlist,
         };
         match teacher_attempt(&attempt) {
             Ok(draft) => {

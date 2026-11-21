@@ -4,8 +4,10 @@
 //! interrupted write can never leave a half-written shard or manifest behind.
 //! Shards for formats this batch attempted but did not produce are removed —
 //! a stale shard from an earlier run must not masquerade as part of the new
-//! batch. Formats the run never attempted (e.g. a refused teacher lane) keep
-//! their existing shards untouched.
+//! batch. A leftover shard for a format the run never attempted (e.g. a
+//! refused teacher lane) fails closed instead of being kept: writing a new
+//! manifest over it would leave generated records without manifest coverage
+//! or rights envelopes, so the run demands a fresh `--out` directory.
 //!
 //! The output directory is fail-closed against `data/`: drafts never enter
 //! `data/gold/` or the admitted-record tree. The check resolves the output
@@ -38,6 +40,7 @@ impl BatchOutput {
                 .or_default()
                 .push(record);
         }
+        check_stale_shards(out_dir, &grouped, &self.attempted_formats)?;
         let mut written = Vec::new();
         for format in Format::all() {
             let path = out_dir.join(format!("{}.jsonl", format.slug()));
@@ -52,9 +55,8 @@ impl BatchOutput {
                     written.push(path);
                 }
                 None => {
-                    // Drop a stale shard only when this run actually attempted
-                    // the format: a refused lane must not erase drafts an
-                    // earlier successful run published.
+                    // Attempted but produced nothing: drop the stale shard so
+                    // it cannot masquerade as part of the new batch.
                     if path.exists() && self.attempted_formats.contains(&format) {
                         std::fs::remove_file(&path)
                             .map_err(|e| GenerateError::io(path.clone(), e))?;
@@ -67,6 +69,31 @@ impl BatchOutput {
         written.push(manifest_path);
         Ok(written)
     }
+}
+
+/// Fail closed when `out_dir` already holds a shard for a format this run
+/// neither produced nor attempted — the new manifest would cover only part of
+/// the directory's generated content, leaving the stale shard's records
+/// without rights envelopes.
+fn check_stale_shards(
+    out_dir: &Path,
+    grouped: &BTreeMap<Format, Vec<&crate::batch::OutputRecord>>,
+    attempted: &std::collections::BTreeSet<Format>,
+) -> Result<(), GenerateError> {
+    for format in Format::all() {
+        if grouped.contains_key(&format) || attempted.contains(&format) {
+            continue;
+        }
+        let path = out_dir.join(format!("{}.jsonl", format.slug()));
+        if path.exists() {
+            return Err(GenerateError::Config(format!(
+                "{}: leftover `{}` shard from a previous run has no coverage in this batch's manifest — remove it or use a fresh --out directory",
+                display_path(out_dir),
+                format.slug()
+            )));
+        }
+    }
+    Ok(())
 }
 
 /// Fail closed if `out_dir` resolves into `data/` for these plan paths.

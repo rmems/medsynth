@@ -227,96 +227,105 @@ fn teacher_lane_refuses_without_credentials() {
     }
 }
 
+/// Inputs for one recorded-completion test.
+struct FixtureCase {
+    format: Format,
+    fixture: &'static str,
+    cell: TargetCell,
+    allow: BTreeSet<(String, String)>,
+    index: usize,
+}
+
 /// A recorded teacher completion parses, builds, and validates as an
 /// unverified draft with full provenance.
-fn assert_fixture_record(
-    format: Format,
-    fixture: &str,
-    cell: &TargetCell,
-    allow: &BTreeSet<(String, String)>,
-    index: usize,
-) {
+fn assert_fixture_record(case: &FixtureCase) {
     let pins = docs_pins();
     let pin = pins.ensure_teacher("deepseek-v4.1-flash").unwrap();
-    let content = parse_completion_json(format, &fixture_content(fixture)).unwrap();
-    let id = RecordId::new(format!("draft-fixture-{index}-000")).unwrap();
+    let content = parse_completion_json(case.format, &fixture_content(case.fixture)).unwrap();
+    let id = RecordId::new(format!("draft-fixture-{}-000", case.index)).unwrap();
     let stamp = RecordStamp {
         id,
         pin,
         prompt_version: "teacher-draft-v1",
     };
-    let record = build_record(format, content, cell, &stamp).unwrap();
+    let record = build_record(case.format, content, &case.cell, &stamp).unwrap();
+    assert_unverified_provenance(&record, pin);
+    validate_teacher(case.format, &record, pin, &case.allow);
+}
+
+/// The stamp the pipeline — never the teacher — applies to a draft.
+fn assert_unverified_provenance(
+    record: &medsynth_generate::GeneratedRecord,
+    pin: &medsynth_generate::TeacherPin,
+) {
     assert_eq!(
         record.verification_status(),
         medsynth_schema::VerificationStatus::Unverified
     );
+    let provenance = record.provenance();
+    assert_eq!(provenance.model.as_deref(), Some(pin.variant.as_str()));
     assert_eq!(
-        record.provenance().model.as_deref(),
-        Some(pin.variant.as_str())
-    );
-    assert_eq!(
-        record.provenance().prompt_version.as_deref(),
+        provenance.prompt_version.as_deref(),
         Some("teacher-draft-v1")
     );
-    assert_eq!(record.provenance().generator, "teacher-pipeline-v1");
-    validate_teacher(format, &record, pin, allow);
+    assert_eq!(provenance.generator, "teacher-pipeline-v1");
 }
 
 #[test]
 fn mcq_fixture_parses_into_a_valid_unverified_record() {
-    assert_fixture_record(
-        Format::Mcq,
-        "mcq_response.json",
-        &teacher_cell(
+    assert_fixture_record(&FixtureCase {
+        format: Format::Mcq,
+        fixture: "mcq_response.json",
+        cell: teacher_cell(
             Domain::Bbf,
             Format::Mcq,
             Tier::Foundation,
             Subdomain::AnimalStructure,
         ),
-        &allowlist(&[
+        allow: allowlist(&[
             ("openstax-anatomy-physiology-2e", "sec22.2:the-lungs"),
             ("openstax-anatomy-physiology-2e", "sec4.2:epithelial-tissue"),
         ]),
-        0,
-    );
+        index: 0,
+    });
 }
 
 #[test]
 fn vignette_fixture_parses_into_a_valid_unverified_record() {
-    assert_fixture_record(
-        Format::CaseVignette,
-        "vignette_response.json",
-        &teacher_cell(
+    assert_fixture_record(&FixtureCase {
+        format: Format::CaseVignette,
+        fixture: "vignette_response.json",
+        cell: teacher_cell(
             Domain::PreClinical,
             Format::CaseVignette,
             Tier::Application,
             Subdomain::Endocrine,
         ),
-        &allowlist(&[
+        allow: allowlist(&[
             (
                 "openstax-anatomy-physiology-2e",
                 "sec17.3:the-pituitary-gland-and-hypothalamus",
             ),
             ("openstax-anatomy-physiology-2e", "sec26.2:water-balance"),
         ]),
-        1,
-    );
+        index: 1,
+    });
 }
 
 #[test]
 fn tutoring_fixture_parses_into_a_valid_unverified_record() {
-    assert_fixture_record(
-        Format::TutoringExample,
-        "tutoring_response.json",
-        &teacher_cell(
+    assert_fixture_record(&FixtureCase {
+        format: Format::TutoringExample,
+        fixture: "tutoring_response.json",
+        cell: teacher_cell(
             Domain::Bbf,
             Format::TutoringExample,
             Tier::Foundation,
             Subdomain::AnimalStructure,
         ),
-        &allowlist(&[("openstax-anatomy-physiology-2e", "sec22.2:the-lungs")]),
-        2,
-    );
+        allow: allowlist(&[("openstax-anatomy-physiology-2e", "sec22.2:the-lungs")]),
+        index: 2,
+    });
 }
 
 #[test]
@@ -326,6 +335,21 @@ fn fenced_fixture_parses_and_malformed_fixture_fails() {
 
     let malformed = fixture_content("malformed_response.json");
     assert!(parse_completion_json(Format::Mcq, &malformed).is_err());
+}
+
+#[test]
+fn indented_closing_fence_parses_and_double_fenced_output_fails() {
+    let body = fixture_content("mcq_response.json");
+    // CommonMark allows up to 3 leading spaces on the closing fence.
+    let indented = format!("```json\n{body}\n  ```");
+    assert!(parse_completion_json(Format::Mcq, &indented).is_ok());
+
+    let double = format!("```json\n{body}\n```\n```json\n{body}\n```");
+    let error = parse_completion_json(Format::Mcq, &double).unwrap_err();
+    assert!(
+        error.to_string().contains("after the closing fence"),
+        "{error}"
+    );
 }
 
 #[test]

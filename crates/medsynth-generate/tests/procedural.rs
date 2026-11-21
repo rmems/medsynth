@@ -1,11 +1,13 @@
 mod common;
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 use common::{
     TempDir, load_sample_plan, plan_paths, read_jsonl, run_all, sample_config, workspace_root,
     write_config,
 };
+use medsynth_generate::batch::check_output_dir;
 use medsynth_generate::config::Lane;
 use medsynth_generate::hash::sha256_str;
 use medsynth_generate::record::record_id_for;
@@ -189,45 +191,8 @@ fn provenance_is_complete_and_receipts_cover_every_anchor() {
 
     let mut domains: BTreeMap<String, usize> = BTreeMap::new();
     for record in &output.records {
-        let provenance = record.record.provenance();
-        assert!(
-            provenance.generator.starts_with("template:"),
-            "{}",
-            provenance.generator
-        );
-        assert!(
-            provenance
-                .template_version
-                .as_deref()
-                .is_some_and(|version| !version.trim().is_empty()),
-            "record {} lacks template_version",
-            record.record.id()
-        );
-        assert!(provenance.model.is_none());
-        assert!(provenance.prompt_version.is_none());
-        assert_eq!(
-            record.record.verification_status(),
-            VerificationStatus::Unverified
-        );
-        assert!(!record.record.anchors().is_empty());
-
-        let id = record.record.id().as_str();
-        let entry = manifest
-            .records
-            .iter()
-            .find(|entry| entry.id == id)
-            .unwrap_or_else(|| panic!("manifest lacks record `{id}`"));
-        assert_eq!(entry.sha256, sha256_str(&record.raw));
-        for (source_id, locator) in record.record.anchors() {
-            assert!(
-                manifest.anchor_receipts.iter().any(|receipt| {
-                    receipt.record_id == id
-                        && receipt.source_id == source_id
-                        && receipt.locator == locator
-                }),
-                "missing receipt for {id} {source_id} {locator}"
-            );
-        }
+        assert_template_provenance(&record.record);
+        assert_manifest_coverage(manifest, record);
         *domains
             .entry(medsynth_generate::matrix::domain_slug(record.record.domain()).to_owned())
             .or_default() += 1;
@@ -237,6 +202,53 @@ fn provenance_is_complete_and_receipts_cover_every_anchor() {
     // single-record domains where only one template exists for a tier.
     for count in domains.values() {
         assert!(*count >= 1);
+    }
+}
+
+/// Procedural provenance: template generator + version, no model fields,
+/// unverified status, at least one anchor.
+fn assert_template_provenance(record: &medsynth_generate::GeneratedRecord) {
+    let provenance = record.provenance();
+    assert!(
+        provenance.generator.starts_with("template:"),
+        "{}",
+        provenance.generator
+    );
+    assert!(
+        provenance
+            .template_version
+            .as_deref()
+            .is_some_and(|version| !version.trim().is_empty()),
+        "record {} lacks template_version",
+        record.id()
+    );
+    assert!(provenance.model.is_none());
+    assert!(provenance.prompt_version.is_none());
+    assert_eq!(record.verification_status(), VerificationStatus::Unverified);
+    assert!(!record.anchors().is_empty());
+}
+
+/// The manifest covers the record's hash and carries a receipt per anchor.
+fn assert_manifest_coverage(
+    manifest: &medsynth_generate::manifest::BatchManifest,
+    record: &medsynth_generate::batch::OutputRecord,
+) {
+    let id = record.record.id().as_str();
+    let entry = manifest
+        .records
+        .iter()
+        .find(|entry| entry.id == id)
+        .unwrap_or_else(|| panic!("manifest lacks record `{id}`"));
+    assert_eq!(entry.sha256, sha256_str(&record.raw));
+    for (source_id, locator) in record.record.anchors() {
+        assert!(
+            manifest.anchor_receipts.iter().any(|receipt| {
+                receipt.record_id == id
+                    && receipt.source_id == source_id
+                    && receipt.locator == locator
+            }),
+            "missing receipt for {id} {source_id} {locator}"
+        );
     }
 }
 
@@ -324,4 +336,32 @@ fn output_directory_may_not_be_under_data() {
     assert!(written.iter().any(|path| path.ends_with("mcq.jsonl")));
     assert!(written.iter().any(|path| path.ends_with("manifest.json")));
     assert_eq!(read_jsonl(&dir.path().join("mcq.jsonl")).len(), 8);
+}
+
+#[test]
+fn custom_data_dir_still_protects_workspace_data_tree() {
+    // The CLI resolves `--out` and `--data` relative to the current directory;
+    // a relative `data/` out path must stay protected when `--data` moved.
+    let custom_dir = TempDir::new("custom-data");
+    let mut paths = plan_paths(&sample_config());
+    paths.data = custom_dir.path().to_path_buf();
+
+    let err = check_output_dir(&paths, Path::new("data/mcq")).unwrap_err();
+    assert!(err.to_string().contains("refusing to write drafts under"));
+    let err = check_output_dir(&paths, &paths.data.join("mcq")).unwrap_err();
+    assert!(err.to_string().contains("refusing to write drafts under"));
+
+    let dir = TempDir::new("free-out");
+    check_output_dir(&paths, dir.path()).unwrap();
+}
+
+#[test]
+fn out_dir_reuse_with_leftover_unattempted_shard_fails_closed() {
+    // The sample plan's teacher lane is unattempted without credentials, so a
+    // leftover case_vignette shard would lose its manifest coverage.
+    let output = run_all(&load_sample_plan());
+    let dir = TempDir::new("stale-shard-out");
+    std::fs::write(dir.path().join("case_vignette.jsonl"), "{}\n").unwrap();
+    let error = output.write_output(dir.path()).unwrap_err();
+    assert!(error.to_string().contains("leftover"), "{error}");
 }

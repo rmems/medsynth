@@ -268,21 +268,20 @@ fn require_terms(pin: &TeacherPin) -> Result<(), TeacherError> {
 fn pin_blocks(text: &str) -> Vec<String> {
     let mut blocks = Vec::new();
     let mut current: Vec<&str> = Vec::new();
+    let mut in_pin = false;
     for line in text.lines() {
-        let is_pin_heading = line.starts_with("### Pin:") || line.starts_with("## Pin:");
-        let is_other_heading =
-            !is_pin_heading && (line.starts_with("## ") || line.starts_with("### "));
-        if is_pin_heading || is_other_heading {
-            if !current.is_empty() {
+        if line.starts_with("## ") || line.starts_with("### ") {
+            if in_pin {
                 blocks.push(join_block(&current));
+                current.clear();
             }
-            current.clear();
+            in_pin = line.starts_with("### Pin:") || line.starts_with("## Pin:");
         }
-        if is_pin_heading || (!is_other_heading && !current.is_empty()) {
+        if in_pin {
             current.push(line);
         }
     }
-    if !current.is_empty() {
+    if in_pin {
         blocks.push(join_block(&current));
     }
     blocks

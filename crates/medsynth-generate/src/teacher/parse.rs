@@ -132,15 +132,17 @@ fn extract_json(content: &str) -> Result<String, TeacherError> {
             .or_else(|| rest.strip_prefix("JSON"))
             .unwrap_or(rest);
         let rest = rest.trim_start();
-        // The closing fence must start a line — fence-like text inside JSON
-        // string values is content, not a delimiter. Everything after it must
-        // be whitespace, so a second fenced draft rejects the completion.
-        let Some(end) = rest.find("\n```") else {
+        // The closing fence is a line of up to 3 leading spaces followed by
+        // backticks (CommonMark). JSON strings cannot contain literal newlines,
+        // so every line boundary here is real — fence-like text inside a string
+        // value is content, not a delimiter. Everything after the fence must be
+        // whitespace, so a second fenced draft rejects the completion.
+        let Some((end, tail)) = closing_fence(rest) else {
             return Err(TeacherError::Parse(
                 "unterminated markdown fence in teacher output".to_owned(),
             ));
         };
-        if !rest[end + 1..].trim_start_matches('`').trim().is_empty() {
+        if !tail.is_empty() {
             return Err(TeacherError::Parse(
                 "teacher output has content after the closing fence".to_owned(),
             ));
@@ -158,6 +160,24 @@ fn extract_json(content: &str) -> Result<String, TeacherError> {
         ));
     };
     single_json(&text[start..])
+}
+
+/// Locate the closing fence: a line of at most 3 leading spaces followed by
+/// backticks and only whitespace. Returns the byte offset of the newline that
+/// ends the JSON body and the non-whitespace tail after the fence (empty when
+/// the fence is the last thing in the output).
+fn closing_fence(text: &str) -> Option<(usize, &str)> {
+    for (index, _) in text.match_indices('\n') {
+        let line = &text[index + 1..];
+        let after_indent = line.trim_start_matches(' ');
+        if line.len() - after_indent.len() > 3 {
+            continue;
+        }
+        if let Some(rest) = after_indent.strip_prefix("```") {
+            return Some((index, rest.trim_start_matches('`').trim()));
+        }
+    }
+    None
 }
 
 /// Accept the candidate only if it is exactly one JSON object — this rejects

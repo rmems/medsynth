@@ -101,36 +101,8 @@ impl DraftValidator {
             return Err(errors);
         }
 
-        let generated = match format {
-            Format::Mcq => serde_json::from_str::<McqRecord>(raw)
-                .map(GeneratedRecord::Mcq)
-                .map_err(|e| vec![format!("typed mcq: {e}")]),
-            Format::CaseVignette => serde_json::from_str::<CaseVignetteRecord>(raw)
-                .map(GeneratedRecord::CaseVignette)
-                .map_err(|e| vec![format!("typed case_vignette: {e}")]),
-            Format::TutoringExample => serde_json::from_str::<TutoringExampleRecord>(raw)
-                .map(GeneratedRecord::Tutoring)
-                .map_err(|e| vec![format!("typed tutoring_example: {e}")]),
-        }?;
-
-        match &generated {
-            GeneratedRecord::Mcq(record) => {
-                if let Err(cross) = record.validate() {
-                    errors.extend(cross.iter().map(ToString::to_string));
-                }
-            }
-            GeneratedRecord::CaseVignette(record) => {
-                if let Err(cross) = record.validate() {
-                    errors.extend(cross.iter().map(ToString::to_string));
-                }
-            }
-            GeneratedRecord::Tutoring(record) => {
-                if let Err(cross) = record.validate() {
-                    errors.extend(cross.iter().map(ToString::to_string));
-                }
-            }
-        }
-
+        let generated = parse_typed(format, raw)?;
+        errors.extend(cross_validate(&generated));
         errors.extend(check_invariants(&generated, context));
         if errors.is_empty() {
             Ok(())
@@ -138,6 +110,34 @@ impl DraftValidator {
             Err(errors)
         }
     }
+}
+
+/// Deserialize the draft into its typed `medsynth-schema` record.
+fn parse_typed(format: Format, raw: &str) -> Result<GeneratedRecord, Vec<String>> {
+    match format {
+        Format::Mcq => serde_json::from_str::<McqRecord>(raw)
+            .map(GeneratedRecord::Mcq)
+            .map_err(|e| vec![format!("typed mcq: {e}")]),
+        Format::CaseVignette => serde_json::from_str::<CaseVignetteRecord>(raw)
+            .map(GeneratedRecord::CaseVignette)
+            .map_err(|e| vec![format!("typed case_vignette: {e}")]),
+        Format::TutoringExample => serde_json::from_str::<TutoringExampleRecord>(raw)
+            .map(GeneratedRecord::Tutoring)
+            .map_err(|e| vec![format!("typed tutoring_example: {e}")]),
+    }
+}
+
+/// The record type's own cross-field checks.
+fn cross_validate(record: &GeneratedRecord) -> Vec<String> {
+    let result = match record {
+        GeneratedRecord::Mcq(record) => record.validate(),
+        GeneratedRecord::CaseVignette(record) => record.validate(),
+        GeneratedRecord::Tutoring(record) => record.validate(),
+    };
+    result
+        .err()
+        .map(|cross| cross.iter().map(ToString::to_string).collect())
+        .unwrap_or_default()
 }
 
 fn check_invariants(record: &GeneratedRecord, context: &ValidationContext<'_>) -> Vec<String> {

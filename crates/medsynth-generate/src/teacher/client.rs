@@ -105,7 +105,7 @@ impl TeacherClient for HttpTeacherClient {
         }
         let value: Value = response
             .json()
-            .map_err(|e| TeacherError::Transport(format!("invalid response JSON: {e}")))?;
+            .map_err(|e| TeacherError::Parse(format!("invalid response JSON: {e}")))?;
         parse_chat_completion(&value)
     }
 }

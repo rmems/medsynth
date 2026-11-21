@@ -106,11 +106,15 @@ pub struct BatchOutput {
     pub(crate) attempted_formats: BTreeSet<Format>,
 }
 
-/// Directories drafts must never write into: the workspace `data/` tree and
-/// the gold corpus directory (independently, so a custom `--gold` neither
-/// unprotects `data/` nor shields its whole parent).
+/// Directories drafts must never write into: the workspace `data/` tree
+/// (always, even when `--data` points elsewhere — a custom dataset path never
+/// unprotects the workspace tree) and the gold corpus directory.
 pub(crate) fn protected_dirs(paths: &PlanPaths) -> Vec<PathBuf> {
-    vec![paths.data.clone(), paths.gold.clone()]
+    let mut dirs = vec![PathBuf::from("data"), paths.gold.clone()];
+    if !dirs.contains(&paths.data) {
+        dirs.push(paths.data.clone());
+    }
+    dirs
 }
 
 /// Load and validate all batch inputs.

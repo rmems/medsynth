@@ -108,46 +108,39 @@ impl CoverageMatrix {
 /// Parse the §5 coverage-matrix table into domain × format × tier cells.
 fn parse_cells(text: &str, path: &Path) -> Result<BTreeMap<CellKey, u32>, GenerateError> {
     let mut cells = BTreeMap::new();
-    let mut in_section = false;
-    for line in text.lines() {
-        if line.starts_with("## 5. Coverage matrix") {
-            in_section = true;
-            continue;
-        }
-        if in_section && line.starts_with("### 5.1") {
-            break;
-        }
-        if !in_section {
-            continue;
-        }
+    for line in matrix_section_lines(text) {
         let Some(row) = parse_matrix_row(line) else {
             continue;
         };
-        for (tier, count) in [
-            (Tier::Foundation, row.foundation),
-            (Tier::Application, row.application),
-            (Tier::Reasoning, row.reasoning),
-        ] {
-            if cells
-                .insert(
-                    CellKey {
-                        domain: row.domain,
-                        format: row.format,
-                        tier,
-                    },
-                    count,
-                )
-                .is_some()
-            {
-                return Err(GenerateError::Matrix(format!(
-                    "{}: duplicate matrix row for {}",
-                    path.display(),
-                    row.format
-                )));
-            }
-        }
+        insert_row_cells(&mut cells, row, path)?;
     }
     Ok(cells)
+}
+
+/// The lines between `## 5. Coverage matrix` and the `### 5.1` subsection.
+fn matrix_section_lines(text: &str) -> impl Iterator<Item = &str> {
+    text.lines()
+        .skip_while(|line| !line.starts_with("## 5. Coverage matrix"))
+        .skip(1)
+        .take_while(|line| !line.starts_with("### 5.1"))
+}
+
+/// Insert the three tier cells of one matrix row; duplicate cells are an error.
+fn insert_row_cells(
+    cells: &mut BTreeMap<CellKey, u32>,
+    row: MatrixRow,
+    path: &Path,
+) -> Result<(), GenerateError> {
+    for (tier, count) in row.tier_counts() {
+        if cells.insert(row.key(tier), count).is_some() {
+            return Err(GenerateError::Matrix(format!(
+                "{}: duplicate matrix row for {}",
+                path.display(),
+                row.format
+            )));
+        }
+    }
+    Ok(())
 }
 
 struct MatrixRow {
@@ -156,6 +149,24 @@ struct MatrixRow {
     foundation: u32,
     application: u32,
     reasoning: u32,
+}
+
+impl MatrixRow {
+    fn tier_counts(&self) -> [(Tier, u32); 3] {
+        [
+            (Tier::Foundation, self.foundation),
+            (Tier::Application, self.application),
+            (Tier::Reasoning, self.reasoning),
+        ]
+    }
+
+    fn key(&self, tier: Tier) -> CellKey {
+        CellKey {
+            domain: self.domain,
+            format: self.format,
+            tier,
+        }
+    }
 }
 
 fn parse_matrix_row(line: &str) -> Option<MatrixRow> {
