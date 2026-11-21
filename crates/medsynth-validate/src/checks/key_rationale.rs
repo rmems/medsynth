@@ -117,13 +117,22 @@ fn references_label(explanation: &str, key: &str) -> bool {
     names_option(explanation, key)
 }
 
+/// Separators that may precede a label: whitespace, a colon, and the
+/// opening markers `(` and quotes.
+const SEPARATORS: &[char] = &[' ', '\t', '\u{a0}', ':', '(', '"', '\'', '‘', '’', '“', '”'];
+/// Characters that mark a label as enclosed. Closing quotes cannot open:
+/// `'option' a …` closes the trigger word, it does not mark `a`.
+const MARKERS: &[char] = &['(', '"', '\'', '‘', '“'];
+/// A closing quote immediately after the trigger belongs to the word
+/// itself ('option' a …), not to a label.
+const CLOSING_QUOTES: &[char] = &['"', '\'', '’', '”'];
+
 /// True when the explanation names the keyed label explicitly —
 /// "option <key>", "answer <key>", or "choice <key>" — tolerating the
 /// separators that legitimately precede a label ("option (A)",
 /// "answer: B", "option B"), but not sentence terminators.
 fn names_option(explanation: &str, key: &str) -> bool {
     const WORDS: &[&str] = &["option", "answer", "choice"];
-    const SEPARATORS: &[char] = &[' ', '\t', '\u{a0}', ':', '(', '"', '\'', '‘', '’', '“', '”'];
     // to_ascii_lowercase preserves byte length, so positions in `lower`
     // still index `explanation` — needed to compare the label in original
     // case below.
@@ -142,55 +151,73 @@ fn names_option(explanation: &str, key: &str) -> bool {
                     .next()
                     .is_none_or(|c| !c.is_alphanumeric())
         })
-        .any(|(i, len)| {
-            // A closing quote immediately after the trigger belongs to the
-            // word itself ('option' a …), not to a label. Opening curly
-            // quotes are unambiguous label openers and stay in SEPARATORS.
-            const CLOSING_QUOTES: &[char] = &['"', '\'', '’', '”'];
-            const MARKERS: &[char] = &['(', '"', '\'', '‘', '“'];
-            // Compare in original case: a bare label must be uppercase, so
-            // the article "a" in "answer a question" can never pass. A
-            // label inside parens or quotes is marked and may be lowercase
-            // ("choice (b)", "option \"a\"").
-            let rest = &explanation[i + len..];
-            if rest.starts_with(CLOSING_QUOTES) {
-                return false;
-            }
-            let trimmed = rest.trim_start_matches(|c: char| SEPARATORS.contains(&c));
-            let marked = rest[..rest.len() - trimmed.len()].ends_with(MARKERS);
-            let candidate = if marked {
-                trimmed.to_ascii_lowercase()
-            } else {
-                trimmed.to_owned()
-            };
-            let key_cmp = if marked {
-                key.to_ascii_lowercase()
-            } else {
-                key.to_owned()
-            };
-            if !candidate.starts_with(&key_cmp) {
-                return false;
-            }
-            let after = candidate[key_cmp.len()..].chars().next();
-            if marked {
-                // A lowercase label must be enclosed — "(a)" or `"a"`
-                // count, "(a nucleotide" does not: the article stays
-                // rejected. Whitespace may precede the closer ("( a )"),
-                // and a colon may introduce the option text for an
-                // uppercase label ("(A: ATP)").
-                const CLOSERS: &[char] = &[')', '"', '\'', '’', '”'];
-                let next = candidate[key_cmp.len()..]
-                    .trim_start_matches(|c: char| c.is_whitespace())
-                    .chars()
-                    .next();
-                return match next {
-                    Some(c) if CLOSERS.contains(&c) => true,
-                    Some(':') => trimmed.chars().next().is_some_and(char::is_uppercase),
-                    _ => false,
-                };
-            }
-            after.is_none_or(|c| !c.is_alphanumeric())
-        })
+        .any(|(i, len)| label_after_trigger(explanation, i + len, key))
+}
+
+/// Examines the text after a trigger word for a reference to `key`.
+/// Compare in original case: a bare label must be uppercase, so the
+/// article "a" in "answer a question" can never pass. A label inside
+/// parens or quotes is marked and may be lowercase ("choice (b)",
+/// "option \"a\"").
+fn label_after_trigger(explanation: &str, start: usize, key: &str) -> bool {
+    let rest = &explanation[start..];
+    if rest.starts_with(CLOSING_QUOTES) {
+        return false;
+    }
+    let trimmed = rest.trim_start_matches(|c: char| SEPARATORS.contains(&c));
+    // The opener is the last marker before the label — padding between it
+    // and the label ("( a )") does not unmark it.
+    let opener = rest[..rest.len() - trimmed.len()]
+        .trim_end()
+        .chars()
+        .next_back()
+        .filter(|c| MARKERS.contains(c));
+    let Some(opener) = opener else {
+        return unmarked_label_matches(trimmed, key);
+    };
+    marked_label_matches(trimmed, key.to_ascii_lowercase().as_str(), opener)
+}
+
+/// Bare-label path: `candidate` (original case) must start with the exact
+/// uppercase key, followed by a non-alphanumeric boundary.
+fn unmarked_label_matches(candidate: &str, key: &str) -> bool {
+    candidate.starts_with(key)
+        && candidate[key.len()..]
+            .chars()
+            .next()
+            .is_none_or(|c| !c.is_alphanumeric())
+}
+
+/// Marked-label path: the lowercased `candidate` must start with `key_cmp`
+/// and be closed by the delimiter matching `opener` — "(a)" or `"a"`
+/// count, "(a nucleotide" and (a "quote" do not. Whitespace may precede
+/// the closer ("( a )"), and a colon may introduce the option text for an
+/// uppercase label ("(A: ATP)").
+fn marked_label_matches(candidate: &str, key_cmp: &str, opener: char) -> bool {
+    let first = candidate.chars().next();
+    let candidate = candidate.to_ascii_lowercase();
+    if !candidate.starts_with(key_cmp) {
+        return false;
+    }
+    let next = candidate[key_cmp.len()..].trim_start().chars().next();
+    match next {
+        Some(':') => first.is_some_and(char::is_uppercase),
+        Some(c) => closes(opener, c),
+        None => false,
+    }
+}
+
+/// The closer allowed by an opener: `(` pairs only with `)`, straight and
+/// curly quotes pair with their own kind (curly singles accept either
+/// single-quote closer, curly doubles either double-quote closer).
+fn closes(opener: char, closer: char) -> bool {
+    match opener {
+        '(' => closer == ')',
+        '"' => closer == '"',
+        '\'' | '‘' => matches!(closer, '\'' | '’'),
+        '“' => matches!(closer, '"' | '”'),
+        _ => false,
+    }
 }
 
 fn key_rationale_vignette(record: &RecordFile, findings: &mut Vec<Finding>) {

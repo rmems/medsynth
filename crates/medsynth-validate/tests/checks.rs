@@ -222,12 +222,26 @@ fn label_fallback_findings(key: &str, explanation: &str) -> Vec<medsynth_validat
     findings_for(&[record(Format::Mcq, "label-fallback", r)])
 }
 
+/// Assert each (key, explanation, expect_pass) case against the label
+/// fallback: all-short options ("ATP" etc.) carry no content words, so
+/// `key_explanation` can only pass by naming the keyed label.
+fn label_fallback_cases(cases: &[(&str, &str, bool)]) {
+    for (key, explanation, expect_pass) in cases {
+        let findings = label_fallback_findings(key, explanation);
+        let got = !findings.iter().any(|f| f.check == Check::KeyRationale);
+        assert_eq!(
+            got, *expect_pass,
+            "label fallback outcome wrong for {explanation:?}: {findings:?}"
+        );
+    }
+}
+
 #[test]
-fn key_rationale_label_fallback_boundaries() {
-    // All-short options ("ATP" etc.) carry no content words, forcing the
-    // label fallback. Each (key, explanation, expect_pass) case pins down
-    // which spellings around an explicit label count as a reference.
-    let cases = [
+fn key_rationale_label_fallback_marked() {
+    // Enclosed (marked) labels: may be lowercase, tolerate padding, and
+    // must be closed by the delimiter matching the opener — a `(` label
+    // is not closed by the next phrase's quote.
+    label_fallback_cases(&[
         (
             "A",
             "Option (A) is correct because ATP is the product.",
@@ -243,20 +257,61 @@ fn key_rationale_label_fallback_boundaries() {
             "Option\u{201c}A\u{201d} is correct because ATP is the product.",
             true,
         ),
-        (
-            "A",
-            "Option B is wrong; option A fits because ATP is the product.",
-            true,
-        ),
-        ("B", "Answer B is correct — ADP is the product.", true),
         ("C", "Choice (C) fits — AMP is the product.", true),
-        // Marked labels may be lowercase.
+        // Marked labels may be lowercase, with padding before the closer.
         ("B", "Choice (b) fits — ADP is the product.", true),
         (
             "A",
             "Option \"a\" is correct because ATP is the product.",
             true,
         ),
+        (
+            "A",
+            "Option ( a ) is correct because ATP is the product.",
+            true,
+        ),
+        (
+            "A",
+            "Option ( A ) is correct because ATP is the product.",
+            true,
+        ),
+        // A colon may introduce the option text for an uppercase label.
+        (
+            "A",
+            "Option (A: ATP) is correct because oxidative phosphorylation produces it.",
+            true,
+        ),
+        (
+            "A",
+            "Option (a: nucleotide) is correct because ADP is the product.",
+            false,
+        ),
+        // An unclosed or mismatched-delimiter article is not a label.
+        (
+            "A",
+            "The best answer (a nucleotide with two phosphate groups) is ADP.",
+            false,
+        ),
+        (
+            "A",
+            "The answer (a \"diphosphate\" rather than a triphosphate) is ADP.",
+            false,
+        ),
+        ("A", "The answer (a 'low-energy' nucleotide) is ADP.", false),
+    ]);
+}
+
+#[test]
+fn key_rationale_label_fallback_unmarked() {
+    // Bare (unmarked) labels: uppercase only, at a word boundary, with no
+    // sentence terminator between the trigger word and the label.
+    label_fallback_cases(&[
+        (
+            "A",
+            "Option B is wrong; option A fits because ATP is the product.",
+            true,
+        ),
+        ("B", "Answer B is correct — ADP is the product.", true),
         (
             "A",
             "ADP is the best option. A phosphate group is released.",
@@ -276,46 +331,14 @@ fn key_rationale_label_fallback_boundaries() {
         // "B" a vitamin name — neither counts as a label reference.
         ("C", "Normal body temperature is 37 °C.", false),
         ("B", "Vitamin B deficiency causes fatigue.", false),
-        // Labels are uppercase — the article "a" after a trigger word is
-        // not key A.
+        // The article "a" after a trigger word is not key A.
         (
             "A",
             "To answer a question about energy transfer, look to phosphate donation.",
             false,
         ),
         ("A", "The answer a student should pick is ADP.", false),
-        // An unclosed parenthetical article is not a marked label.
-        (
-            "A",
-            "The best answer (a nucleotide with two phosphate groups) is ADP.",
-            false,
-        ),
-        // Whitespace may precede the closer; a colon may introduce the
-        // option text for an uppercase label.
-        (
-            "A",
-            "Option ( A ) is correct because ATP is the product.",
-            true,
-        ),
-        (
-            "A",
-            "Option (A: ATP) is correct because oxidative phosphorylation produces it.",
-            true,
-        ),
-        (
-            "A",
-            "Option (a: nucleotide) is correct because ADP is the product.",
-            false,
-        ),
-    ];
-    for (key, explanation, expect_pass) in cases {
-        let findings = label_fallback_findings(key, explanation);
-        let got = !findings.iter().any(|f| f.check == Check::KeyRationale);
-        assert_eq!(
-            got, expect_pass,
-            "label fallback outcome wrong for {explanation:?}: {findings:?}"
-        );
-    }
+    ]);
 }
 
 #[test]
