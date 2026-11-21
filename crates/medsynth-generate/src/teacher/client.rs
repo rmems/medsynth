@@ -287,11 +287,11 @@ mod tests {
             "each attempt gets its own file"
         );
         let mut other = request();
-        other.batch_seed = u64::MAX;
+        other.batch_seed = 1 << 32;
         assert_ne!(
             base,
             fulfillment_key(&other),
-            "each batch seed gets its own files, high bits included"
+            "a seed differing only above bit 31 still gets its own files"
         );
         let mut other = request();
         other.pin_variant = "DeepSeek-V4.1-Flash-1024".to_owned();
