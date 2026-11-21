@@ -2,6 +2,12 @@
 
 [![License: Apache 2.0 OR MIT](https://img.shields.io/badge/license-Apache--2.0%20OR%20MIT-blue.svg)](LICENSE-APACHE)
 [![Status](https://img.shields.io/badge/status-v0.1%20in%20construction-orange.svg)](https://github.com/rmems/medsynth/issues)
+[![Maintainability](https://qlty.sh/gh/rmems/projects/medsynth/maintainability.svg)](https://qlty.sh/gh/rmems/projects/medsynth)
+[![CodeScene Average Code Health](https://codescene.io/projects/84015/status-badges/average-code-health)](https://codescene.io/projects/84015)
+[![CodeScene Hotspot Code Health](https://codescene.io/projects/84015/status-badges/hotspot-code-health)](https://codescene.io/projects/84015)
+[![CodeScene Missed Goals](https://codescene.io/projects/84015/status-badges/missed-goals)](https://codescene.io/projects/84015)
+[![CodeScene System Mastery](https://codescene.io/projects/84015/status-badges/system-mastery)](https://codescene.io/projects/84015)
+[![Code Coverage](https://qlty.sh/gh/rmems/projects/medsynth/coverage.svg)](https://qlty.sh/gh/rmems/projects/medsynth)
 
 Synthetic training and evaluation data for pre-medical and early medical
 education — every clinical and scientific claim traceable to a reference.
