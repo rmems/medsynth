@@ -1,5 +1,5 @@
 /target
-.qlty/logs/
-.qlty/out/
-.qlty/results/
-.qlty/plugin_cachedir/
+.qlty/logs
+.qlty/out
+.qlty/results
+.qlty/plugin_cachedir
