@@ -212,8 +212,13 @@ pub fn load_registry(root: &Path) -> HashSet<String> {
 pub fn record_files(root: &Path) -> (Vec<PathBuf>, Vec<Finding>) {
     let mut files = Vec::new();
     let mut findings = Vec::new();
-    collect_json(root.join("data"), &mut files, &mut findings);
-    collect_matching(root.join("fixtures"), "valid-", &mut files, &mut findings);
+    collect(root.join("data"), None, &mut files, &mut findings);
+    collect(
+        root.join("fixtures"),
+        Some("valid-"),
+        &mut files,
+        &mut findings,
+    );
     files.sort();
     (files, findings)
 }
@@ -225,7 +230,7 @@ pub fn record_files(root: &Path) -> (Vec<PathBuf>, Vec<Finding>) {
 pub fn json_files(dir: &Path) -> (Vec<PathBuf>, Vec<Finding>) {
     let mut files = Vec::new();
     let mut findings = Vec::new();
-    collect_json(dir.to_path_buf(), &mut files, &mut findings);
+    collect(dir.to_path_buf(), None, &mut files, &mut findings);
     files.sort();
     (files, findings)
 }
@@ -269,38 +274,11 @@ fn read_dir(dir: &Path, findings: &mut Vec<Finding>) -> Option<fs::ReadDir> {
     }
 }
 
-fn collect_json(dir: PathBuf, out: &mut Vec<PathBuf>, findings: &mut Vec<Finding>) {
-    let Some(entries) = read_dir(&dir, findings) else {
-        return;
-    };
-    for entry in entries {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(e) => {
-                findings.push(dir_finding(
-                    &dir,
-                    format!("cannot read directory entry: {e}"),
-                ));
-                continue;
-            }
-        };
-        let path = entry.path();
-        // Skip symlinked directories — following one that points at an
-        // ancestor would recurse forever.
-        if entry.file_type().is_ok_and(|t| t.is_symlink()) {
-            continue;
-        }
-        if path.is_dir() {
-            collect_json(path, out, findings);
-        } else if is_record_file(&path, None) {
-            out.push(path);
-        }
-    }
-}
-
-fn collect_matching(
+/// Recursive record-file walker. `prefix`, when set, restricts matches to
+/// file names starting with it (the `valid-*` fixtures).
+fn collect(
     dir: PathBuf,
-    prefix: &str,
+    prefix: Option<&str>,
     out: &mut Vec<PathBuf>,
     findings: &mut Vec<Finding>,
 ) {
@@ -319,12 +297,26 @@ fn collect_matching(
             }
         };
         let path = entry.path();
-        if entry.file_type().is_ok_and(|t| t.is_symlink()) {
+        // file_type comes from the directory entry itself — unlike
+        // Path::is_dir it does not swallow a metadata error into `false`.
+        let file_type = match entry.file_type() {
+            Ok(t) => t,
+            Err(e) => {
+                findings.push(dir_finding(
+                    &path,
+                    format!("cannot stat directory entry: {e}"),
+                ));
+                continue;
+            }
+        };
+        // Skip symlinked entries — following one that points at an
+        // ancestor would recurse forever.
+        if file_type.is_symlink() {
             continue;
         }
-        if path.is_dir() {
-            collect_matching(path, prefix, out, findings);
-        } else if is_record_file(&path, Some(prefix)) {
+        if file_type.is_dir() {
+            collect(path, prefix, out, findings);
+        } else if is_record_file(&path, prefix) {
             out.push(path);
         }
     }

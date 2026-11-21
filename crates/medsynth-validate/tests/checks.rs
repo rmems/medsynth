@@ -267,6 +267,14 @@ fn key_rationale_label_fallback_boundaries() {
         // "B" a vitamin name — neither counts as a label reference.
         ("C", "Normal body temperature is 37 °C.", false),
         ("B", "Vitamin B deficiency causes fatigue.", false),
+        // Labels are uppercase — the article "a" after a trigger word is
+        // not key A.
+        (
+            "A",
+            "To answer a question about energy transfer, look to phosphate donation.",
+            false,
+        ),
+        ("A", "The answer a student should pick is ADP.", false),
     ];
     for (key, explanation, expect_pass) in cases {
         let findings = findings_for_explanation(key, explanation);
@@ -276,6 +284,29 @@ fn key_rationale_label_fallback_boundaries() {
             "label fallback outcome wrong for {explanation:?}: {findings:?}"
         );
     }
+}
+
+#[test]
+fn key_rationale_uses_first_score_for_duplicate_labels() {
+    // Duplicate labels are a schema finding, but the rationale check must
+    // still score the first option: an explanation matching only the
+    // duplicate's text must not pass as supporting the key.
+    let mut r = mcq();
+    r["options"] = serde_json::json!([
+        {"label": "A", "text": "lactate dehydrogenase enzyme"},
+        {"label": "A", "text": "pyruvate kinase enzyme"},
+        {"label": "B", "text": "glucose transporter"},
+        {"label": "C", "text": "citrate synthase"}
+    ]);
+    // Matches only the duplicate (second A) — with last-wins scoring this
+    // would count as overlap for the key; first-wins leaves own = 0.
+    r["rationale"]["key_explanation"]["text"] =
+        serde_json::json!("Pyruvate kinase transfers phosphate groups.");
+    let findings = findings_for(&[record(Format::Mcq, "dup-labels", r)]);
+    assert!(
+        findings.iter().any(|f| f.check == Check::KeyRationale),
+        "duplicate-label masking must still flag the rationale: {findings:?}"
+    );
 }
 
 #[test]

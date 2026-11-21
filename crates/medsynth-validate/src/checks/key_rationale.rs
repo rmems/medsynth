@@ -63,15 +63,18 @@ fn key_references_option(
         return; // missing fields are the schema check's findings
     };
     let explained = words(explanation);
-    // One pass over the options: label -> content-word overlap.
-    let scores: HashMap<&str, usize> = options
-        .iter()
-        .filter_map(|o| {
-            let label = o["label"].as_str()?;
-            let option_words = words(o["text"].as_str().unwrap_or(""));
-            Some((label, explained.intersection(&option_words).count()))
-        })
-        .collect();
+    // One pass over the options: label -> content-word overlap. Keep the
+    // first score per label — the schema check flags duplicate labels, but
+    // a last-wins map would let the duplicate mask a rationale failure.
+    let mut scores: HashMap<&str, usize> = HashMap::new();
+    for option in options {
+        if let Some(label) = option["label"].as_str() {
+            scores.entry(label).or_insert_with(|| {
+                let option_words = words(option["text"].as_str().unwrap_or(""));
+                explained.intersection(&option_words).count()
+            });
+        }
+    }
     let own = scores.get(key).copied().unwrap_or(0);
     let best_other = scores
         .iter()
@@ -121,8 +124,10 @@ fn references_label(explanation: &str, key: &str) -> bool {
 fn names_option(explanation: &str, key: &str) -> bool {
     const WORDS: &[&str] = &["option", "answer", "choice"];
     const SEPARATORS: &[char] = &[' ', '\t', '\u{a0}', ':', '(', '"', '\'', '‘', '’', '“', '”'];
-    let lower = explanation.to_lowercase();
-    let key = key.to_lowercase();
+    // to_ascii_lowercase preserves byte length, so positions in `lower`
+    // still index `explanation` — needed to compare the label in original
+    // case below.
+    let lower = explanation.to_ascii_lowercase();
     WORDS
         .iter()
         .flat_map(|w| lower.match_indices(w).map(move |(i, _)| (i, w.len())))
@@ -142,12 +147,15 @@ fn names_option(explanation: &str, key: &str) -> bool {
             // word itself ('option' a …), not to a label. Opening curly
             // quotes are unambiguous label openers and stay in SEPARATORS.
             const CLOSING_QUOTES: &[char] = &['"', '\'', '’', '”'];
-            let rest = &lower[i + len..];
+            // Compare in original case: labels are always uppercase, so a
+            // lowercase letter (the article "a" in "answer a question")
+            // can never pass as a label.
+            let rest = &explanation[i + len..];
             if rest.starts_with(CLOSING_QUOTES) {
                 return false;
             }
             let rest = rest.trim_start_matches(|c: char| SEPARATORS.contains(&c));
-            rest.starts_with(&key)
+            rest.starts_with(key)
                 && rest[key.len()..]
                     .chars()
                     .next()
