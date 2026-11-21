@@ -119,6 +119,116 @@ fn key_rationale_fails_when_key_disagrees_with_rationale() {
 }
 
 #[test]
+fn gold_short_and_numeric_choices_use_explicit_labels_on_overlap_ties() {
+    let text = std::fs::read_to_string(workspace_root().join("data/gold/mcq.jsonl")).unwrap();
+    let seeds: Vec<serde_json::Value> = text
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    // The tie-override property holds for these records with short or
+    // numeric options; pin them by id so shard reordering cannot silently
+    // change what this test exercises.
+    let ids = [
+        "gold-mcq-bbf-0001",
+        "gold-mcq-cpf-0001",
+        "gold-mcq-cpf-0002",
+    ];
+    for id in ids {
+        let seed = seeds
+            .iter()
+            .find(|s| s["id"] == id)
+            .unwrap_or_else(|| panic!("{id}: not found in mcq.jsonl"));
+        let findings = findings_for(&[record(Format::Mcq, "tied-gold", seed.clone())]);
+        assert!(findings.is_empty(), "gold tie must pass: {findings:?}");
+        for option in seed["options"].as_array().unwrap() {
+            if option["label"] == seed["key"] {
+                continue;
+            }
+            let mut wrong = seed.clone();
+            wrong["key"] = option["label"].clone();
+            let findings = findings_for(&[record(Format::Mcq, "rekeyed-gold", wrong)]);
+            assert!(
+                findings.iter().any(|f| f.check == Check::KeyRationale),
+                "re-keying to {} must still fail: {findings:?}",
+                option["label"]
+            );
+        }
+    }
+}
+
+#[test]
+fn overlap_ties_without_an_unambiguous_label_still_fail() {
+    for explanation in [
+        "A junction connects the cells.",
+        "Option A and option B are junction candidates.",
+        "Option A and option\nB are junction candidates.",
+    ] {
+        let mut value = mcq();
+        value["options"] = serde_json::json!([
+            {"label": "A", "text": "Gap junction"},
+            {"label": "B", "text": "Tight junction"},
+            {"label": "C", "text": "Desmosome"},
+            {"label": "D", "text": "Hemidesmosome"}
+        ]);
+        value["rationale"]["key_explanation"]["text"] = serde_json::json!(explanation);
+        let findings = findings_for(&[record(Format::Mcq, "ambiguous-tie", value)]);
+        assert!(findings.iter().any(|f| f.check == Check::KeyRationale));
+    }
+}
+
+#[test]
+fn an_explicit_label_does_not_override_stronger_overlap_with_another_option() {
+    let mut value = mcq();
+    value["key"] = serde_json::json!("B");
+    let explanation = value["rationale"]["key_explanation"]["text"]
+        .as_str()
+        .unwrap();
+    value["rationale"]["key_explanation"]["text"] =
+        serde_json::json!(format!("Option B. {explanation}"));
+    let findings = findings_for(&[record(Format::Mcq, "contradictory-label", value)]);
+    assert!(findings.iter().any(|f| f.check == Check::KeyRationale));
+}
+
+#[test]
+fn tied_overlap_with_an_explicit_keyed_label_passes_by_design() {
+    // Numeric/short-option items can tie on lexical overlap; the accepted
+    // escape is the rationale naming the keyed label and no other. This
+    // test pins that escape as intentional.
+    let mut value = mcq();
+    value["options"] = serde_json::json!([
+        {"label": "A", "text": "Gap junction"},
+        {"label": "B", "text": "Tight junction"},
+        {"label": "C", "text": "Desmosome"},
+        {"label": "D", "text": "Hemidesmosome"}
+    ]);
+    value["rationale"]["key_explanation"]["text"] =
+        serde_json::json!("Option A, a junction for direct cytoplasmic exchange.");
+    let findings = findings_for(&[record(Format::Mcq, "tie-label-escape", value)]);
+    assert!(
+        findings.is_empty(),
+        "tie with keyed label must pass: {findings:?}"
+    );
+}
+
+#[test]
+fn tied_overlap_naming_a_non_key_label_still_fails() {
+    let mut value = mcq();
+    value["options"] = serde_json::json!([
+        {"label": "A", "text": "Gap junction"},
+        {"label": "B", "text": "Tight junction"},
+        {"label": "C", "text": "Desmosome"},
+        {"label": "D", "text": "Hemidesmosome"}
+    ]);
+    value["rationale"]["key_explanation"]["text"] =
+        serde_json::json!("Option B, a junction sealing the paracellular space.");
+    let findings = findings_for(&[record(Format::Mcq, "tie-wrong-label", value)]);
+    assert!(
+        findings.iter().any(|f| f.check == Check::KeyRationale),
+        "tie naming a non-key label must fail: {findings:?}"
+    );
+}
+
+#[test]
 fn key_rationale_fails_on_blank_rationale_text() {
     let mut bad = mcq();
     // Whitespace-only passes the schema's min-length rule; the lint must

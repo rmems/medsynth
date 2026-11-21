@@ -1,8 +1,6 @@
-//! Fixture-behavior tests keyed to #7's artifacts: every gold record under
-//! `data/gold/` passes every check, and every near-miss record named in
-//! `fixtures/near-miss/manifest.json` fails with the check matching its
-//! planted defect. Until #7 lands, both tests skip with a message rather
-//! than fabricating records.
+//! #7's positive shards pass the smoke gate. All near-miss probes pass
+//! schema/cross-field checks; the wrong keys fail the key-rationale lint.
+//! Claim-level omissions require #9's semantic gate, not this smoke lint.
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -49,22 +47,15 @@ fn valid_siblings(root: &Path, format: medsynth_validate::Format) -> Vec<RecordF
 #[test]
 fn gold_set_passes_every_check() {
     let root = workspace_root();
-    let gold = root.join("data/gold");
-    if !gold.is_dir() {
-        eprintln!("SKIP: data/gold/ does not exist yet — lands with #7");
-        return;
-    }
-    let (paths, enum_findings) = json_files(&gold);
-    assert!(
-        enum_findings.is_empty(),
-        "gold directory enumeration must not fail: {enum_findings:?}"
-    );
-    assert!(!paths.is_empty(), "data/gold/ must contain records");
+    let paths = medsynth_validate::Format::all()
+        .map(|format| root.join(format!("data/gold/{}.jsonl", format.slug())))
+        .to_vec();
     let root2 = root.clone();
     let (records, load_findings) = load_paths(paths, move |p| {
         p.strip_prefix(&root2).unwrap_or(p).to_path_buf()
     });
     let registry = load_registry(&root);
+    assert!(records.len() >= 24, "at least 24 positive seeds must load");
     let mut findings = load_findings;
     findings.extend(run_checks(&records, &Validators::compile(), &registry));
     assert!(
@@ -74,36 +65,34 @@ fn gold_set_passes_every_check() {
 }
 
 #[test]
-fn near_miss_fixtures_fail_for_their_planted_reason() {
+fn near_miss_probes_preserve_the_schema_verification_distinction() {
     let root = workspace_root();
-    let manifest_path = root.join("fixtures/near-miss/manifest.json");
-    let Ok(text) = std::fs::read_to_string(&manifest_path) else {
-        eprintln!("SKIP: fixtures/near-miss/manifest.json does not exist yet — lands with #7");
-        return;
-    };
+    let manifest_path = root.join("data/gold/near-miss/manifest.json");
+    let text = std::fs::read_to_string(&manifest_path).expect("near-miss manifest exists");
     let manifest: serde_json::Value =
         serde_json::from_str(&text).expect("near-miss manifest parses");
     let entries = manifest["records"]
         .as_array()
         .expect("manifest has a `records` array");
-    assert!(!entries.is_empty(), "near-miss manifest must list records");
+    assert!(
+        entries.len() >= 6,
+        "near-miss manifest must list six probes"
+    );
 
     let validators = Validators::compile();
     let registry: HashSet<String> = load_registry(&root);
     for entry in entries {
         let file = entry["file"].as_str().expect("manifest entry has `file`");
-        let expected = entry["expected_check"]
-            .as_str()
-            .expect("manifest entry has `expected_check`");
-        let expected_check =
-            Check::parse(expected).unwrap_or_else(|| panic!("unknown check `{expected}`"));
+        let expected_check = entry["ci_check"].as_str().map(|expected| {
+            Check::parse(expected).unwrap_or_else(|| panic!("unknown check `{expected}`"))
+        });
 
-        let path = root.join("fixtures/near-miss").join(file);
+        let path = root.join("data/gold/near-miss").join(file);
         let text = std::fs::read_to_string(&path)
             .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
         let format = format_of(&path)
             .unwrap_or_else(|| panic!("{} lives outside a format directory", path.display()));
-        let display = PathBuf::from(format!("fixtures/near-miss/{file}"));
+        let display = PathBuf::from(format!("data/gold/near-miss/{file}"));
 
         // Run the near-miss alongside the other valid records of its
         // format so the corpus-level checks (originality, duplicate ids)
@@ -122,15 +111,21 @@ fn near_miss_fixtures_fail_for_their_planted_reason() {
         let findings = run_checks(&slice, &validators, &registry);
         let mine: Vec<_> = findings
             .iter()
-            .filter(|f| f.path.starts_with("fixtures/near-miss"))
+            .filter(|f| f.path.starts_with("data/gold/near-miss"))
             .collect();
         assert!(
-            !mine.is_empty(),
-            "near-miss {file} must fail at least one check"
+            mine.iter().all(|f| f.check != Check::Schema),
+            "near-miss {file} must be schema-valid: {mine:#?}"
         );
-        assert!(
-            mine.iter().any(|f| f.check == expected_check),
-            "near-miss {file} must fail `{expected}` (planted defect), got: {mine:#?}"
-        );
+        match expected_check {
+            Some(expected) => assert!(
+                mine.len() == 1 && mine[0].check == expected,
+                "near-miss {file} must fail only `{expected}`, got: {mine:#?}"
+            ),
+            None => assert!(
+                mine.is_empty(),
+                "near-miss {file} needs semantic verification, not a second smoke defect: {mine:#?}"
+            ),
+        }
     }
 }

@@ -1,0 +1,11 @@
+{
+  "checklist_id": "gold-review-v1",
+  "records": [
+    {"file": "mcq/wrong-key-0001.json", "id": "near-miss-mcq-wrong-key-0001", "format": "mcq", "defect": "wrong_key", "verification_stage": 2, "defect_path": "/key", "expected_answer": "A", "ci_check": "key-rationale"},
+    {"file": "mcq/wrong-key-0002.json", "id": "near-miss-mcq-wrong-key-0002", "format": "mcq", "defect": "wrong_key", "verification_stage": 2, "defect_path": "/key", "expected_answer": "C", "ci_check": "key-rationale"},
+    {"file": "mcq/missing-anchor-0001.json", "id": "near-miss-mcq-missing-anchor-0001", "format": "mcq", "defect": "missing_anchor", "verification_stage": 3, "defect_path": "/stem/anchors", "expected_answer": "D", "ci_check": null},
+    {"file": "mcq/missing-anchor-0002.json", "id": "near-miss-mcq-missing-anchor-0002", "format": "mcq", "defect": "missing_anchor", "verification_stage": 3, "defect_path": "/stem/anchors", "expected_answer": "B", "ci_check": null},
+    {"file": "tutoring_example/unanchored-claim-0001.json", "id": "near-miss-tut-unanchored-claim-0001", "format": "tutoring_example", "defect": "unanchored_claim", "verification_stage": 3, "defect_path": "/tutor_response/text", "unsupported_claim": "ADH is synthesized by hypothalamic neurons rather than by the posterior pituitary.", "ci_check": null},
+    {"file": "tutoring_example/unanchored-claim-0002.json", "id": "near-miss-tut-unanchored-claim-0002", "format": "tutoring_example", "defect": "unanchored_claim", "verification_stage": 3, "defect_path": "/tutor_response/text", "unsupported_claim": "Pressure increases with depth in a stationary uniform-density liquid under gravity.", "ci_check": null}
+  ]
+}

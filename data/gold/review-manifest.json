@@ -1,0 +1,689 @@
+{
+  "checklist_id": "gold-review-v1",
+  "drafting_run_id": "factory-droid-draft-rm2522-v1",
+  "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e + devin-review-rm2522-session-59eb4828",
+  "review_status": "passed",
+  "method": "Separate reviewer session: Factory worker session 35c4494a-0629-401b-9a98-63dae38ec63e, started by calling session c7aafd01-98d8-490e-bb97-8c5975fd3497. The id was read from this session's script-log directory and confirmed against the session_start line of its session file. Step 1, blind solve: read only target/gold-review-stems.md, docs/contract.md, docs/taxonomy.md and docs/sources.json, solved all 8 MCQ and 8 vignette stems from subject knowledge, and wrote the answers with reasons to target/gold-blind-solutions.md (SHA-256 a0fce6d46ae5b996149bc486c661b4a43f9a14da9cef03b845b298d8384f3a36, written 2026-11-21T04:47:25Z) before opening any gold JSONL file, near-miss file, key, rationale or review table. The blind input was afterwards confirmed to contain every stem, option, presentation, finding and question of the 16 records. Step 2, comparison: read the 24 records and compared each key or expected answer with the blind answer. Step 3, passage check: fetched all 17 distinct cited OpenStax sections from openstax.org with FetchUrl on 2026-11-21 (UTC), HTTP 200 for each, located each section body under its heading, and checked every factual sentence of every stem, answer, reasoning step, teaching point, tutor response, distractor refutation and stated model limit against the section text. Each passage quoted in the evidence fields was string-matched against the fetched text, and each stated absence was confirmed by searching the section body. A claim passed if the cited section states it, or if it follows in one logical or arithmetic step from what the section states plus the record's own stipulations; invented patient observations and stipulated model values were treated as exempt under contract section 4. Step 4, tier and taxonomy: compared each tier with taxonomy section 4 for its format, and each domain/subdomain pair and source coverage with taxonomy section 3.2 and docs/sources.json. Step 5, near-misses: read the six probes together with their manifest (not blind), re-derived each correct answer from the stem and the cited passage, and looked for any defect other than the planted one. Structural check: all 30 records were checked inline against the keywords of schemas/*.v1.json, the domain/subdomain mapping, option-label and key rules, registry status and locator syntax, and duplicate JSON keys; no cargo command was run. Not done: no originality or contamination audit (no question bank or exam item was consulted), no dataset admission; verification_status was left at unverified and no record or code was edited. record_sha256 is the SHA-256 of each JSONL line's UTF-8 bytes without the line terminator, or of the whole file for near-miss probes. Outcome: 22 records pass every applicable check; gold-cv-preclinical-0001 (key_check, rationale_check) and gold-tut-preclinical-0002 (anchor_check) need the edits described in their failed checks and must be re-reviewed after editing; all six planted defects were confirmed with no second defect found. Re-review 2026-11-21 (UTC): after the drafting run edited the two failed records (gold-cv-preclinical-0001 now asks for both bile-salt functions; gold-tut-preclinical-0002 was reworded to what sec20.2 states), a second separate reviewer session, Devin subagent session 59eb4828 spawned from a local Devin Desktop session in rmems/medsynth, re-ran the checklist on those two records only, without reading this manifest, the review table in data/gold/README.md, or the first run's artifacts under target/. Step 1, blind solve: it read only target/rereview-stems.md (presentation, findings and question only), docs/contract.md, docs/taxonomy.md and docs/sources.json, and wrote its answer with reasons to target/rereview-blind-solutions.md (SHA-256 d065c12229e9d1a12f8f0b1c5878253dfb967bf6697e0c376119a6c2bb25f886, written 2026-11-21T05:17:26Z) before opening any gold JSONL file or fetching any source. Steps 2-4 followed the first run's method: compared the blind answer with the record's answer; fetched openstax-anatomy-physiology-2e sec23.7 and sec20.2 live from openstax.org (HTTP 200 each) and checked every factual sentence of both records against the section text, string-matching quoted passages; checked each tier, domain/subdomain pair and locator convention against taxonomy sections 3.2 and 4 and docs/sources.json. Outcome: both edited records pass every applicable check, and the first run's two required edits are confirmed addressed. The 22 unchanged record entries and 6 near-miss entries carry the first run's evidence verbatim; their record_sha256 pins certify the records are byte-identical to the ones that run reviewed. The top-level reviewer_run_id names both reviewing runs because this manifest aggregates their evidence: the first run reviewed all 24 records and 6 near-misses, the re-review run reviewed the two edited records and completed the manifest to passed. Each entry's reviewer_run_id names the run that reviewed its pinned bytes, so only the two re-reviewed entries are attributed to session 59eb4828.",
+  "records": [
+    {
+      "record_id": "gold-mcq-bbf-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "d9504ddd5844a34afe116c19d56d18ab37409344f61d5db73f653f3509ea6c6f",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-anatomy-physiology-2e sec4.2:epithelial-tissue, \"Cell to Cell Junctions\": \"a gap junction forms an intercellular passageway between the membranes of adjacent cells to facilitate the movement of small molecules and ions between the cytoplasm of adjacent cells\", and these junctions \"allow electrical and metabolic coupling of adjacent cells\". This supports the stem and the key explanation."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "A",
+        "evidence": "Blind answer A (gap junction) matches key A."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "The key explanation restates the passage; \"communicate directly\" paraphrases the electrical and metabolic coupling the section describes."
+      },
+      "distractor_check": {
+        "outcome": "pass",
+        "evidence": "Same section: at a tight junction \"the movement of substances through the extracellular space between the cells is blocked\" (B); desmosome cadherins link adjacent cells and \"are especially important in holding cells together\" (C); hemidesmosomes \"link cells to the extracellular matrix, for example, the basal lamina\" (D). The section contrasts all three with the gap junction passageway, so each refutation is supported."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "MCQ foundation (taxonomy 4.1): one-step recall of a single anchored fact with no scenario."
+      }
+    },
+    {
+      "record_id": "gold-mcq-bbf-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "7059b14e105d951716a91ef7bd13827801f605bca26f33e11ab6341a38f0a50d",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-anatomy-physiology-2e sec17.3:the-pituitary-gland-and-hypothalamus, \"Antidiuretic Hormone (ADH)\": high blood osmolarity, \"which can occur during dehydration or following a very salty meal\", makes \"the osmoreceptors signal the posterior pituitary to release antidiuretic hormone (ADH)\"; \"Its effect is to increase epithelial permeability to water, allowing increased water reabsorption\"; \"A greater concentration of water results in a reduced concentration of solutes\". sec26.2:water-balance (cited for the refutations): \"As the blood becomes more concentrated, the thirst response\" is triggered, and ADH \"controls the amount of water reabsorbed from the collecting ducts and tubules in the kidney\"."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "B",
+        "evidence": "Blind answer B (increased ADH release) matches key B."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Osmoreceptor sensing, posterior-pituitary ADH release, increased renal water reabsorption and the return of solute concentration toward its prior level are each stated in sec17.3, which describes the negative feedback loop."
+      },
+      "distractor_check": {
+        "outcome": "pass",
+        "evidence": "A is the reverse of the stated ADH effect (increased water permeability, sec17.3 and sec26.2). C contradicts sec26.2, where concentrated blood triggers thirst. D contradicts sec17.3 (\"the less that is excreted in the urine\") and sec26.2 (the kidneys \"conserve water if you are dehydrated\")."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "MCQ application: a brief self-contained scenario with one inference from raised osmolarity to the compensating response; each distractor is a single-concept reversal."
+      }
+    },
+    {
+      "record_id": "gold-mcq-cpf-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "88f095664be0582648b5af13dec134af679d105d45200c34320706967e6eaa3d",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-university-physics-2016 vol1:ch5:newtons-second-law (section 5.3), \"Force and Acceleration\": \"the net external force is the vector sum of all external forces\"; \"The acceleration of a system is directly proportional to and in the same direction as the net external force acting on the system and is inversely proportional to its mass\". The section's worked example uses \"the net external force (push minus friction)\" with balanced vertical forces, the same structure as this stem. Mass and forces are stipulated values."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "C",
+        "evidence": "Blind answer C matches key C: 18 N - 6 N = 12 N forward; 12 N / 4 kg = 3 m/s^2 forward (recomputed)."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Net force first, then division by mass, as the section prescribes; the arithmetic is correct."
+      },
+      "distractor_check": {
+        "outcome": "pass",
+        "evidence": "Recomputed each: A = (18 + 6)/4 = 6 treats opposing forces as parallel; B = 18/4 = 4.5 ignores the opposing force; D = 6/4 = 1.5 backward uses only the opposing force. Each conflicts with the vector-sum rule in the cited section."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "MCQ application: one principle applied to a short numeric scenario; distractors are single-concept errors."
+      }
+    },
+    {
+      "record_id": "gold-mcq-cpf-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "69d7f66dbcf68d91d2e78ac1b90510064267a3bfae201fd783a2340201ce2132",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-university-physics-2016 vol1:ch16:wave-speed-on-a-stretched-string (section 16.3): \"The speed of a wave depends on the characteristics of the medium\", and Equation 16.8 gives the speed as the square root of tension over linear mass density. vol1:ch16:mathematics-of-waves (section 16.2): the string end is oscillated \"by a mechanical device at a constant frequency\"; \"This wave propagates down the string one wavelength in one period\" and frequency is the reciprocal of the period, so wavelength equals speed divided by frequency. \"Ideal string\" and \"reflections can be neglected\" are stipulations, not claims."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "D",
+        "evidence": "Blind answer D matches key D: four times the tension doubles the speed; at fixed driver frequency the wavelength doubles."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Both links of the chain (square-root tension dependence, wavelength = speed/frequency) are in the cited sections."
+      },
+      "distractor_check": {
+        "outcome": "pass",
+        "evidence": "A uses a linear instead of a square-root dependence, contradicting Equation 16.8. B leaves wavelength unchanged although wavelength = speed/frequency at fixed frequency. C denies the medium dependence of speed stated in 16.3 and halves the wavelength. The statement that the driver fixes frequency is supported by the 16.2 set-up."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "MCQ reasoning: two relations must be chained, and each distractor breaks a different link."
+      }
+    },
+    {
+      "record_id": "gold-mcq-psb-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "0f1fb0a684588cd54a5d180e0c9a6ee6d7e1523d3212a8032310207849836cae",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-introduction-sociology-3e ch3:elements-of-culture (section 3.2), \"Norms\": norms are \"the visible and invisible rules of conduct through which societies are structured\"; \"Formal norms are established, written rules existing in all societies\"; \"People learn informal norms by observation, imitation, and general socialization\" and \"Informal norms dictate appropriate behaviors without the need of written rules\". \"Values and Beliefs\": values are \"ideals, or principles and standards members of a culture hold in high regard\"."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "B",
+        "evidence": "Blind answer B (norms) matches key B."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "The definition and the formal/informal distinction match the section."
+      },
+      "distractor_check": {
+        "outcome": "pass",
+        "evidence": "Values are \"ideals, or principles and standards members of a culture hold in high regard\" (A); beliefs are \"the tenets or convictions that people hold to be true\" (C); symbols work by \"conveying recognizable meanings that are shared by societies\" (D)."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "MCQ foundation: recognition of one defined term; no scenario."
+      }
+    },
+    {
+      "record_id": "gold-mcq-psb-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "6e7fb05895ad7a536943cb83a23f3fd1c70ba33d5ea524cb5f76c87e01ca67ca",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-introduction-sociology-3e ch9:what-is-social-stratification (section 9.1): stratification is \"based on wealth, the net value of money and assets a person has, and income, a person's wages or investment dividends\"."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "A",
+        "evidence": "Blind answer A (net value of accumulated assets) matches key A."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "\"Net value\" covers assets after debts; the stock-versus-flow wording paraphrases the two definitions and adds no fact beyond them."
+      },
+      "distractor_check": {
+        "outcome": "pass",
+        "evidence": "C: the section lists \"investment dividends\" under income. B and D are wages, also listed under income."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "MCQ application: the definitions are not restated; the learner classifies four concrete survey measures, and C is a single-concept confusion (an investment as an asset versus the payment it yields). This sits at the lower edge of application but is defensible."
+      }
+    },
+    {
+      "record_id": "gold-mcq-preclinical-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "6c103db59a07f2a7016b41f3d565c9f0286013292ffd13e9171a75b9c50e9516",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-anatomy-physiology-2e sec22.4:gas-exchange: \"The anatomy of the lung maximizes the diffusion of gases: The respiratory membrane is highly permeable to gases; the respiratory and blood capillary membranes are very thin; and there is a large surface area throughout the lungs\"; \"A gas will move from an area where its partial pressure is higher to an area where its partial pressure is lower\"; \"the greater the partial pressure difference between the two areas, the more rapid is the movement of gases\". Support for the thickness effect is qualitative (thin membranes maximize diffusion); the section gives no quantitative law and the record claims none."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "C",
+        "evidence": "Blind answer C (diffusion decreases) matches key C."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Slower transfer across a thicker membrane with the other factors fixed follows directly from the passage; \"longer path\" restates greater thickness."
+      },
+      "distractor_check": {
+        "outcome": "pass",
+        "evidence": "B ignores thickness, which the passage names alongside surface area as a determinant. A reverses the stated relationship. D: direction is set by the partial-pressure gradient, which the stem holds constant."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "MCQ application: one inference from a stated change in a model to its effect."
+      }
+    },
+    {
+      "record_id": "gold-mcq-preclinical-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "bafd4cde54c3f5dffbcb1d387dd761c69493a2ccf9b8a5ab5ea90c036d197b0b",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-anatomy-physiology-2e sec17.3:the-pituitary-gland-and-hypothalamus: high osmolarity makes \"the osmoreceptors signal the posterior pituitary to release antidiuretic hormone (ADH)\"; falling osmolarity will \"prompt a corresponding decrease in the secretion of ADH\"; \"Because little ADH is produced and secreted, not enough water is reabsorbed by the kidneys\". sec26.2:water-balance, \"Role of ADH\": ADH acts on collecting tubule cells and \"The result is an increase in the water permeability of these cells\". The experimental values are invented observations."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "D",
+        "evidence": "Blind answer D (insufficient endogenous ADH with preserved renal responsiveness) matches key D."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Each step is supported: high osmolarity should raise ADH, low ADH leaves water unreabsorbed, and concentration after supplied ADH shows that the kidney responds. The closing limit (no anatomical lesion identified) is a limit of the invented data, not a new fact."
+      },
+      "distractor_check": {
+        "outcome": "pass",
+        "evidence": "A: resistance means a limited renal response by definition, so concentration after supplied ADH excludes it; that absent ADH action leaves urine dilute follows from sec17.3 and sec26.2. B conflicts with the stipulated very low ADH. C conflicts with the stipulated high osmolarity; sec17.3 ties reduced ADH secretion to decreased osmolarity."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "MCQ reasoning: integrates the baseline pattern with the response to supplied hormone to discriminate between competing mechanisms; each distractor fails on a different finding."
+      }
+    },
+    {
+      "record_id": "gold-cv-bbf-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "497e27e7252dfe589ea6832f69270b5ef1be4df188332f89e814d8bd1817985a",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-anatomy-physiology-2e sec4.2:epithelial-tissue, \"Classification of Epithelial Tissues\" and \"Simple Epithelium\": a simple epithelium is one layer \"where every cell rests on the basal lamina\"; in a stratified epithelium \"only the basal layer of cells rests on the basal lamina\"; pseudostratified columnar epithelium \"appears to be stratified but instead consists of a single layer\", its \"nuclei of neighboring cells appear at different levels\", \"all the cells are in contact with the basal lamina, although some do not reach the apical surface\", and it \"is found in the respiratory tract\". Findings are invented observations."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "Pseudostratified epithelium: every cell reaches the basal lamina, so it is a single layer whose nuclei at different heights only mimic layers.",
+        "evidence": "Blind answer and reason match the record's answer."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Both reasoning steps and the teaching point restate the passage."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. The competing classification (stratified) is refuted in reasoning step 1 with the cited passage."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Case vignette foundation (taxonomy 4.2): short vignette, one identification by pattern-matching to one teaching point."
+      }
+    },
+    {
+      "record_id": "gold-cv-bbf-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "ecca96383cf4c4317f5e2e2cd1ddefefd85a73c92e567866a4579e608418a760",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-anatomy-physiology-2e sec26.2:water-balance, \"Regulation of Water Intake\": \"As the blood becomes more concentrated, the thirst response\" is triggered through hypothalamic osmoreceptors; \"The hypothalamus of a dehydrated person also releases antidiuretic hormone (ADH) through the posterior pituitary gland\"; \"ADH signals the kidneys to recover water from urine, effectively diluting the blood plasma\"; water lost in urine \"is ultimately extracted from blood plasma\". sec17.3:the-pituitary-gland-and-hypothalamus: the effect of ADH \"is to increase epithelial permeability to water, allowing increased water reabsorption\", with \"the less that is excreted in the urine\". Osmolarity values and urine findings are invented observations."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "Osmoreceptor-driven thirst plus increased ADH release with renal water reabsorption explains both findings; increased water excretion is not a better explanation because it predicts larger-volume dilute urine.",
+        "evidence": "Blind answer matches the record's answer on both parts of the question."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "The three steps and the teaching point are supported; the statement that extra water excretion would further concentrate plasma follows from sec26.2, where urinary water comes from plasma."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. The competing explanation (increased water excretion) is addressed in reasoning step 3 and contradicts the stated urine findings."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Case vignette reasoning: integrates two time points and hypothalamic, endocrine and renal steps, and requires rejecting a competing explanation."
+      }
+    },
+    {
+      "record_id": "gold-cv-cpf-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "09194b619b31efbef42eb97b54ab8bd0916bf11764ff907b7a3d166edc103271",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-university-physics-2016 vol1:ch5:newtons-second-law: \"we must define the boundaries of the system before we can determine which forces are external\"; \"the net external force is the vector sum of all external forces\"; acceleration equals net force divided by mass. Mass and forces are stipulated values."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "0.5 m/s^2 forward (52 N - 12 N = 40 N net; 40 N / 80 kg).",
+        "evidence": "Blind answer matches the record's answer; arithmetic recomputed."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "System choice, net force and division by mass follow the section; the teaching point restates its system-boundary rule."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. Reasoning step 2 names the single-force error (using 52 N alone)."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Case vignette application: connects the presented forces to one principle and computes the result."
+      }
+    },
+    {
+      "record_id": "gold-cv-cpf-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "bb0c0dde77bddf6ad3e2f9c2362725750c79fb3d6570b7c61e9e61cc727b9488",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-university-physics-2016 vol1:ch14:fluids-density-and-pressure (section 14.1): \"The pressure at a depth in a fluid of constant density is equal to the pressure of the atmosphere plus the pressure due to the weight of the fluid\" (Equation 14.4); \"The pressure at any point in a static fluid depends only on the depth at that point\"; \"the pressure in a fluid depends only on the depth from the surface and not on the shape of the container\"; \"The pressure due to the fluid is equal to the weight of the fluid divided by the area\"."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "Point Q, the lower point, because pressure in a static uniform-density fluid increases with depth.",
+        "evidence": "Blind answer matches the record's answer."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "The reasoning step and the teaching point (weight per area of the fluid above) restate the passage."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. The only alternative is point P, which the depth rule excludes."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Case vignette foundation: one identification from one teaching point."
+      }
+    },
+    {
+      "record_id": "gold-cv-psb-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "e1e53f8e8120a0a514f9426fd41fe9c1aa917924ac2dc97cace66a515562d753",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-introduction-sociology-3e ch3:elements-of-culture (section 3.2): symbols, \"such as gestures, signs, objects, signals, and words\", work by \"conveying recognizable meanings that are shared by societies\"; \"Simple gestures, such as hand-holding, carry great symbolic differences across cultures\"; \"Nonverbal communication is symbolic, and, as in the case of language, is learned through one's culture\"; \"Some gestures are nearly universal; some are not\" and \"Other gestures vary in meaning depending on the situation and the person\". The interview is an invented observation and names no real group."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "Symbols: a gesture is a nonverbal symbol whose meaning is culturally learned and shared, not universal.",
+        "evidence": "Blind answer matches the record's answer."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Both reasoning steps are supported. The advice to clarify intended meaning is instructional guidance that follows from the non-universality the passage states."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. No competing concept is offered in the record."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Case vignette application: connects the presented findings to one concept and selects the interpretation."
+      }
+    },
+    {
+      "record_id": "gold-cv-psb-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "c35b85ca95899a87be6f8ef7bb57d26fbf1af06f3cb2ee0a642252939498962c",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-introduction-sociology-3e ch9:what-is-social-stratification (section 9.1): rankings rest on \"wealth, income, education, family background, and power\"; \"An individual's place within this stratification is called socioeconomic status (SES)\"; \"No individual, rich or poor, can be blamed for social inequalities\"; \"sociologists see how the structure of society affects a person's social standing\". ch19:health-in-the-united-states (section 19.3): SES is \"one of the strongest and most consistent predictors of a person's morbidity and mortality experience\"; the section notes \"possible inequalities in how those initiatives effectively reach different SES groups\" and people who \"reported delaying healthcare or letting conditions go untreated due to cost\". Findings are invented observations."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "The access-barrier explanation (appointments clashing with hourly paid work) is better supported than lack of interest; uncertainty remains because one short sequence cannot show that scheduling is the only influence.",
+        "evidence": "Blind answer matches the record's answer on both the preferred explanation and the remaining uncertainty."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Step 1 is supported by section 9.1; step 2 and the answer are inferences from the invented sequence (attendance changes when the barrier is removed while stated interest is unchanged) and claim no more than the data allow."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. The competing lack-of-interest explanation is weighed in the reasoning chain."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Case vignette reasoning: weighs two competing explanations across a time sequence and states the remaining uncertainty."
+      }
+    },
+    {
+      "record_id": "gold-cv-preclinical-0001",
+      "reviewer_run_id": "devin-review-rm2522-session-59eb4828",
+      "record_sha256": "49ed9b83bac73b5d2b5860b944f29ccd1c5774be715c2ad59b7f7bf634754cbe",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "Re-review, Devin session 59eb4828. source_id 'openstax-anatomy-physiology-2e' exists in docs/sources.json with status 'current'; locator 'sec23.7:chemical-digestion-and-absorption-a-closer-look' matches locator_convention 'sec<N>.<M>:<section-slug>' and resolves live (HTTP 200) to '23.7 Chemical Digestion and Absorption: A Closer Look'. Every factual sentence is supported by the cited section: 'Bile salts not only speed up lipid digestion, they are also essential to the absorption of the end products of lipid digestion' (Lipid Absorption); Table 23.8 lists the pancreatic lipase substrate as 'Triglycerides that have been emulsified by bile salts'; 'bile salts and lecithin resolve this issue by enclosing them in a micelle'; 'Without micelles, lipids would sit on the surface of chyme and never come in contact with the absorptive surfaces of the epithelial cells. Micelles can easily squeeze between microvilli and get very near the luminal cell surface. At this point, lipid substances exit the micelle and are absorbed via simple diffusion.' The invented stool finding, the stipulated reduced bile-salt delivery, and the stipulated intact pancreatic enzymes are invented observations/model stipulations exempt under contract section 4."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "Two reduced bile-salt functions: (1) emulsification of dietary fat droplets, which increases surface area so pancreatic lipase can digest triglycerides efficiently; (2) micelle formation, which solubilizes and carries lipid digestion products (fatty acids, monoacylglycerides) to the enterocyte brush border for absorption.",
+        "evidence": "Re-review, Devin session 59eb4828. Record answer.text ('emulsification of triglycerides, which speeds their digestion by pancreatic lipase, and micelle formation, which carries lipid digestion products to the absorptive epithelial surface') matches the blind answer exactly. It is the unique correct pair as worded: sec23.7 assigns bile salts precisely two roles in lipid handling - 'Bile salts not only speed up lipid digestion' (via the emulsified-triglyceride substrate listed for pancreatic lipase in Table 23.8) 'they are also essential to the absorption of the end products of lipid digestion' (via micelles, without which lipids 'never come in contact with the absorptive surfaces of the epithelial cells')."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Re-review, Devin session 59eb4828. reasoning_chain supports the answer and is internally correct. Step 1 ('Bile salts emulsify dietary triglycerides, and pancreatic lipase acts on these emulsified triglycerides, so bile salts speed up lipid digestion') matches Table 23.8 ('Triglycerides that have been emulsified by bile salts' as pancreatic lipase substrate) and 'Bile salts not only speed up lipid digestion'. Step 2 ('they form micelles that carry the end products of lipid digestion to the intestinal absorptive surface') matches 'bile salts and lecithin resolve this issue by enclosing them in a micelle' and 'essential to the absorption of the end products of lipid digestion'. Step 3 correctly reasons from the stipulations (intact pancreatic enzymes, reduced bile salts) that both the emulsification and micellar delivery steps are impaired and that neither function alone explains the added stool fat - sound internal logic over exempt stipulations. teaching_points entry ('emulsification before lipase acts and micelle formation afterward; bile salts are not themselves pancreatic lipase') is correct: sec23.7 treats emulsification by bile salts and the pancreatic acinar-cell enzyme lipase as distinct entities."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "Re-review, Devin session 59eb4828. Case vignette has no options. Competing interpretations are addressed: the question wording fixes the canonical two bile-salt functions (sec23.7 names exactly two roles - speeding lipid digestion and enabling absorption of its end products), and reasoning_chain step 3 explicitly states neither function alone explains the added stool fat, foreclosing a single-function reading. No unaddressed competing factual claim found."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Re-review, Devin session 59eb4828. tier 'foundation' matches taxonomy section 4.2 for case_vignette: 'a short vignette presenting an uncomplicated fictional patient; the question asks for a basic identification ... resolvable by pattern-matching to one anchored teaching point.' The record is a 'simplified digestion teaching case' asking identification of the two bile-salt functions - exactly its single teaching_point - with stipulated findings and no competing interpretations. domain 'pre_clinical' / subdomain 'gastrointestinal' is a valid section 3.2 pair, and 'gastrointestinal' is in the openstax-anatomy-physiology-2e coverage list in docs/sources.json."
+      }
+    },
+    {
+      "record_id": "gold-cv-preclinical-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "b21f50c5f34755ca233e739f9cac817a193c52806db1208b9e0e1af6243c0d3e",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-anatomy-physiology-2e sec22.5:transport-of-gases, \"Oxygen Transport in the Blood\": dissolved oxygen \"is only about 1.5% of the total amount\"; \"one hemoglobin molecule is capable of carrying up to four molecules of oxygen\"; \"the percent of the available heme units that are bound to oxygen at a given time is called hemoglobin saturation\". sec22.4:gas-exchange: \"most of the oxygen is picked up by erythrocytes (red blood cells) and binds to a protein called hemoglobin\"; Henry's law ties dissolved gas to partial pressure. That bound oxygen falls with hemoglobin concentration at fixed saturation is not stated as a sentence; it follows arithmetically from saturation being a percentage of the available heme sites. Patient values are invented observations."
+      },
+      "key_check": {
+        "outcome": "pass",
+        "blind_answer": "No. At equal oxygen partial pressure and saturation, the lower hemoglobin concentration means less oxygen carried per volume, so a normal partial pressure alone does not establish normal oxygen carriage.",
+        "evidence": "Blind answer matches the record's answer."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "The three steps separate partial pressure, saturation and hemoglobin quantity consistently with the cited sections."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. The competing reading (equal partial pressure implies equal carriage) is refuted in reasoning step 3."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Case vignette reasoning: reconciles a normal partial pressure with reduced carriage and requires justifying one interpretation over the other."
+      }
+    },
+    {
+      "record_id": "gold-tut-bbf-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "8a7c56641affd2f1797e074555ee8ccb2fd5d4c18e0a6c889672d5afb28f6b2a",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-anatomy-physiology-2e sec4.2:epithelial-tissue, \"Glandular Epithelium\": an endocrine gland is \"a ductless gland that releases secretions directly into surrounding tissues and fluids\"; \"Hormones are released into the interstitial fluid, diffused into the bloodstream, and delivered to targets\"; \"Exocrine glands release their contents through a duct that leads to the epithelial surface\"; \"Secretions into the lumen of the gastrointestinal tract, technically outside of the body, are of the exocrine category\". The learner prompt asserts no fact, so its empty anchor list is acceptable."
+      },
+      "key_check": {
+        "outcome": "not_applicable",
+        "blind_answer": null,
+        "evidence": "Tutoring examples have no answer key."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Each step follows the passage; the remark that apparent depth in a drawing does not decide the category follows from the route-based definition."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. No wrong turn is posed in this example."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Tutoring foundation (taxonomy 4.3): walks through one distinction; no problem is posed."
+      }
+    },
+    {
+      "record_id": "gold-tut-bbf-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "b2a1763ff80d02b03a4af2e6d9b8b56dbc93fbc742eae475ee6bf1047a21919e",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-anatomy-physiology-2e sec26.2:water-balance: \"Plasma osmolality is thus the ratio of solutes to water in blood plasma\"; hypothalamic osmoreceptors detect the change; ADH is released \"through the posterior pituitary gland\"; \"ADH signals the kidneys to recover water from urine, effectively diluting the blood plasma\". sec17.3:the-pituitary-gland-and-hypothalamus: the effect of ADH \"is to increase epithelial permeability to water, allowing increased water reabsorption\"."
+      },
+      "key_check": {
+        "outcome": "not_applicable",
+        "blind_answer": null,
+        "evidence": "Tutoring examples have no answer key."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Each link (concentration, sensing, ADH release, renal permeability, reduced urinary water loss) is stated in the cited sections, and the closing check on the wrong prediction is consistent with them."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. The reversed prediction (more dilute, higher-volume urine) is named and rejected in the response."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Tutoring application: step-by-step walk through a self-contained causal chain, naming each inference."
+      }
+    },
+    {
+      "record_id": "gold-tut-cpf-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "1f2fe26214dd6f7ec4de8613160862ede39cd87a93313089c01281f954d408e2",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-university-physics-2016 vol1:ch14:fluids-density-and-pressure: \"The pressure at a depth in a fluid of constant density is equal to the pressure of the atmosphere plus the pressure due to the weight of the fluid\" (Equation 14.4), so the difference between two depths is density x g x vertical separation and the surface term cancels; \"The pressure at any point in a static fluid depends only on the depth at that point\". vol1:ch14:measuring-pressure (section 14.2): gauge pressure \"is the pressure relative to the atmospheric pressure\", and in an open manometer atmospheric pressure acts on both sides \"so that its effects cancel\". Recomputed: 1100 x 10 x 0.20 = 2200 Pa. Density, separation and g = 10 m/s^2 are stipulated values."
+      },
+      "key_check": {
+        "outcome": "not_applicable",
+        "blind_answer": null,
+        "evidence": "Tutoring examples have no answer key."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Relation, substitution, direction and the cancellation of surface pressure are all correct; the warning against using total depth or horizontal distance matches the depth-only dependence."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. The substitution errors the response warns against are consistent with the passage."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Tutoring application: guided solution of a typical self-contained problem."
+      }
+    },
+    {
+      "record_id": "gold-tut-cpf-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "f7fbe1cfe2f457bafc51d769c9ab72ca600eb708eb967fdf471e2e4adb5147c7",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-university-physics-2016 vol3:ch2:images-formed-by-refraction (section 2.3), \"Refraction at a Plane Interface - Apparent Depth\": \"The object is in one medium and the observer is in the other\"; the image \"forms a little closer to the surface than the actual position of the rod\"; the apparent depth \"depends on the angle at which you view the image\", and for a view from above \"we can approximate the refraction angle\" as small; Equation 2.10 gives apparent depth = (n2/n1) x real depth with medium 1 the object's medium; \"Thus, a fish appears at 3/4 of the real depth when viewed from above\". The sentence that rays bend away from the normal on entering the lower-index medium is not verbatim in the section; it follows in one step from Snell's law, which the section states. Recomputed: 12 x 1.0/1.5 = 8 cm."
+      },
+      "key_check": {
+        "outcome": "not_applicable",
+        "blind_answer": null,
+        "evidence": "Tutoring examples have no answer key."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "The learner's 18 cm inverts the index ratio; the ray-based correction, the 8 cm result and the small-angle limit all agree with the passage."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. The learner's inverted-ratio result is analyzed as the wrong turn."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Tutoring reasoning: analyzes a plausible wrong turn and states where the approximation stops applying."
+      }
+    },
+    {
+      "record_id": "gold-tut-psb-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "54851b3648aba1b5bdb5a094b14eb602fb639dd361359e1fba48c06c2958898d",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-introduction-sociology-3e ch3:elements-of-culture (section 3.2): values are \"ideals, or principles and standards members of a culture hold in high regard\"; beliefs are \"the tenets or convictions that people hold to be true\"; norms are \"the visible and invisible rules of conduct through which societies are structured\". The classroom is an invented example and the learner prompt asserts no fact."
+      },
+      "key_check": {
+        "outcome": "not_applicable",
+        "blind_answer": null,
+        "evidence": "Tutoring examples have no answer key."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Each of the three classifications applies the section's definition correctly."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. No wrong turn is posed in this example."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Tutoring foundation: one concept set shown with a single example; no problem is posed."
+      }
+    },
+    {
+      "record_id": "gold-tut-psb-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "deeabe704715813904ce63dd9aa28c11cdb150756d030b385325e1a5093fe3c8",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-introduction-sociology-3e ch20:the-environment-and-society (section 20.3): \"The subfield of environmental sociology studies the way humans interact with their environments\"; under environmental racism, neighborhoods of minority and low socioeconomic groups \"are burdened with a disproportionate number of hazards\", which \"has led to an inequitable distribution of environmental burdens\", with projects \"moved closer to those who have fewer resources to fight it\". ch9:what-is-social-stratification: society's layers \"represent the uneven distribution of society's resources\". Non-blocking observation: the section applies the words \"built and natural environment\" to human ecology, which it calls closely related to environmental sociology, while the record applies them to environmental sociology itself."
+      },
+      "key_check": {
+        "outcome": "not_applicable",
+        "blind_answer": null,
+        "evidence": "Tutoring examples have no answer key."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Separating behavior from environment and resources, naming the wrong turn, and refusing a disease-causation claim are all consistent with the cited sections and with the limits of the invented comparison."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. The claim that personal choices explain all exposure is analyzed as the wrong turn."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Tutoring reasoning: compares individual and structural hypotheses, names the wrong turn, and marks where the reasoning would overreach."
+      }
+    },
+    {
+      "record_id": "gold-tut-preclinical-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "5ae82a3876dc2bfee85e8772da6bfeeacef11d53523f894cde104197fb272465",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "openstax-anatomy-physiology-2e sec17.3:the-pituitary-gland-and-hypothalamus, \"Posterior Pituitary\": \"The posterior pituitary gland does not produce hormones, but rather stores and secretes hormones produced by the hypothalamus\"; \"the supraoptic nuclei produce ADH\"; \"These hormones travel along the axons into storage sites in the axon terminals of the posterior pituitary\"; \"In response to signals from the same hypothalamic neurons, the hormones are released from the axon terminals into the bloodstream\"."
+      },
+      "key_check": {
+        "outcome": "not_applicable",
+        "blind_answer": null,
+        "evidence": "Tutoring examples have no answer key."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Synthesis, axonal transport, storage and release are each placed where the section places them."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "No answer options. The release-versus-synthesis confusion in the prompt is resolved with the cited passage."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Tutoring foundation: a single mechanism sketch; no problem is posed."
+      }
+    },
+    {
+      "record_id": "gold-tut-preclinical-0002",
+      "reviewer_run_id": "devin-review-rm2522-session-59eb4828",
+      "record_sha256": "d2d2384735eb536e32407de348ecac5151dabbff9bb88880b82e47bba2a45e1d",
+      "anchor_check": {
+        "outcome": "pass",
+        "evidence": "Re-review, Devin session 59eb4828. source_id 'openstax-anatomy-physiology-2e' exists in docs/sources.json with status 'current'; locator 'sec20.2:blood-flow-blood-pressure-and-resistance' matches locator_convention 'sec<N>.<M>:<section-slug>' and resolves live (HTTP 200) to '20.2 Blood Flow, Blood Pressure, and Resistance'. Every factual sentence is supported: Poiseuille's equation 'Blood flow = pi * deltaP * r^4 / (8 * eta * lambda)' with 'r^4 is the radius (one-half of the diameter) of the vessel to the fourth power', 'eta ... represents the viscosity of the blood', 'lambda ... represents the length of a blood vessel', 'deltaP represents the difference in pressure' (A Mathematical Approach to Factors Affecting Blood Flow); 'if an artery or arteriole dilates to twice its initial radius, then resistance in the vessel will decrease to 1/16 of its original value and flow will increase 16 times' (Vessel Length and Diameter); 'small changes in the radius will greatly affect flow, since it is raised to the fourth power in the equation'; the five variables list includes 'Cardiac output', 'Compliance', 'Volume of the blood' (Variables Affecting Blood Flow and Blood Pressure); 'Turbulent blood flow through the vessels can be heard' and reduced compliance yields 'more turbulence' (Compliance). The equal lengths, viscosities, pressure differences, and doubled radius are stipulated model values exempt under contract section 4."
+      },
+      "key_check": {
+        "outcome": "not_applicable",
+        "blind_answer": null,
+        "evidence": "Tutoring examples have no answer key."
+      },
+      "rationale_check": {
+        "outcome": "pass",
+        "evidence": "Re-review, Devin session 59eb4828. tutor_response reasoning is correct and internally consistent. 'flow proportional to the pressure difference and to the fourth power of radius, and inversely proportional to viscosity and vessel length' restates Blood flow = pi * deltaP * r^4 / (8 * eta * lambda). 'The flow ratio is therefore 2 to the fourth power, or 16' is correct arithmetic with length, viscosity, and deltaP held equal. 'doubling the radius cuts resistance to 1/16 and raises flow 16 times' matches the section verbatim ('resistance ... will decrease to 1/16 of its original value and flow will increase 16 times'). The correction of the learner's linear prediction is sound ('it is raised to the fourth power in the equation'). 'if the pressure difference or viscosity changed, radius alone would not determine the ratio' follows in one step from the equation. 'blood flow also depends on factors such as cardiac output, vessel compliance, and blood volume, and flow can become turbulent' matches the five-variables list and the turbulence passages; the closing 'conceptual relationship, not a numerical prediction' is pedagogical framing consistent with the section's descriptive treatment."
+      },
+      "distractor_check": {
+        "outcome": "not_applicable",
+        "evidence": "Re-review, Devin session 59eb4828. Tutoring example has no options. The record explicitly analyzes the plausible wrong turn - the learner's linear 'twice the radius predicts twice the flow' - and explains why it fails (radius enters to the fourth power), then states the comparison's limits (fixed deltaP, viscosity, length; in-body factors such as cardiac output, compliance, blood volume; turbulence). No unaddressed competing interpretation found."
+      },
+      "tier_check": {
+        "outcome": "pass",
+        "evidence": "Re-review, Devin session 59eb4828. tier 'reasoning' matches taxonomy section 4.3 for tutoring_example: 'Models multi-step reasoning on a non-trivial problem: comparing competing hypotheses, analyzing a plausible wrong turn, or extending a principle to an edge case - including where the reasoning could go wrong and why.' The record models exactly that: it dissects a plausible linear-scaling wrong turn, derives the r^4 ratio step by step, and names where the comparison breaks down. domain 'pre_clinical' / subdomain 'cardiovascular' is a valid section 3.2 pair, and 'cardiovascular' is in the openstax-anatomy-physiology-2e coverage list in docs/sources.json."
+      }
+    }
+  ],
+  "near_misses": [
+    {
+      "record_id": "near-miss-mcq-wrong-key-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "081712fe25ae27be181b6954eb6bdfa98ca20daf25556e275ea6017a30e7c213",
+      "planted_defect_check": {
+        "outcome": "pass",
+        "evidence": "Planted defect confirmed at stage 2 (key re-derivation), path /key. The stem is supported by openstax-anatomy-physiology-2e sec4.2:epithelial-tissue (\"Exocrine glands release their contents through a duct that leads to the epithelial surface\"), so the correct option is A; the record's key is B, while its own key explanation argues for A and its distractor text refutes B. That mismatch is the footprint of the single wrong key. No second defect found: anchors are present and support the stem, explanation and refutations; options C and D assert no fact; bbf/animal_structure and foundation tier are consistent; the inline structural check against schemas/mcq.v1.json found no violation. The correct answer was derived from the stem, options and cited passage, not blind: the probe manifest was read in the same step."
+      }
+    },
+    {
+      "record_id": "near-miss-mcq-wrong-key-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "d45e8254070d2c48cdd7b51c4bd5bf4c10d39605461cb879d066c8eb06d3604f",
+      "planted_defect_check": {
+        "outcome": "pass",
+        "evidence": "Planted defect confirmed at stage 2 (key re-derivation), path /key. openstax-introduction-sociology-3e ch9:what-is-social-stratification says \"Social stratification refers to a society's categorization of its people into rankings based on factors like wealth, income, education, family background, and power\" and calls it \"a society-wide system\", so the correct option is C; the record's key is A, while its own key explanation argues for C. No second defect found: the refutations are supported (wages and \"investment dividends\" are income; one possession is a single asset); anchors are present; psb/socioeconomic and foundation tier are consistent; the inline structural check against schemas/mcq.v1.json found no violation. The correct answer was derived from the stem, options and cited passage, not blind: the probe manifest was read in the same step."
+      }
+    },
+    {
+      "record_id": "near-miss-mcq-missing-anchor-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "d932bd1e22bd26320f6cc9c628c8250579995582177b6ef9809fe9456e55832e",
+      "planted_defect_check": {
+        "outcome": "pass",
+        "evidence": "Planted defect confirmed at stage 3 (claim-level anchor check), path /stem/anchors. stem.text asserts a fact (\"For a body of fixed mass, acceleration is proportional to net external force\") while stem.anchors is empty; the rationale anchors do not attach to the stem. The fact itself is true per openstax-university-physics-2016 vol1:ch5:newtons-second-law (\"acceleration is directly proportional to net external force\"), so the defect is the missing anchor and not a false claim. No second defect found: key D is correct (doubling net force doubles acceleration at fixed mass); the explanation and the three refutations are supported by the cited section; cpf/mechanics and foundation tier are consistent; the inline structural check against schemas/mcq.v1.json found no violation (an empty anchors array is schema-valid on AnchoredText). The correct answer was derived from the stem, options and cited passage, not blind: the probe manifest was read in the same step."
+      }
+    },
+    {
+      "record_id": "near-miss-mcq-missing-anchor-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "a544e3b66bdf9a45a3dea808380e1fce182a4b34ed15e2753a1854bf3490c058",
+      "planted_defect_check": {
+        "outcome": "pass",
+        "evidence": "Planted defect confirmed at stage 3 (claim-level anchor check), path /stem/anchors. stem.text asserts a fact (\"Formal norms are written behavioral rules\") while stem.anchors is empty; the rationale anchors do not attach to the stem. The fact itself is true per openstax-introduction-sociology-3e ch3:elements-of-culture (\"Formal norms are established, written rules existing in all societies\"), so the defect is the missing anchor and not a false claim. No second defect found: key B is correct; the refutations are supported (an unwritten custom is an informal norm, a conviction is a belief, an ideal is a value); psb/culture_identity and foundation tier are consistent; the inline structural check against schemas/mcq.v1.json found no violation. The correct answer was derived from the stem, options and cited passage, not blind: the probe manifest was read in the same step."
+      }
+    },
+    {
+      "record_id": "near-miss-tut-unanchored-claim-0001",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "368cd1ab615249843170e0eb8705c4382c1bed6c364bf769fb5bfb2ebc062d7b",
+      "planted_defect_check": {
+        "outcome": "pass",
+        "evidence": "Planted defect confirmed at stage 3 (passage-support check), path /tutor_response/text. The response cites only openstax-anatomy-physiology-2e sec4.2:epithelial-tissue. Its epithelial claims are supported there (one layer \"where every cell rests on the basal lamina\" versus more than one layer). The appended sentence \"ADH is synthesized by hypothalamic neurons rather than by the posterior pituitary\" is not: the fetched sec4.2 text has no mention of ADH, antidiuretic hormone, the hypothalamus or the posterior pituitary (it names only the anterior pituitary as an example endocrine gland). The claim is true per sec17.3, which is not cited, so this is an unsupported claim and not a false one. No second defect found: the learner prompt asserts no fact, so its empty anchors are acceptable; bbf/animal_structure and foundation tier are consistent; the inline structural check against schemas/tutoring_example.v1.json found no violation. Read together with the probe manifest, not blind."
+      }
+    },
+    {
+      "record_id": "near-miss-tut-unanchored-claim-0002",
+      "reviewer_run_id": "factory-droid-review-rm2522-session-35c4494a-0629-401b-9a98-63dae38ec63e",
+      "record_sha256": "3ffa69ccf740087ba113f4844fe239a6df3dd8e9d225038c3a98da6c52a33ac8",
+      "planted_defect_check": {
+        "outcome": "pass",
+        "evidence": "Planted defect confirmed at stage 3 (passage-support check), path /tutor_response/text. The response cites only openstax-university-physics-2016 vol1:ch16:mathematics-of-waves. Its wave claims are supported there: the wave \"repeats every wavelength\", frequency is the reciprocal of the period, and \"This wave propagates down the string one wavelength in one period\", which gives speed = frequency x wavelength in one step. The appended sentence \"pressure increases with depth in a stationary uniform-density liquid under gravity\" is not: the fetched section 16.2 text contains neither \"pressure\" nor \"depth\". The claim is true per vol1:ch14:fluids-density-and-pressure, which is not cited, so this is an unsupported claim and not a false one. No second defect found: the learner prompt asserts no fact; cpf/transmission and foundation tier are consistent; the inline structural check against schemas/tutoring_example.v1.json found no violation. Read together with the probe manifest, not blind."
+      }
+    }
+  ]
+}

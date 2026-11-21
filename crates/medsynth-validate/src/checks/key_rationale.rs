@@ -47,8 +47,9 @@ fn key_rationale_mcq(record: &RecordFile, findings: &mut Vec<Finding>) {
 /// The rationale must reference the keyed answer. Cheap deterministic
 /// proxy: the keyed option must share strictly more content words
 /// (lowercased tokens, len ≥ 4) with `key_explanation` than every other
-/// option — a wrong key leaves the rationale explaining another option,
-/// and a tie gives no evidence the rationale favors the keyed answer.
+/// option — a wrong key leaves the rationale explaining another option.
+/// A tie can be resolved by an explicit, unambiguous keyed-label reference:
+/// numeric choices and short terms often share every ≥4-letter token.
 fn key_references_option(
     record: &RecordFile,
     v: &serde_json::Value,
@@ -82,17 +83,37 @@ fn key_references_option(
         .map(|(_, n)| *n)
         .max()
         .unwrap_or(0);
-    if let Some(detail) = key_verdict(explanation, key, own, best_other) {
+    let explicit_key = scores.contains_key(key) && references_label(explanation, key);
+    let unambiguous_label = explicit_key
+        && !scores
+            .keys()
+            .any(|label| *label != key && references_label(explanation, label));
+    let labels = LabelSignal {
+        explicit_key,
+        unambiguous_label,
+    };
+    if let Some(detail) = key_verdict(key, own, best_other, &labels) {
         push_lint(record, findings, detail);
     }
 }
 
+/// Label-reference signals for `key_verdict`: whether the rationale names
+/// the keyed label explicitly and whether it names no other label.
+struct LabelSignal {
+    explicit_key: bool,
+    unambiguous_label: bool,
+}
+
 /// `None` when the rationale adequately references the key; `Some(detail)`
 /// describes why it does not.
-fn key_verdict(explanation: &str, key: &str, own: usize, best_other: usize) -> Option<String> {
+fn key_verdict(key: &str, own: usize, best_other: usize, labels: &LabelSignal) -> Option<String> {
     if own == 0 && best_other == 0 {
-        return (!references_label(explanation, key))
-            .then(|| format!("rationale does not reference key `{key}`"));
+        // Preserve the existing all-short-option fallback, including a
+        // rationale which names a wrong option while refuting it.
+        return (!labels.explicit_key).then(|| format!("rationale does not reference key `{key}`"));
+    }
+    if own == best_other && labels.unambiguous_label {
+        return None;
     }
     if own <= best_other {
         let why = if own == best_other {
@@ -108,9 +129,10 @@ fn key_verdict(explanation: &str, key: &str, own: usize, best_other: usize) -> O
     None
 }
 
-/// All-short options (e.g. "ATP"/"ADP") carry no ≥4-letter content words,
-/// so overlap cannot discriminate — fall back to the rationale naming the
-/// keyed label explicitly. Every key requires the label form ("option B",
+/// All-short options (e.g. "ATP"/"ADP"), numeric choices, and shared long
+/// words can leave overlap unable to discriminate — fall back to the
+/// rationale naming the keyed label explicitly (only that label for a
+/// nonzero overlap tie). Every key requires the label form ("option B",
 /// "answer (C)"): a bare letter is too ambiguous — "a" is an article,
 /// "C" a temperature unit, "B"/"D" vitamin names.
 fn references_label(explanation: &str, key: &str) -> bool {
@@ -119,7 +141,9 @@ fn references_label(explanation: &str, key: &str) -> bool {
 
 /// Separators that may precede a label: whitespace, a colon, and the
 /// opening markers `(` and quotes.
-const SEPARATORS: &[char] = &[' ', '\t', '\u{a0}', ':', '(', '"', '\'', '‘', '’', '“', '”'];
+const SEPARATORS: &[char] = &[
+    ' ', '\t', '\n', '\r', '\u{a0}', ':', '(', '"', '\'', '‘', '’', '“', '”',
+];
 /// Characters that mark a label as enclosed. Closing quotes cannot open:
 /// `'option' a …` closes the trigger word, it does not mark `a`.
 const MARKERS: &[char] = &['(', '"', '\'', '‘', '“'];

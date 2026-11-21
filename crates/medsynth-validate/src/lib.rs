@@ -2,7 +2,8 @@
 //!
 //! One binary runs every check over the record corpus — every record under
 //! `data/` (including `data/gold/`; `.json` files and `.jsonl` shards, one
-//! record per line per `data/README.md`) and every `valid-*.json` fixture
+//! record per line per `data/README.md`, excluding #7 near-miss probes and
+//! review metadata) and every `valid-*.json` fixture
 //! under `fixtures/` — and reports every failure it finds before exiting
 //! nonzero. The checks:
 //!
@@ -205,14 +206,22 @@ pub fn load_registry(root: &Path) -> HashSet<String> {
         .unwrap_or_default()
 }
 
-/// Collect the record files the gate validates: every `*.json` and `*.jsonl`
-/// under `data/` (including `data/gold/`) and every `valid-*.json` fixture
+/// Collect candidate record files: `*.json` and `*.jsonl` under `data/`,
+/// excluding the explicitly separate gold near-miss probes and review
+/// metadata, and every `valid-*.json` fixture
 /// under `fixtures/` (at any depth, so a root-level `fixtures/valid-*.json`
 /// is still seen). Missing directories yield no files.
 pub fn record_files(root: &Path) -> (Vec<PathBuf>, Vec<Finding>) {
     let mut files = Vec::new();
     let mut findings = Vec::new();
     collect(root.join("data"), None, &mut files, &mut findings);
+    files.retain(|path| {
+        !path.starts_with(root.join("data/gold/near-miss"))
+            && path != &root.join("data/gold/review-manifest.json")
+    });
+    // The near-miss subtree is excluded above, so traversal errors inside
+    // it must not poison the corpus findings either.
+    findings.retain(|f| !f.path.starts_with(root.join("data/gold/near-miss")));
     collect(
         root.join("fixtures"),
         Some("valid-"),
@@ -323,14 +332,35 @@ fn collect(
 }
 
 /// The format slug carried by a record path: the first directory component
-/// equal to a format slug. Always called on the corpus-relative display
-/// path (`data/mcq/…`, `fixtures/case_vignette/…`, `data/gold/tutoring_example/…`)
-/// so ancestor directories outside the corpus cannot misclassify records.
+/// equal to a format slug. Callers must pass the corpus-relative display
+/// path (`data/mcq/…`, `fixtures/case_vignette/…`, `data/gold/tutoring_example/…`),
+/// as `load_corpus` does — a debug_assert enforces this, and in release
+/// builds an absolute path simply returns `None` when it lacks a format
+/// component. Ancestor directories outside the corpus cannot misclassify
+/// records under that precondition.
 pub fn format_of(path: &Path) -> Option<Format> {
-    path.components().find_map(|c| {
+    let directory_format = path.components().find_map(|c| {
         Format::all()
             .into_iter()
             .find(|f| Some(f.slug()) == c.as_os_str().to_str())
+    });
+    directory_format.or_else(|| {
+        // #7 uses one flat shard per format. This exception is deliberately
+        // confined to the corpus-relative gold staging directory; callers
+        // must pass the corpus-relative display path, as load_corpus does.
+        debug_assert!(
+            path.is_relative(),
+            "format_of expects a corpus-relative path, got {}",
+            path.display()
+        );
+        if path.parent() != Some(Path::new("data/gold"))
+            || path.extension().is_none_or(|e| e != "jsonl")
+        {
+            return None;
+        }
+        Format::all()
+            .into_iter()
+            .find(|f| Some(f.slug()) == path.file_stem().and_then(|s| s.to_str()))
     })
 }
 
