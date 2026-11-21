@@ -185,7 +185,7 @@ fn names_option(explanation: &str, key: &str) -> bool {
                     .next();
                 return match next {
                     Some(c) if CLOSERS.contains(&c) => true,
-                    Some(':') => trimmed.chars().next().is_some_and(|c| c.is_uppercase()),
+                    Some(':') => trimmed.chars().next().is_some_and(char::is_uppercase),
                     _ => false,
                 };
             }
