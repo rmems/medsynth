@@ -151,59 +151,76 @@ fn names_option(explanation: &str, key: &str) -> bool {
                     .next()
                     .is_none_or(|c| !c.is_alphanumeric())
         })
-        .any(|(i, len)| label_after_trigger(explanation, i + len, key))
+        .any(|(i, len)| {
+            LabelTail::after_trigger(&explanation[i + len..])
+                .is_some_and(|tail| tail.references(key))
+        })
 }
 
-/// Examines the text after a trigger word for a reference to `key`.
-/// Compare in original case: a bare label must be uppercase, so the
-/// article "a" in "answer a question" can never pass. A label inside
-/// parens or quotes is marked and may be lowercase ("choice (b)",
-/// "option \"a\"").
-fn label_after_trigger(explanation: &str, start: usize, key: &str) -> bool {
-    let rest = &explanation[start..];
-    if rest.starts_with(CLOSING_QUOTES) {
-        return false;
-    }
-    let trimmed = rest.trim_start_matches(|c: char| SEPARATORS.contains(&c));
-    // The opener is the last marker before the label — padding between it
-    // and the label ("( a )") does not unmark it.
-    let opener = rest[..rest.len() - trimmed.len()]
-        .trim_end()
-        .chars()
-        .next_back()
-        .filter(|c| MARKERS.contains(c));
-    let Some(opener) = opener else {
-        return unmarked_label_matches(trimmed, key);
-    };
-    marked_label_matches(trimmed, key.to_ascii_lowercase().as_str(), opener)
+/// A label candidate after a trigger word: the text following the
+/// separator run plus the enclosing delimiter, if any. A bare label must
+/// match the key in original (upper) case, so the article "a" in "answer
+/// a question" never passes; a label inside parens or quotes is marked
+/// and may be lowercase ("choice (b)", "option \"a\"").
+struct LabelTail<'a> {
+    text: &'a str,
+    opener: Option<char>,
 }
 
-/// Bare-label path: `candidate` (original case) must start with the exact
-/// uppercase key, followed by a non-alphanumeric boundary.
-fn unmarked_label_matches(candidate: &str, key: &str) -> bool {
-    candidate.starts_with(key)
-        && candidate[key.len()..]
+impl<'a> LabelTail<'a> {
+    /// Parses the tail after a trigger word — `None` when a closing quote
+    /// immediately follows the word ('option' a …), which belongs to the
+    /// word rather than marking a label.
+    fn after_trigger(rest: &'a str) -> Option<Self> {
+        if rest.starts_with(CLOSING_QUOTES) {
+            return None;
+        }
+        let text = rest.trim_start_matches(|c: char| SEPARATORS.contains(&c));
+        // The opener is the last marker before the label — padding between
+        // it and the label ("( a )") does not unmark it.
+        let opener = rest[..rest.len() - text.len()]
+            .trim_end()
             .chars()
-            .next()
-            .is_none_or(|c| !c.is_alphanumeric())
-}
-
-/// Marked-label path: the lowercased `candidate` must start with `key_cmp`
-/// and be closed by the delimiter matching `opener` — "(a)" or `"a"`
-/// count, "(a nucleotide" and (a "quote" do not. Whitespace may precede
-/// the closer ("( a )"), and a colon may introduce the option text for an
-/// uppercase label ("(A: ATP)").
-fn marked_label_matches(candidate: &str, key_cmp: &str, opener: char) -> bool {
-    let first = candidate.chars().next();
-    let candidate = candidate.to_ascii_lowercase();
-    if !candidate.starts_with(key_cmp) {
-        return false;
+            .next_back()
+            .filter(|c| MARKERS.contains(c));
+        Some(Self { text, opener })
     }
-    let next = candidate[key_cmp.len()..].trim_start().chars().next();
-    match next {
-        Some(':') => first.is_some_and(char::is_uppercase),
-        Some(c) => closes(opener, c),
-        None => false,
+
+    /// Whether this tail references `key` as a label.
+    fn references(&self, key: &str) -> bool {
+        match self.opener {
+            None => self.unmarked(key),
+            Some(opener) => self.marked(key, opener),
+        }
+    }
+
+    /// Bare-label path: `text` must start with the exact uppercase key,
+    /// followed by a non-alphanumeric boundary.
+    fn unmarked(&self, key: &str) -> bool {
+        self.text.starts_with(key)
+            && self.text[key.len()..]
+                .chars()
+                .next()
+                .is_none_or(|c| !c.is_alphanumeric())
+    }
+
+    /// Marked-label path: the label must be closed by the delimiter
+    /// matching `opener` — "(a)" or `"a"` count, "(a nucleotide" and
+    /// `(a "quote"` do not. Whitespace may precede the closer ("( a )"),
+    /// and a colon may introduce the option text for an uppercase label
+    /// ("(A: ATP)").
+    fn marked(&self, key: &str, opener: char) -> bool {
+        let first = self.text.chars().next();
+        let text = self.text.to_ascii_lowercase();
+        let key = key.to_ascii_lowercase();
+        if !text.starts_with(&key) {
+            return false;
+        }
+        match text[key.len()..].trim_start().chars().next() {
+            Some(':') => first.is_some_and(char::is_uppercase),
+            Some(c) => closes(opener, c),
+            None => false,
+        }
     }
 }
 
