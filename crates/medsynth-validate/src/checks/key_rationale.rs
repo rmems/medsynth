@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::{Check, Finding, Format, RecordFile};
 
@@ -63,20 +63,20 @@ fn key_references_option(
         return; // missing fields are the schema check's findings
     };
     let explained = words(explanation);
-    let overlap = |label: &str| -> usize {
-        options
-            .iter()
-            .find(|o| o["label"].as_str() == Some(label))
-            .map(|o| words(o["text"].as_str().unwrap_or("")))
-            .map(|w| explained.intersection(&w).count())
-            .unwrap_or(0)
-    };
-    let own = overlap(key);
-    let best_other = options
+    // One pass over the options: label -> content-word overlap.
+    let scores: HashMap<&str, usize> = options
         .iter()
-        .filter_map(|o| o["label"].as_str())
-        .filter(|l| *l != key)
-        .map(overlap)
+        .filter_map(|o| {
+            let label = o["label"].as_str()?;
+            let option_words = words(o["text"].as_str().unwrap_or(""));
+            Some((label, explained.intersection(&option_words).count()))
+        })
+        .collect();
+    let own = scores.get(key).copied().unwrap_or(0);
+    let best_other = scores
+        .iter()
+        .filter(|&(&label, _)| label != key)
+        .map(|(_, n)| *n)
         .max()
         .unwrap_or(0);
     if let Some(detail) = key_verdict(explanation, key, own, best_other) {
@@ -107,46 +107,42 @@ fn key_verdict(explanation: &str, key: &str, own: usize, best_other: usize) -> O
 
 /// All-short options (e.g. "ATP"/"ADP") carry no ≥4-letter content words,
 /// so overlap cannot discriminate — fall back to the rationale naming the
-/// keyed label. Requires the explicit "option <X>" phrasing for `A` so the
-/// article "a" cannot pass as a reference, and accepts a bare letter
-/// token for `B`–`E`, which have no article collision.
+/// keyed label explicitly. Every key requires the label form ("option B",
+/// "answer (C)"): a bare letter is too ambiguous — "a" is an article,
+/// "C" a temperature unit, "B"/"D" vitamin names.
 fn references_label(explanation: &str, key: &str) -> bool {
-    if names_option(explanation, key) {
-        return true;
-    }
-    key != "A"
-        && explanation
-            .split(|c: char| !c.is_alphanumeric())
-            .any(|t| t == key)
+    names_option(explanation, key)
 }
 
-/// True when the explanation names "option <key>" — tolerating the
+/// True when the explanation names the keyed label explicitly —
+/// "option <key>", "answer <key>", or "choice <key>" — tolerating the
 /// separators that legitimately precede a label ("option (A)",
-/// "option: B", "option B"), but not sentence terminators.
+/// "answer: B", "option B"), but not sentence terminators.
 fn names_option(explanation: &str, key: &str) -> bool {
+    const WORDS: &[&str] = &["option", "answer", "choice"];
     const SEPARATORS: &[char] = &[' ', '\t', '\u{a0}', ':', '(', '"', '\'', '‘', '’', '“', '”'];
     let lower = explanation.to_lowercase();
     let key = key.to_lowercase();
-    lower
-        .match_indices("option")
-        // "option" must be a whole word, not a prefix of a longer word
-        // like "optioned".
-        .filter(|(i, _)| {
+    WORDS
+        .iter()
+        .flat_map(|w| lower.match_indices(w).map(move |(i, _)| (i, w.len())))
+        // The trigger word must be whole — not a prefix like "optioned".
+        .filter(|(i, len)| {
             lower[..*i]
                 .chars()
                 .next_back()
                 .is_none_or(|c| !c.is_alphanumeric())
-                && lower[i + "option".len()..]
+                && lower[i + len..]
                     .chars()
                     .next()
                     .is_none_or(|c| !c.is_alphanumeric())
         })
-        .any(|(i, _)| {
-            // A closing quote immediately after "option" belongs to the
+        .any(|(i, len)| {
+            // A closing quote immediately after the trigger belongs to the
             // word itself ('option' a …), not to a label. Opening curly
             // quotes are unambiguous label openers and stay in SEPARATORS.
             const CLOSING_QUOTES: &[char] = &['"', '\'', '’', '”'];
-            let rest = &lower[i + "option".len()..];
+            let rest = &lower[i + len..];
             if rest.starts_with(CLOSING_QUOTES) {
                 return false;
             }

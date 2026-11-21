@@ -214,39 +214,62 @@ fn anchor_presence_flags_unlisted_citation_mixed_with_listed() {
 #[test]
 fn key_rationale_label_fallback_boundaries() {
     // All-short options ("ATP" etc.) carry no content words, forcing the
-    // label fallback. Each (explanation, expect_pass) case pins down which
-    // spellings around "option <label>" count as a reference to key A.
-    fn findings_for_explanation(explanation: &str) -> Vec<medsynth_validate::Finding> {
+    // label fallback. Each (key, explanation, expect_pass) case pins down
+    // which spellings around an explicit label count as a reference.
+    fn findings_for_explanation(key: &str, explanation: &str) -> Vec<medsynth_validate::Finding> {
         let mut r = mcq();
         for (i, opt) in ["ATP", "ADP", "AMP", "GTP"].iter().enumerate() {
             r["options"][i]["text"] = serde_json::json!(opt);
         }
+        r["key"] = serde_json::json!(key);
         r["rationale"]["key_explanation"]["text"] = serde_json::json!(explanation);
         findings_for(&[record(Format::Mcq, "label-fallback", r)])
     }
     let cases = [
-        ("Option (A) is correct because ATP is the product.", true),
-        ("Option \"A\" is correct because ATP is the product.", true),
         (
+            "A",
+            "Option (A) is correct because ATP is the product.",
+            true,
+        ),
+        (
+            "A",
+            "Option \"A\" is correct because ATP is the product.",
+            true,
+        ),
+        (
+            "A",
             "Option\u{201c}A\u{201d} is correct because ATP is the product.",
             true,
         ),
         (
+            "A",
             "Option B is wrong; option A fits because ATP is the product.",
             true,
         ),
+        ("B", "Answer B is correct — ADP is the product.", true),
+        ("C", "Choice (C) fits — AMP is the product.", true),
         (
+            "A",
             "ADP is the best option. A phosphate group is released.",
             false,
         ),
-        ("ADP is the best 'option' a student should pick.", false),
         (
+            "A",
+            "ADP is the best 'option' a student should pick.",
+            false,
+        ),
+        (
+            "A",
             "ADP is the best option; a phosphate group is released.",
             false,
         ),
+        // A bare token is not a label: "C" is a temperature unit here and
+        // "B" a vitamin name — neither counts as a label reference.
+        ("C", "Normal body temperature is 37 °C.", false),
+        ("B", "Vitamin B deficiency causes fatigue.", false),
     ];
-    for (explanation, expect_pass) in cases {
-        let findings = findings_for_explanation(explanation);
+    for (key, explanation, expect_pass) in cases {
+        let findings = findings_for_explanation(key, explanation);
         let got = !findings.iter().any(|f| f.check == Check::KeyRationale);
         assert_eq!(
             got, expect_pass,
