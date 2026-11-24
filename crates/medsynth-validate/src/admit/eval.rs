@@ -1,0 +1,249 @@
+//! Per-record evaluation: the shared context, verdicts, and the ordered
+//! stage dispatch.
+//!
+//! Stage verdicts are `Reject` (a genuine defect — the record never
+//! reaches `data/`) or `Hold` (something that must be resolved before the
+//! record can be judged — a stale registry hash, a missing fulfillment,
+//! a failed review). Holds are reported separately from rejections so
+//! infrastructure and provenance issues never masquerade as defects
+//! (contract §8).
+
+use std::collections::HashSet;
+use std::path::PathBuf;
+
+use serde_json::Value;
+
+use super::batch::{Batch, DraftRecord};
+use super::config::RunConfig;
+use super::fulfill::{Exchange, Fulfillment, RequestKind};
+use super::pipeline::{Outcome, RecordOutcome, Stage, display};
+use super::registry::SourceRegistry;
+use super::{anchor, intake, key};
+
+/// Everything a record evaluation reads.
+pub(super) struct Ctx<'a> {
+    pub batch: &'a Batch,
+    pub validators: &'a crate::Validators,
+    pub registry: &'a SourceRegistry,
+    pub config: &'a RunConfig,
+    pub fulfillment: &'a Fulfillment,
+    /// Ids already admitted under `data/` (minus this run's own shards) —
+    /// a re-admission is a stage-1 duplicate.
+    pub admitted_ids: &'a HashSet<String>,
+}
+
+/// One stage's verdict on a record.
+pub(super) enum Verdict {
+    Pass,
+    Reject(Vec<String>),
+    Hold(Vec<String>),
+}
+
+impl Verdict {
+    pub fn reject(reason: impl Into<String>) -> Self {
+        Self::Reject(vec![reason.into()])
+    }
+    pub fn hold(reason: impl Into<String>) -> Self {
+        Self::Hold(vec![reason.into()])
+    }
+    pub fn is_pass(&self) -> bool {
+        matches!(self, Self::Pass)
+    }
+}
+
+/// Reject/hold reasons collected while a stage walks a record.
+#[derive(Default)]
+pub(super) struct Findings {
+    rejects: Vec<String>,
+    holds: Vec<String>,
+}
+
+impl Findings {
+    pub fn reject(&mut self, reason: impl Into<String>) {
+        self.rejects.push(reason.into());
+    }
+    pub fn hold(&mut self, reason: impl Into<String>) {
+        self.holds.push(reason.into());
+    }
+    /// Rejects dominate holds; either dominates a pass.
+    pub fn verdict(self) -> Verdict {
+        if !self.rejects.is_empty() {
+            Verdict::Reject(self.rejects)
+        } else if !self.holds.is_empty() {
+            Verdict::Hold(self.holds)
+        } else {
+            Verdict::Pass
+        }
+    }
+}
+
+/// How one record's evaluation concluded.
+pub(super) struct RecordEval {
+    pub outcome: Outcome,
+    pub outcome_record: RecordOutcome,
+    pub path: PathBuf,
+    pub stage: Option<Stage>,
+    /// Records that cleared stages 0–4 and entered the review pool.
+    pub review_candidate: bool,
+}
+
+impl RecordEval {
+    pub fn stage_label(&self) -> String {
+        self.stage
+            .map(|s| format!("{}-{}", u8::from(s), s.name()))
+            .unwrap_or_else(|| "admitted".to_owned())
+    }
+}
+
+/// Wrap a non-pass verdict into a [`RecordEval`] — `status` is the highest
+/// stage the record already cleared.
+fn stopped(record: &DraftRecord, verdict: Verdict, stage: Stage, status: &str) -> RecordEval {
+    let (outcome, reasons) = match verdict {
+        Verdict::Pass => unreachable!("stopped() only sees rejects and holds"),
+        Verdict::Reject(r) => (Outcome::Rejected, r),
+        Verdict::Hold(r) => (Outcome::Held, r),
+    };
+    RecordEval {
+        outcome,
+        outcome_record: RecordOutcome {
+            record_id: record.record_id(),
+            format: record.format.slug().to_owned(),
+            path: display(&record.path),
+            outcome,
+            stage: Some(stage.into()),
+            stage_name: Some(stage.name().to_owned()),
+            status: status.to_owned(),
+            reasons,
+        },
+        path: record.path.clone(),
+        stage: Some(stage),
+        review_candidate: false,
+    }
+}
+
+/// Stages 0–4, in order — a record stops at its first non-pass verdict.
+/// Cleared records come back as review candidates; the batch-level review
+/// decides admitted vs held.
+pub(super) fn evaluate(ctx: &Ctx, record: &DraftRecord) -> Result<RecordEval, String> {
+    let mut status = "unverified";
+    for (stage, v) in [
+        (Stage::Intake, intake::stage_intake(ctx, record)),
+        (Stage::Schema, intake::stage_schema(ctx, record)),
+    ] {
+        if !v.is_pass() {
+            return Ok(stopped(record, v, stage, status));
+        }
+    }
+    let v = key::stage_key(ctx, record)?;
+    if !v.is_pass() {
+        return Ok(stopped(record, v, Stage::Key, status));
+    }
+    status = "key-checked";
+    let (v, verify_response) = anchor::stage_anchor(ctx, record)?;
+    if !v.is_pass() {
+        return Ok(stopped(record, v, Stage::Anchor, status));
+    }
+    status = "anchor-checked";
+    let v = anchor::stage_distractor(record, verify_response.as_ref());
+    if !v.is_pass() {
+        return Ok(stopped(record, v, Stage::Distractor, status));
+    }
+    Ok(RecordEval {
+        outcome: Outcome::Admitted,
+        outcome_record: RecordOutcome {
+            record_id: record.record_id(),
+            format: record.format.slug().to_owned(),
+            path: display(&record.path),
+            outcome: Outcome::Admitted,
+            stage: None,
+            stage_name: None,
+            status: status.to_owned(),
+            reasons: Vec::new(),
+        },
+        path: record.path.clone(),
+        stage: None,
+        review_candidate: true,
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Shared response helpers — the three semantic stages speak the same
+// recorded-fulfillment protocol.
+// ---------------------------------------------------------------------------
+
+/// One fulfillment round-trip: `Ok(value)` on a usable response,
+/// `Err(reason)` for the hold an absent or malformed response earns.
+/// `Err` at the top level is an operational I/O failure.
+pub(super) fn respond(
+    ctx: &Ctx,
+    kind: RequestKind,
+    body: &Value,
+    label: &str,
+) -> Result<Result<Value, String>, String> {
+    Ok(match ctx.fulfillment.exchange(kind, body) {
+        Ok(Exchange::Response { value }) => Ok(value),
+        Ok(Exchange::Unavailable { key }) => {
+            Err(format!("{label} fulfillment unavailable ({key})"))
+        }
+        Ok(Exchange::Malformed { key, detail }) => Err(format!(
+            "{label} response {key} is not usable JSON: {detail}"
+        )),
+        Err(e) => return Err(format!("{label} fulfillment I/O: {e}")),
+    })
+}
+
+/// Whether `model_id`/`pin_id` collides with the drafting identity: the
+/// rights envelope's model, served model, or pin, or `provenance.model`.
+pub(super) fn same_model(
+    ctx: &Ctx,
+    record: &DraftRecord,
+    model_id: &str,
+    pin_id: Option<&str>,
+) -> bool {
+    let id = record.record_id();
+    if let Some(envelope) = ctx.batch.rights_envelope(&id) {
+        let model_hit = ["model_id", "served_model", "teacher_variant"]
+            .iter()
+            .any(|f| envelope[f].as_str() == Some(model_id));
+        let pin_hit = pin_id.is_some() && envelope["pin_id"].as_str() == pin_id;
+        if model_hit || pin_hit {
+            return true;
+        }
+    }
+    record.value["provenance"]["model"].as_str() == Some(model_id)
+}
+
+/// Verify a fulfillment response names the pinned run (and model, when
+/// pinned). A mismatch earns a hold reason — the harness answered a
+/// different request than the gate sent.
+pub(super) fn identity_mismatch(
+    response: &Value,
+    run_id: &str,
+    model_id: Option<&str>,
+    label: &str,
+) -> Option<String> {
+    if response["run_id"].as_str() != Some(run_id) {
+        return Some(format!(
+            "{label} response names run `{}`, not the pinned `{run_id}`",
+            response["run_id"].as_str().unwrap_or("<missing>")
+        ));
+    }
+    if let Some(model) = model_id
+        && let Some(served) = response["model_id"].as_str()
+        && served != model
+    {
+        return Some(format!(
+            "{label} response names model `{served}`, not the pinned `{model}`"
+        ));
+    }
+    None
+}
+
+/// `": <detail>"` when a response carries a detail string, else empty —
+/// appended to reject/hold reasons.
+pub(super) fn detail_suffix(response: &Value) -> String {
+    response["detail"]
+        .as_str()
+        .map(|d| format!(": {d}"))
+        .unwrap_or_default()
+}

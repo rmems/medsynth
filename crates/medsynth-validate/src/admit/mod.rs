@@ -30,13 +30,18 @@
 //! with per-record outcomes, per-stage reject/hold counts, and the run's
 //! pinned solver/verifier/reviewer ids.
 
+mod anchor;
 mod batch;
 mod claims;
 mod config;
+mod eval;
 mod fulfill;
 mod hash;
+mod intake;
+mod key;
 mod pipeline;
 mod registry;
+mod review;
 
 pub use config::{AgentPin, RunConfig, SolverPin, load_run_config};
 pub use pipeline::{

@@ -217,12 +217,13 @@ fn is_sidecar(rel: &Path) -> bool {
     let Some(name) = rel.file_name().and_then(|n| n.to_str()) else {
         return true;
     };
-    name == "manifest.json"
-        || name.ends_with("-manifest.json")
-        || name == "config.json"
-        || name.starts_with("admission-log")
-        || name.ends_with(".request.json")
-        || name.ends_with(".response.json")
+    if name.starts_with("admission-log") {
+        return true;
+    }
+    ["manifest.json", "config.json"].contains(&name)
+        || ["-manifest.json", ".request.json", ".response.json"]
+            .iter()
+            .any(|s| name.ends_with(s))
 }
 
 fn walk(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
