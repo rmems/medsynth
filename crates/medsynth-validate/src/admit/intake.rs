@@ -6,8 +6,8 @@ use serde_json::Value;
 use crate::{RecordFile, run_schema_check};
 
 use super::batch::DraftRecord;
+use super::envelope;
 use super::eval::{Ctx, Verdict};
-use super::hash::{normalize_newlines, sha256_str};
 
 /// Stage 0 — draft status, manifest membership and content hash, then
 /// the lane-specific envelope checks.
@@ -26,8 +26,8 @@ pub(super) fn stage_intake(ctx: &Ctx, record: &DraftRecord) -> Verdict {
     }
     match resolve_lane(record, entry) {
         Ok(lane) => match lane.as_str() {
-            "teacher" => intake_teacher(ctx, record),
-            "procedural" => intake_procedural(record, entry),
+            "teacher" => envelope::intake_teacher(ctx, record),
+            "procedural" => envelope::intake_procedural(record, entry),
             _ => Verdict::Pass,
         },
         Err(v) => v,
@@ -95,71 +95,6 @@ fn lane_of(record: &DraftRecord) -> String {
         return "teacher".to_owned();
     }
     "agent".to_owned()
-}
-
-fn intake_teacher(ctx: &Ctx, record: &DraftRecord) -> Verdict {
-    let id = record.record_id();
-    let Some(envelope) = ctx.batch.rights_envelope(&id) else {
-        return Verdict::reject("teacher-lane draft has no rights envelope in the manifest");
-    };
-    let mut missing = Vec::new();
-    for field in [
-        "record_id",
-        "teacher_variant",
-        "model_id",
-        "pin_id",
-        "pin_entry",
-        "pin_entry_sha256",
-        "content_sha256",
-    ] {
-        if envelope[field].as_str().is_none_or(|s| s.trim().is_empty()) {
-            missing.push(field);
-        }
-    }
-    if !missing.is_empty() {
-        return Verdict::reject(format!(
-            "incomplete rights envelope — missing: {}",
-            missing.join(", ")
-        ));
-    }
-    if envelope["record_id"].as_str() != Some(id.as_str()) {
-        return Verdict::reject("rights envelope names a different record id");
-    }
-    if envelope["content_sha256"].as_str() != Some(record.content_sha256().as_str()) {
-        return Verdict::reject("rights envelope content_sha256 does not match the record");
-    }
-    // The pinned teacher entry must hash to itself — the envelope's own
-    // integrity, before any question of which pin the entry names.
-    if sha256_str(&normalize_newlines(
-        envelope["pin_entry"].as_str().unwrap_or_default(),
-    )) != envelope["pin_entry_sha256"].as_str().unwrap_or_default()
-    {
-        return Verdict::reject("rights envelope pin_entry does not match pin_entry_sha256");
-    }
-    Verdict::Pass
-}
-
-fn intake_procedural(record: &DraftRecord, entry: Option<&Value>) -> Verdict {
-    let provenance = &record.value["provenance"];
-    if !provenance["generator"]
-        .as_str()
-        .is_some_and(|g| g.starts_with("template:"))
-        || provenance["template_version"]
-            .as_str()
-            .is_none_or(|t| t.is_empty())
-    {
-        return Verdict::reject(
-            "procedural-lane draft lacks its `template:` generator or template_version",
-        );
-    }
-    if let Some(entry) = entry
-        && (!entry["seed"].is_u64() || entry["generator"].as_str().is_none_or(|g| g.is_empty()))
-    {
-        return Verdict::reject(
-            "procedural-lane manifest entry lacks its seed or template generator",
-        );
-    }
-    Verdict::Pass
 }
 
 /// Stage 1 — the shared schema check plus admission-level identity rules:

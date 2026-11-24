@@ -34,6 +34,7 @@ mod anchor;
 mod batch;
 mod claims;
 mod config;
+mod envelope;
 mod eval;
 mod fulfill;
 mod hash;

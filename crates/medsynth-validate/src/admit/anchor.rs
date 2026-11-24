@@ -215,13 +215,14 @@ fn verify_claims(
         }
     }
     for block in claim_blocks {
-        match verdicts.get(block.path.as_str()) {
-            None => findings.hold(format!("verifier returned no verdict for {}", block.path)),
-            Some(vs) => {
-                for v in vs {
-                    apply_claim_verdict(block, v, &mut findings);
-                }
-            }
+        let vs = verdicts
+            .get(block.path.as_str())
+            .map_or(&[][..], Vec::as_slice);
+        if vs.is_empty() {
+            findings.hold(format!("verifier returned no verdict for {}", block.path));
+        }
+        for v in vs {
+            apply_claim_verdict(block, v, &mut findings);
         }
     }
     Ok((findings.verdict(), Some(response)))
