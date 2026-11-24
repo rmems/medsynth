@@ -32,7 +32,7 @@ pub(super) fn stage_key(ctx: &Ctx, record: &DraftRecord) -> Result<Verdict, Stri
         ));
     }
 
-    let body = claims::solve_body(&ctx.batch.batch_id, record, &item);
+    let body = claims::solve_body(&ctx.scope(), record, &item);
     let value = match respond(ctx, RequestKind::Solve, &body, "solver")? {
         Ok(value) => value,
         Err(reason) => return Ok(Verdict::hold(reason)),
@@ -58,14 +58,29 @@ fn compare_key(record: &DraftRecord, value: &Value) -> Verdict {
                 None => Verdict::hold("solver response carries no `answer`"),
             }
         }
-        Format::CaseVignette => match value["verdict"].as_str() {
-            Some("agree") => Verdict::Pass,
-            Some("disagree") => Verdict::reject(format!(
-                "solver disagrees with the expected answer{}",
-                detail_suffix(value)
-            )),
-            _ => Verdict::hold("solver response carries no `verdict`"),
-        },
+        Format::CaseVignette => {
+            // The solver must actually re-derive the answers — a bare
+            // `agree` without derivation artifacts proves nothing.
+            let questions = record.value["questions"].as_array().map_or(0, Vec::len);
+            let derived = value["answers"].as_array();
+            if derived.is_none_or(|a| {
+                a.len() != questions
+                    || a.iter()
+                        .any(|x| x.as_str().is_none_or(|s| s.trim().is_empty()))
+            }) {
+                return Verdict::hold(format!(
+                    "solver response carries no derived `answers` for the {questions} questions"
+                ));
+            }
+            match value["verdict"].as_str() {
+                Some("agree") => Verdict::Pass,
+                Some("disagree") => Verdict::reject(format!(
+                    "solver disagrees with the expected answer{}",
+                    detail_suffix(value)
+                )),
+                _ => Verdict::hold("solver response carries no `verdict`"),
+            }
+        }
         Format::TutoringExample => Verdict::Pass,
     }
 }

@@ -22,7 +22,17 @@ pub(super) fn stage_anchor(
     record: &DraftRecord,
 ) -> Result<(Verdict, Option<Value>), String> {
     let claim_blocks = claims::claim_blocks(record);
-    let findings = AnchorCheck::new(ctx, record).run(&claim_blocks)?;
+    let mut findings = AnchorCheck::new(ctx, record).run(&claim_blocks)?;
+
+    // Contract §4's floor, mirroring the CI anchor-presence check: a
+    // record that admits with zero registry anchors fails the corpus
+    // gate downstream, so the gate rejects it here.
+    if registry_anchor_count(&record.value, ctx.registry) == 0 {
+        findings.reject(
+            "record carries no anchors into the source registry — \
+             admitted records require at least one (contract §4)",
+        );
+    }
 
     // Semantic support: every claim block gets a verdict from the pinned
     // verifier — supported, claim-free, unsupported, or unanchored. A
@@ -79,13 +89,20 @@ impl<'a, 'b> AnchorCheck<'a, 'b> {
                 block.path, entry.status
             ));
         }
+        // The #8 receipt check runs before locator syntax: a stale
+        // receipt means the registry entry drifted since drafting, so
+        // its current locator convention may not be the one the draft
+        // was written against — the record holds for re-anchoring rather
+        // than rejecting against a convention it never claimed to meet.
+        if self.receipt_stale(block, source_id, locator, entry.sha256.as_str()) {
+            return Ok(());
+        }
         if !self.locator_valid(source_id, locator, &entry.locator_format)? {
             self.findings.reject(format!(
                 "{}: locator `{locator}` violates `{source_id}`'s convention `{}`",
                 block.path, entry.locator_format
             ));
         }
-        self.check_receipt(block, source_id, locator, entry.sha256.as_str());
         Ok(())
     }
 
@@ -115,30 +132,44 @@ impl<'a, 'b> AnchorCheck<'a, 'b> {
         Ok(validator.is_valid(&serde_json::json!(locator)))
     }
 
-    /// #8's anchor receipts pin the registry entry bytes at draft time; a
-    /// drifted entry holds the record for re-anchoring rather than
-    /// rejecting it.
-    fn check_receipt(&mut self, block: &ClaimBlock, source_id: &str, locator: &str, sha: &str) {
+    /// #8's anchor receipts pin the registry entry bytes at draft time;
+    /// a drifted or missing receipt holds the record for re-anchoring.
+    /// Returns true when the receipt is stale — the anchor is then done:
+    /// the drifted entry's current convention proves nothing about the
+    /// locator the draft was written against.
+    fn receipt_stale(
+        &mut self,
+        block: &ClaimBlock,
+        source_id: &str,
+        locator: &str,
+        sha: &str,
+    ) -> bool {
         if !self.ctx.batch.has_anchor_receipts() {
-            return;
+            return false;
         }
         match self
             .ctx
             .batch
             .anchor_receipt(&self.record.record_id(), source_id, locator)
         {
-            None => self.findings.hold(format!(
-                "{path}: anchor {source_id} {locator} has no batch receipt",
-                path = block.path
-            )),
-            Some(receipt) if receipt["registry_entry_sha256"].as_str() != Some(sha) => {
+            None => {
                 self.findings.hold(format!(
-                    "{}: registry entry `{source_id}` changed since drafting — \
-                     held for re-anchoring",
-                    block.path
+                    "{path}: anchor {source_id} {locator} has no batch receipt",
+                    path = block.path
                 ));
+                false
             }
-            Some(_) => {}
+            Some(receipt) => {
+                let stale = receipt["registry_entry_sha256"].as_str() != Some(sha);
+                if stale {
+                    self.findings.hold(format!(
+                        "{}: registry entry `{source_id}` changed since drafting — \
+                         held for re-anchoring",
+                        block.path
+                    ));
+                }
+                stale
+            }
         }
     }
 }
@@ -153,7 +184,7 @@ fn verify_claims(
     distractor: Option<&DistractorScreen>,
     mut findings: Findings,
 ) -> Result<(Verdict, Option<Value>), String> {
-    let body = claims::verify_body(&ctx.batch.batch_id, record, claim_blocks, distractor);
+    let body = claims::verify_body(&ctx.scope(), record, claim_blocks, distractor);
     let response = match respond(ctx, RequestKind::Verify, &body, "verifier")? {
         Ok(value) => value,
         Err(reason) => {
@@ -161,9 +192,18 @@ fn verify_claims(
             return Ok((findings.verdict(), None));
         }
     };
-    let verifier_run_id = &ctx.config.verifier.as_ref().expect("check_pins ran").run_id;
-    if let Some(reason) = identity_mismatch(&response, verifier_run_id, None, "verifier") {
+    // A response from the wrong run/model is untrusted: hold for a
+    // correct fulfillment and stop — its claim verdicts must not reject
+    // or support anything.
+    let verifier = ctx.config.verifier.as_ref().expect("check_pins ran");
+    if let Some(reason) = identity_mismatch(
+        &response,
+        &verifier.run_id,
+        verifier.model_id.as_deref(),
+        "verifier",
+    ) {
         findings.hold(reason);
+        return Ok((findings.verdict(), None));
     }
     let verdicts: HashMap<&str, &Value> = response["claims"]
         .as_array()
@@ -200,6 +240,39 @@ fn apply_claim_verdict(block: &ClaimBlock, v: &Value, findings: &mut Findings) {
             other.unwrap_or("<missing>"),
             block.path
         )),
+    }
+}
+
+/// Count `anchors[]` entries anywhere in the record citing a registered
+/// source id — the same walk the CI `anchor-presence` check performs.
+fn registry_anchor_count(value: &Value, registry: &super::registry::SourceRegistry) -> usize {
+    match value {
+        Value::Object(map) => map
+            .iter()
+            .map(|(k, v)| {
+                if k == "anchors" {
+                    v.as_array()
+                        .map(|anchors| {
+                            anchors
+                                .iter()
+                                .filter(|a| {
+                                    a["source_id"]
+                                        .as_str()
+                                        .is_some_and(|id| registry.get(id).is_some())
+                                })
+                                .count()
+                        })
+                        .unwrap_or(0)
+                } else {
+                    registry_anchor_count(v, registry)
+                }
+            })
+            .sum(),
+        Value::Array(items) => items
+            .iter()
+            .map(|v| registry_anchor_count(v, registry))
+            .sum(),
+        _ => 0,
     }
 }
 

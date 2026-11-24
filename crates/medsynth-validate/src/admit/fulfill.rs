@@ -84,8 +84,14 @@ impl Fulfillment {
             .join(format!("{key}.{}.response.json", kind.suffix()));
         // Stage then rename: a pre-existing symlink at the request path is
         // replaced by the rename, never followed to truncate its target.
+        // create_new for the staging file itself so a planted link fails
+        // loudly instead of redirecting the write.
         let tmp_path = request_path.with_extension(format!("tmp-{}", std::process::id()));
-        let write = std::fs::write(&tmp_path, request_text(body))
+        let write = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp_path)
+            .and_then(|mut f| std::io::Write::write_all(&mut f, request_text(body).as_bytes()))
             .and_then(|()| std::fs::rename(&tmp_path, &request_path));
         if let Err(e) = write {
             let _ = std::fs::remove_file(&tmp_path);
@@ -100,6 +106,12 @@ impl Fulfillment {
                 }),
             },
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Exchange::Unavailable { key }),
+            // Bytes that are not UTF-8 are a malformed response, not an
+            // outage — the record holds, it does not sink the run.
+            Err(e) if e.kind() == std::io::ErrorKind::InvalidData => Ok(Exchange::Malformed {
+                key,
+                detail: format!("response is not UTF-8: {e}"),
+            }),
             Err(e) => Err(e),
         }
     }

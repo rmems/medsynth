@@ -39,7 +39,9 @@ mod fulfill;
 mod hash;
 mod intake;
 mod key;
+mod outputs;
 mod pipeline;
+mod published;
 mod registry;
 mod review;
 

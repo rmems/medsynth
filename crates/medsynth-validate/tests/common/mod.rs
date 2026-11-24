@@ -66,7 +66,14 @@ pub fn response(records: &HashMap<String, Value>, body: &Value, overrides: &Over
                         .unwrap_or_else(|| records[&rid]["key"].as_str().unwrap().to_owned());
                     resp["answer"] = json!(answer);
                 }
-                Some("case_vignette") => resp["verdict"] = json!("agree"),
+                Some("case_vignette") => {
+                    resp["verdict"] = json!("agree");
+                    let answers: Vec<Value> = records[&rid]["questions"]
+                        .as_array()
+                        .map(|qs| qs.iter().map(|q| q["answer"]["text"].clone()).collect())
+                        .unwrap_or_default();
+                    resp["answers"] = json!(answers);
+                }
                 _ => {}
             }
             resp

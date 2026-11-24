@@ -32,19 +32,20 @@ fn same_model_draft_rejects_without_solving() {
     let text = serde_json::to_string(&record).unwrap();
     let content_sha = sha256_hex(text.as_bytes());
     harness.add_batch_file("mcq/same-model-0001.json", &text);
+    let pin_entry = "test teacher entry";
     fs::write(
         harness.dir.join("batch/manifest.json"),
         serde_json::to_string_pretty(&json!({
             "manifest_version": 1,
             "batch_id": "same-model-batch",
-            "records": [{"id": id, "lane": "teacher"}],
+            "records": [{"id": id, "lane": "teacher", "sha256": content_sha}],
             "rights_envelopes": [{
                 "record_id": id,
                 "teacher_variant": SOLVER_MODEL,
                 "model_id": SOLVER_MODEL,
                 "pin_id": "pin-test",
-                "pin_entry": "test teacher entry",
-                "pin_entry_sha256": "abc123",
+                "pin_entry": pin_entry,
+                "pin_entry_sha256": sha256_hex(pin_entry.as_bytes()),
                 "content_sha256": content_sha,
             }],
         }))

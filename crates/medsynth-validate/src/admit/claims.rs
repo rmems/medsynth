@@ -199,20 +199,31 @@ pub fn blind_item(record: &DraftRecord) -> Option<Value> {
     }
 }
 
+/// The run identity every request body is bound to. The contract and
+/// registry versions ride along so a response keyed to superseded rules
+/// or sources can never satisfy a current request — the response file's
+/// key is the request's hash.
+pub struct RequestScope<'a> {
+    pub batch_id: &'a str,
+    pub contract_version: &'a str,
+    pub registry_version: &'a str,
+}
+
 /// The stage-2 solve request body.
-pub fn solve_body(batch_id: &str, record: &DraftRecord, item: &Value) -> Value {
+pub fn solve_body(scope: &RequestScope, record: &DraftRecord, item: &Value) -> Value {
     json!({
         "kind": "solve",
-        "batch_id": batch_id,
+        "batch_id": scope.batch_id,
         "record_id": record.record_id(),
         "format": record.format.slug(),
+        "contract_version": scope.contract_version,
         "item": item,
     })
 }
 
 /// The stage-3/4 verify request body.
 pub fn verify_body(
-    batch_id: &str,
+    scope: &RequestScope,
     record: &DraftRecord,
     claims: &[ClaimBlock],
     distractor: Option<&DistractorScreen>,
@@ -240,9 +251,11 @@ pub fn verify_body(
     });
     json!({
         "kind": "verify",
-        "batch_id": batch_id,
+        "batch_id": scope.batch_id,
         "record_id": record.record_id(),
         "format": record.format.slug(),
+        "contract_version": scope.contract_version,
+        "registry_version": scope.registry_version,
         "claims": claims,
         "distractor": distractor,
     })
@@ -250,12 +263,13 @@ pub fn verify_body(
 
 /// The stage-5 review request body — the full record as it stands after
 /// stages 1–4.
-pub fn review_body(batch_id: &str, record: &DraftRecord) -> Value {
+pub fn review_body(scope: &RequestScope, record: &DraftRecord) -> Value {
     json!({
         "kind": "review",
-        "batch_id": batch_id,
+        "batch_id": scope.batch_id,
         "record_id": record.record_id(),
         "format": record.format.slug(),
+        "contract_version": scope.contract_version,
         "record": record.value,
     })
 }

@@ -105,12 +105,17 @@ fn review_one(
             Some("reviewer is the drafting model".to_owned()),
         ));
     }
-    let body = claims::review_body(&ctx.batch.batch_id, record);
+    let body = claims::review_body(&ctx.scope(), record);
     let outcome = match respond(ctx, RequestKind::Review, &body, "review")? {
         Ok(value) => value,
         Err(reason) => return Ok(result("unfulfilled", Some(reason))),
     };
-    if let Some(reason) = identity_mismatch(&outcome, &reviewer.run_id, None, "reviewer") {
+    if let Some(reason) = identity_mismatch(
+        &outcome,
+        &reviewer.run_id,
+        reviewer.model_id.as_deref(),
+        "reviewer",
+    ) {
         return Ok(result("identity-mismatch", Some(reason)));
     }
     match outcome["outcome"].as_str() {
@@ -125,9 +130,12 @@ fn review_one(
 /// Hold every review candidate: per-record reasons for the sampled
 /// failures, a batch-level reason for the rest.
 fn hold_batch(report: &mut ReviewReport, results: &mut [RecordEval], candidates: &[usize]) {
+    // Only failed results carry per-record reasons — a sampled record
+    // that passed but lost the batch lottery gets the generic hold.
     let reasons: HashMap<String, String> = report
         .results
         .iter()
+        .filter(|r| r.outcome != "pass")
         .map(|r| {
             (
                 r.record_id.clone(),

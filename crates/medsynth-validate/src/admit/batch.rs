@@ -94,6 +94,16 @@ impl Batch {
                 ids.sort_unstable();
                 format!("batch-{}", &sha256_str(&ids.join("\n"))[..16])
             });
+        // The id names output files (`data/<format>/<batch_id>.jsonl`),
+        // so it must be a single safe path component.
+        let safe_id = !batch_id.is_empty()
+            && !matches!(batch_id.as_str(), "." | "..")
+            && batch_id
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'));
+        if !safe_id {
+            return Err(format!("batch_id `{batch_id}` is not usable as a filename"));
+        }
         Ok(Self {
             batch_id,
             records,
@@ -213,7 +223,7 @@ fn format_of(rel: &Path) -> Option<Format> {
 }
 
 /// Files that are never records even though they end in `.json`.
-fn is_sidecar(rel: &Path) -> bool {
+pub(super) fn is_sidecar(rel: &Path) -> bool {
     let Some(name) = rel.file_name().and_then(|n| n.to_str()) else {
         return true;
     };
@@ -230,10 +240,11 @@ fn walk(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> 
     for entry in fs::read_dir(dir)? {
         let entry = entry?;
         let path = entry.path();
-        if entry.file_type()?.is_symlink() {
+        let file_type = entry.file_type()?;
+        if file_type.is_symlink() {
             continue;
         }
-        if entry.file_type()?.is_dir() {
+        if file_type.is_dir() {
             walk(root, &path, out)?;
         } else {
             let rel = path.strip_prefix(root).unwrap_or(&path);

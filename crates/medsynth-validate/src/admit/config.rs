@@ -92,6 +92,17 @@ impl RunConfig {
         if self.contract_version.trim().is_empty() {
             return Err(format!("{}: contract_version is blank", label()));
         }
+        // Contract §9: the gate verifies against the currently effective
+        // version — a run configured for a superseded contract refuses to
+        // start rather than stamp records with stale rules.
+        if self.contract_version.trim() != medsynth_schema::CONTRACT_VERSION {
+            return Err(format!(
+                "{}: contract_version `{}` is not the gate's `{}`",
+                label(),
+                self.contract_version,
+                medsynth_schema::CONTRACT_VERSION
+            ));
+        }
         if !(self.sample_rate > 0.0 && self.sample_rate <= 1.0) {
             return Err(format!(
                 "{}: sample_rate {} is outside (0, 1]",

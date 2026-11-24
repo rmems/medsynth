@@ -8,15 +8,17 @@
 //! infrastructure and provenance issues never masquerade as defects
 //! (contract §8).
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 use serde_json::Value;
 
 use super::batch::{Batch, DraftRecord};
+use super::claims;
 use super::config::RunConfig;
 use super::fulfill::{Exchange, Fulfillment, RequestKind};
-use super::pipeline::{Outcome, RecordOutcome, Stage, display};
+use super::outputs::display;
+use super::pipeline::{Outcome, RecordOutcome, Stage};
 use super::registry::SourceRegistry;
 use super::{anchor, intake, key};
 
@@ -30,6 +32,20 @@ pub(super) struct Ctx<'a> {
     /// Ids already admitted under `data/` (minus this run's own shards) —
     /// a re-admission is a stage-1 duplicate.
     pub admitted_ids: &'a HashSet<String>,
+    /// How many batch records carry each id — stage 1's duplicate check
+    /// without a per-record rescan.
+    pub id_counts: &'a HashMap<String, usize>,
+}
+
+impl Ctx<'_> {
+    /// The run identity request bodies are bound to.
+    pub fn scope(&self) -> claims::RequestScope<'_> {
+        claims::RequestScope {
+            batch_id: &self.batch.batch_id,
+            contract_version: &self.config.contract_version,
+            registry_version: &self.registry.registry_version,
+        }
+    }
 }
 
 /// One stage's verdict on a record.
@@ -228,12 +244,14 @@ pub(super) fn identity_mismatch(
             response["run_id"].as_str().unwrap_or("<missing>")
         ));
     }
+    // A pinned model must be confirmed, not merely uncontradicted — a
+    // response that omits model_id could come from any model.
     if let Some(model) = model_id
-        && let Some(served) = response["model_id"].as_str()
-        && served != model
+        && response["model_id"].as_str() != Some(model)
     {
         return Some(format!(
-            "{label} response names model `{served}`, not the pinned `{model}`"
+            "{label} response names model `{}`, not the pinned `{model}`",
+            response["model_id"].as_str().unwrap_or("<missing>")
         ));
     }
     None
