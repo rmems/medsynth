@@ -63,6 +63,58 @@ fn same_model_draft_rejects_without_solving() {
     assert_eq!(harness.request_count("solve"), 0);
 }
 
+/// `load_run_config` parses a good file and names the reason each
+/// malformed variant fails: unreadable, unparseable, blank or stale
+/// contract version, out-of-range sample rate, incomplete pins, and
+/// colliding run ids.
+#[test]
+fn run_config_load_validates_shape() {
+    let harness = Harness::new("config-shape");
+    let path = harness.dir.join("run-config.json");
+    let write = |body: &str| {
+        fs::write(&path, body).unwrap();
+        admit::load_run_config(&path)
+    };
+    let good = json!({
+        "fulfillment_dir": "fulfill",
+        "contract_version": "0.1",
+        "solver": {"run_id": "s1", "model_id": "m1"},
+        "verifier": {"run_id": "v1"},
+        "reviewer": {"run_id": "r1"},
+    });
+    let config = write(&good.to_string()).expect("valid config");
+    assert_eq!(config.contract_version, "0.1");
+    assert_eq!(config.sample_rate, 0.10); // default
+
+    assert!(write("{nope").is_err());
+
+    let mut v = good.clone();
+    v["contract_version"] = json!(" ");
+    assert!(write(&v.to_string()).unwrap_err().contains("blank"));
+    v["contract_version"] = json!("0.0");
+    assert!(
+        write(&v.to_string())
+            .unwrap_err()
+            .contains("not the gate's")
+    );
+
+    v = good.clone();
+    v["sample_rate"] = json!(1.5);
+    assert!(write(&v.to_string()).unwrap_err().contains("sample_rate"));
+
+    v = good.clone();
+    v["solver"] = json!({"run_id": " ", "model_id": "m"});
+    assert!(write(&v.to_string()).unwrap_err().contains("solver pin"));
+
+    v = good.clone();
+    v["verifier"] = json!({"run_id": " "});
+    assert!(write(&v.to_string()).unwrap_err().contains("verifier"));
+
+    v = good.clone();
+    v["reviewer"] = json!({"run_id": "s1"});
+    assert!(write(&v.to_string()).unwrap_err().contains("distinct"));
+}
+
 #[test]
 fn unpinned_solver_refuses_to_start() {
     let mut harness = Harness::new("unpinned");
