@@ -494,4 +494,6 @@ impl Corpus<'_> {
 mod checks;
 pub mod originality;
 
-pub use checks::run_checks;
+pub use checks::{run_checks, run_schema_check};
+
+pub mod admit;

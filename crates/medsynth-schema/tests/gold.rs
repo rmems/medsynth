@@ -109,31 +109,13 @@ fn anchors(value: &Value, out: &mut Vec<Value>) {
     }
 }
 
-/// Registry convention syntax only. Resolving a chapter/section and checking
-/// its claim support is deliberately left to the independent review and #9.
+/// Registry convention syntax only — `medsynth_schema::locator` is the
+/// single source for these patterns, shared with the #9 admission gate.
+/// Resolving a chapter/section and checking its claim support is
+/// deliberately left to the independent review and #9.
 fn locator_pattern(convention: &str) -> &'static str {
-    match convention {
-        "ch<N>:<section-slug> or p.<page>" => {
-            r"^(ch[1-9][0-9]*:[a-z0-9]+(-[a-z0-9]+)*|p\.[1-9][0-9]*)(?![\s\S])"
-        }
-        "ch<N>:<section-slug> or sec<N>.<M>:<section-slug>" => {
-            r"^(ch[1-9][0-9]*|sec[1-9][0-9]*\.[1-9][0-9]*):[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])"
-        }
-        "ch<N>:<section-slug>" => r"^ch[1-9][0-9]*:[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])",
-        "vol<N>:ch<N>:<section-slug>" => {
-            r"^vol[1-3]:ch[1-9][0-9]*:[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])"
-        }
-        "sec<N>.<M>:<section-slug> or rec<N>" => {
-            r"^(sec[1-9][0-9]*\.[1-9][0-9]*:[a-z0-9]+(-[a-z0-9]+)*|rec[1-9][0-9]*)(?![\s\S])"
-        }
-        "sec<N>:<title-slug>@YYYY-MM-DD" => {
-            r"^sec[1-9][0-9]*:[a-z0-9]+(-[a-z0-9]+)*@[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])(?![\s\S])"
-        }
-        "rec<N> or sec<N>:<title-slug>" => {
-            r"^(rec[1-9][0-9]*|sec[1-9][0-9]*:[a-z0-9]+(-[a-z0-9]+)*)(?![\s\S])"
-        }
-        _ => panic!("unhandled registry locator convention: {convention}"),
-    }
+    medsynth_schema::locator::pattern(convention)
+        .unwrap_or_else(|| panic!("unhandled registry locator convention: {convention}"))
 }
 
 fn assert_registry_anchors(value: &Value, registry: &Value) {

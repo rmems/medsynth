@@ -47,6 +47,7 @@ pub mod anchor;
 mod error;
 mod id;
 mod labels;
+pub mod locator;
 pub mod provenance;
 mod records;
 mod schemas;

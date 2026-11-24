@@ -12,3 +12,8 @@ serde_json.workspace = true
 jsonschema.workspace = true
 clap.workspace = true
 anyhow.workspace = true
+rayon.workspace = true
+sha2.workspace = true
+
+[dev-dependencies]
+sha2.workspace = true

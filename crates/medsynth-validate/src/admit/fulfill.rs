@@ -1,0 +1,106 @@
+//! Recorded fulfillment for the pipeline's external checks.
+//!
+//! The admission binary never calls a model or a source resolver itself —
+//! the same rule the teacher lane follows. Each external check writes its
+//! request to the fulfillment directory as `<key>.<kind>.request.json` and
+//! the harness drops the verdict at `<key>.<kind>.response.json`. `kind` is
+//! `solve` (stage 2), `verify` (stages 3–4), or `review` (stage 5); `key`
+//! is the SHA-256 of the exact request-file bytes, matching the teacher
+//! lane's convention so the same harness pattern fulfills all of them.
+
+use std::path::{Path, PathBuf};
+
+use serde_json::Value;
+
+use super::hash::sha256_str;
+
+/// Which external check a fulfillment file belongs to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RequestKind {
+    /// Stage-2 blind key re-derivation.
+    Solve,
+    /// Stage-3 claim support / stage-4 distractor screen.
+    Verify,
+    /// Stage-5 accuracy review.
+    Review,
+}
+
+impl RequestKind {
+    /// The filename segment: `<key>.<suffix>.request.json`.
+    pub fn suffix(self) -> &'static str {
+        match self {
+            Self::Solve => "solve",
+            Self::Verify => "verify",
+            Self::Review => "review",
+        }
+    }
+}
+
+/// The request body a fulfiller hashes to find its task.
+pub fn request_text(body: &Value) -> String {
+    serde_json::to_string_pretty(body).expect("request bodies serialize")
+}
+
+/// The fulfillment key: SHA-256 of the exact request-file bytes.
+pub fn request_key(body: &Value) -> String {
+    sha256_str(&request_text(body))
+}
+
+/// Result of looking for a response after the request is written.
+#[derive(Debug)]
+pub enum Exchange {
+    /// The response file exists and parsed.
+    Response { value: Value },
+    /// No response yet — a transient, infrastructure-level miss. The record
+    /// is held, never rejected (contract §8: outages are not defects).
+    Unavailable { key: String },
+    /// The response file exists but is not usable JSON — also transient.
+    Malformed { key: String, detail: String },
+}
+
+/// A fulfillment directory shared with the external harness.
+pub struct Fulfillment {
+    dir: PathBuf,
+}
+
+impl Fulfillment {
+    pub fn new(dir: &Path) -> std::io::Result<Self> {
+        std::fs::create_dir_all(dir)?;
+        Ok(Self {
+            dir: dir.to_path_buf(),
+        })
+    }
+
+    /// Write the request file (idempotent — the same body always lands at
+    /// the same key) and look for its response. I/O failures other than a
+    /// missing response are operational errors.
+    pub fn exchange(&self, kind: RequestKind, body: &Value) -> std::io::Result<Exchange> {
+        let key = request_key(body);
+        let request_path = self
+            .dir
+            .join(format!("{key}.{}.request.json", kind.suffix()));
+        let response_path = self
+            .dir
+            .join(format!("{key}.{}.response.json", kind.suffix()));
+        // Stage then rename: a pre-existing symlink at the request path is
+        // replaced by the rename, never followed to truncate its target.
+        let tmp_path = request_path.with_extension(format!("tmp-{}", std::process::id()));
+        let write = std::fs::write(&tmp_path, request_text(body))
+            .and_then(|()| std::fs::rename(&tmp_path, &request_path));
+        if let Err(e) = write {
+            let _ = std::fs::remove_file(&tmp_path);
+            return Err(e);
+        }
+        match std::fs::read_to_string(&response_path) {
+            Ok(text) => match serde_json::from_str(&text) {
+                Ok(value) => Ok(Exchange::Response { value }),
+                Err(e) => Ok(Exchange::Malformed {
+                    key,
+                    detail: format!("{e}"),
+                }),
+            },
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Exchange::Unavailable { key }),
+            Err(e) => Err(e),
+        }
+    }
+}

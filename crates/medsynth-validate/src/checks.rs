@@ -27,6 +27,14 @@ pub fn run_checks(
     findings
 }
 
+/// Run only the `schema` check on one record — the admission pipeline's
+/// stage 1 reuses it so admission and CI can never disagree (#9).
+pub fn run_schema_check(record: &RecordFile, validators: &Validators) -> Vec<Finding> {
+    let mut findings = Vec::new();
+    schema_check(record, validators, &mut findings);
+    findings
+}
+
 /// Record ids must be unique across the corpus — a duplicate makes the
 /// identity ambiguous for consumers and for finding reports.
 fn duplicate_id_check(records: &[RecordFile], findings: &mut Vec<Finding>) {
