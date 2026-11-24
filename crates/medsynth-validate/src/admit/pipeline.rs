@@ -166,18 +166,7 @@ pub fn run(opts: &AdmissionOptions) -> Result<AdmissionReport, String> {
         )
     })?;
 
-    // Fail-closed pin checks need the batch's shape.
-    let needs_solver = batch
-        .records
-        .iter()
-        .any(|r| matches!(r.format, Format::Mcq | Format::CaseVignette));
-    let needs_verifier = batch
-        .records
-        .iter()
-        .any(|r| !claims::claim_blocks(r).is_empty() || claims::distractor_screen(r).is_some());
-    opts.config
-        .check_pins(needs_solver, needs_verifier, batch.records.is_empty())?;
-
+    check_batch_pins(&batch, &opts.config)?;
     let admitted_ids = published_record_ids(&opts.data_dir, &batch.batch_id)?;
 
     // Stage 1's duplicate check reads counts, not the whole batch.
@@ -206,20 +195,7 @@ pub fn run(opts: &AdmissionOptions) -> Result<AdmissionReport, String> {
     // Stage 5: batch-level review sample over records that cleared 0–4.
     let review = run_review(&ctx, &mut results)?;
 
-    // Emit admitted shards.
-    let mut outcomes = Vec::with_capacity(results.len());
-    let mut admitted: Vec<&DraftRecord> = Vec::new();
-    for eval in &results {
-        if eval.outcome == Outcome::Admitted
-            && let Some(record) = batch
-                .records
-                .iter()
-                .find(|r| r.record_id() == eval.outcome_record.record_id && r.path == eval.path)
-        {
-            admitted.push(record);
-        }
-        outcomes.push(eval.outcome_record.clone());
-    }
+    let (outcomes, admitted) = collect_outcomes(&results, &batch);
     let admitted_shards = write_admitted(&opts.data_dir, &batch.batch_id, &admitted, &opts.config)?;
 
     let report = AdmissionReport {
@@ -250,6 +226,40 @@ pub fn run(opts: &AdmissionOptions) -> Result<AdmissionReport, String> {
         )
     })?;
     Ok(report)
+}
+
+/// Fail-closed pin checks need the batch's shape — which semantic stages
+/// will actually fire.
+fn check_batch_pins(batch: &Batch, config: &RunConfig) -> Result<(), String> {
+    let needs_solver = batch
+        .records
+        .iter()
+        .any(|r| matches!(r.format, Format::Mcq | Format::CaseVignette));
+    let needs_verifier = batch
+        .records
+        .iter()
+        .any(|r| !claims::claim_blocks(r).is_empty() || claims::distractor_screen(r).is_some());
+    config.check_pins(needs_solver, needs_verifier, batch.records.is_empty())
+}
+
+/// The log's per-record outcomes plus the records to write to shards.
+fn collect_outcomes<'a>(
+    results: &[RecordEval],
+    batch: &'a Batch,
+) -> (Vec<RecordOutcome>, Vec<&'a DraftRecord>) {
+    let mut outcomes = Vec::with_capacity(results.len());
+    let mut admitted = Vec::new();
+    for eval in results {
+        if eval.outcome == Outcome::Admitted {
+            admitted.extend(
+                batch.records.iter().find(|r| {
+                    r.record_id() == eval.outcome_record.record_id && r.path == eval.path
+                }),
+            );
+        }
+        outcomes.push(eval.outcome_record.clone());
+    }
+    (outcomes, admitted)
 }
 
 fn count(results: &[RecordEval]) -> Counts {

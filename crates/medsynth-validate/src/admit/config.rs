@@ -116,14 +116,14 @@ impl RunConfig {
 
     fn check_pins_shape(&self, label: &str) -> Result<(), String> {
         if let Some(solver) = &self.solver
-            && (solver.run_id.trim().is_empty() || solver.model_id.trim().is_empty())
+            && [&solver.run_id, &solver.model_id]
+                .iter()
+                .any(|f| f.trim().is_empty())
         {
             return Err(format!("{label}: solver pin requires run_id and model_id"));
         }
         for (name, agent) in [("verifier", &self.verifier), ("reviewer", &self.reviewer)] {
-            if let Some(agent) = agent
-                && agent.run_id.trim().is_empty()
-            {
+            if agent.as_ref().is_some_and(|a| a.run_id.trim().is_empty()) {
                 return Err(format!("{label}: {name} run_id is blank"));
             }
         }
@@ -164,12 +164,7 @@ impl RunConfig {
         if batch_empty {
             return Err("batch holds no records".to_owned());
         }
-        if needs_solver
-            && self
-                .solver
-                .as_ref()
-                .is_none_or(|s| s.run_id.trim().is_empty() || s.model_id.trim().is_empty())
-        {
+        if needs_solver && !self.solver_pinned() {
             return Err(
                 "batch holds keyed records but the run config pins no stage-2 solver".to_owned(),
             );
@@ -184,5 +179,12 @@ impl RunConfig {
             return Err("run config pins no stage-5 reviewer".to_owned());
         }
         Ok(())
+    }
+
+    /// Whether the solver pin carries both a run and a model.
+    fn solver_pinned(&self) -> bool {
+        self.solver
+            .as_ref()
+            .is_some_and(|s| !s.run_id.trim().is_empty() && !s.model_id.trim().is_empty())
     }
 }

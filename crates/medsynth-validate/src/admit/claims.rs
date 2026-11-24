@@ -72,22 +72,18 @@ pub fn claim_blocks(record: &DraftRecord) -> Vec<ClaimBlock> {
 }
 
 fn mcq_claims(v: &Value) -> Vec<ClaimBlock> {
-    let mut out = Vec::new();
-    if let Some(c) = claim("/stem", &v["stem"]) {
-        out.push(c);
-    }
-    if let Some(options) = v["options"].as_array() {
-        for (i, option) in options.iter().enumerate() {
-            // A distractor is normally anchored through the rationale's
-            // refutation; an option carrying its own anchors asserts a
-            // fact that needs verifying (§4).
-            if option["anchors"].as_array().is_some_and(|a| !a.is_empty())
-                && let Some(c) = claim(format!("/options/{i}"), option)
-            {
-                out.push(c);
-            }
-        }
-    }
+    let mut out: Vec<ClaimBlock> = [claim("/stem", &v["stem"])].into_iter().flatten().collect();
+    // A distractor is normally anchored through the rationale's
+    // refutation; an option carrying its own anchors asserts a
+    // fact that needs verifying (§4).
+    let anchored_option =
+        |(_, o): &(usize, &Value)| o["anchors"].as_array().is_some_and(|a| !a.is_empty());
+    out.extend(
+        items(v, "options")
+            .enumerate()
+            .filter(anchored_option)
+            .filter_map(|(i, o)| claim(format!("/options/{i}"), o)),
+    );
     out.extend(
         [
             claim(
@@ -105,26 +101,22 @@ fn mcq_claims(v: &Value) -> Vec<ClaimBlock> {
     out
 }
 
+/// The `value` array's items, or an empty slice when absent or not an array.
+fn items<'a>(v: &'a Value, field: &str) -> impl Iterator<Item = &'a Value> {
+    v[field].as_array().into_iter().flat_map(|a| a.iter())
+}
+
 fn case_vignette_claims(v: &Value) -> Vec<ClaimBlock> {
-    let mut out = Vec::new();
-    for (field, sub) in [
-        ("questions", "answer"),
-        ("reasoning_chain", ""),
-        ("teaching_points", ""),
-    ] {
-        let Some(items) = v[field].as_array() else {
-            continue;
-        };
-        for (i, item) in items.iter().enumerate() {
-            let (block, path) = if sub.is_empty() {
-                (item, format!("/{field}/{i}"))
-            } else {
-                (&item[sub], format!("/{field}/{i}/{sub}"))
-            };
-            if let Some(c) = claim(path, block) {
-                out.push(c);
-            }
-        }
+    let mut out: Vec<ClaimBlock> = items(v, "questions")
+        .enumerate()
+        .filter_map(|(i, q)| claim(format!("/questions/{i}/answer"), &q["answer"]))
+        .collect();
+    for field in ["reasoning_chain", "teaching_points"] {
+        out.extend(
+            items(v, field)
+                .enumerate()
+                .filter_map(|(i, item)| claim(format!("/{field}/{i}"), item)),
+        );
     }
     out
 }

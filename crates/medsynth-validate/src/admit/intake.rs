@@ -20,38 +20,63 @@ pub(super) fn stage_intake(ctx: &Ctx, record: &DraftRecord) -> Verdict {
                 .unwrap_or("<missing>")
         ));
     }
-    let id = record.record_id();
-    let entry = ctx.batch.record_entry(&id);
+    let entry = ctx.batch.record_entry(&record.record_id());
+    if let Some(v) = entry_integrity(ctx, record, entry) {
+        return v;
+    }
+    match resolve_lane(record, entry) {
+        Ok(lane) => match lane.as_str() {
+            "teacher" => intake_teacher(ctx, record),
+            "procedural" => intake_procedural(record, entry),
+            _ => Verdict::Pass,
+        },
+        Err(v) => v,
+    }
+}
+
+/// The manifest listing's integrity: membership when a manifest exists,
+/// then a valid content hash matching the record as written.
+fn entry_integrity(ctx: &Ctx, record: &DraftRecord, entry: Option<&Value>) -> Option<Verdict> {
     if ctx.batch.has_manifest() && entry.is_none() {
-        return Verdict::reject("record is not listed in the batch manifest");
+        return Some(Verdict::reject(
+            "record is not listed in the batch manifest",
+        ));
     }
-    if let Some(entry) = entry {
-        // The manifest's content hash is what makes the listing mean
-        // anything — an entry without one cannot be integrity-checked.
-        let valid_sha = entry["sha256"]
-            .as_str()
-            .is_some_and(|s| s.len() == 64 && s.chars().all(|c| c.is_ascii_hexdigit()));
-        if !valid_sha {
-            return Verdict::reject("manifest entry lacks a valid content sha256");
-        }
-        if entry["sha256"].as_str() != Some(record.content_sha256().as_str()) {
-            return Verdict::reject("record content diverges from the manifest's sha256");
-        }
+    let entry = entry?;
+    // The manifest's content hash is what makes the listing mean
+    // anything — an entry without one cannot be integrity-checked.
+    let sha = entry["sha256"].as_str();
+    if !sha.is_some_and(|s| s.len() == 64 && s.chars().all(|c| c.is_ascii_hexdigit())) {
+        return Some(Verdict::reject(
+            "manifest entry lacks a valid content sha256",
+        ));
     }
+    if sha != Some(record.content_sha256().as_str()) {
+        return Some(Verdict::reject(
+            "record content diverges from the manifest's sha256",
+        ));
+    }
+    None
+}
+
+/// The drafting lane: manifest-declared when present (and consistent with
+/// provenance), else the provenance-inferred lane. Unknown or
+/// contradictory lanes reject.
+fn resolve_lane(record: &DraftRecord, entry: Option<&Value>) -> Result<String, Verdict> {
     let declared = entry.and_then(|e| e["lane"].as_str());
     let inferred = lane_of(record);
     if let Some(lane) = declared
         && lane != inferred
     {
-        return Verdict::reject(format!(
+        return Err(Verdict::reject(format!(
             "manifest lane `{lane}` disagrees with the record's provenance (`{inferred}`)"
-        ));
+        )));
     }
     match declared.unwrap_or(&inferred) {
-        "teacher" => intake_teacher(ctx, record),
-        "procedural" => intake_procedural(record, entry),
-        "agent" => Verdict::Pass,
-        other => Verdict::reject(format!("manifest lane `{other}` is not a drafting lane")),
+        lane @ ("teacher" | "procedural" | "agent") => Ok(lane.to_owned()),
+        other => Err(Verdict::reject(format!(
+            "manifest lane `{other}` is not a drafting lane"
+        ))),
     }
 }
 
