@@ -73,15 +73,13 @@ pub fn claim_blocks(record: &DraftRecord) -> Vec<ClaimBlock> {
 
 fn mcq_claims(v: &Value) -> Vec<ClaimBlock> {
     let mut out: Vec<ClaimBlock> = [claim("/stem", &v["stem"])].into_iter().flatten().collect();
-    // A distractor is normally anchored through the rationale's
-    // refutation; an option carrying its own anchors asserts a
-    // fact that needs verifying (§4).
-    let anchored_option =
-        |(_, o): &(usize, &Value)| o["anchors"].as_array().is_some_and(|a| !a.is_empty());
+    // Every option goes to the verifier: anchored ones need their facts
+    // supported; unanchored ones the verifier rules `no-claim` or
+    // `unanchored` — a fact the refutation doesn't address still must
+    // anchor (§4), and only a semantic check can tell which is which.
     out.extend(
         items(v, "options")
             .enumerate()
-            .filter(anchored_option)
             .filter_map(|(i, o)| claim(format!("/options/{i}"), o)),
     );
     out.extend(

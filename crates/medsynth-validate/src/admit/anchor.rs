@@ -203,7 +203,21 @@ fn verify_claims(
     input: &VerifyInput,
     mut findings: Findings,
 ) -> Result<(Verdict, Option<Value>), String> {
-    let body = claims::verify_body(&ctx.scope(), record, input.claims, input.distractor);
+    let mut body = claims::verify_body(&ctx.scope(), record, input.claims, input.distractor);
+    // Bind the request to the registry bytes actually verified — a
+    // changed entry produces a different fulfillment key, so a stale
+    // `supported` can never answer a current request.
+    let mut pins = serde_json::Map::new();
+    for source_id in input
+        .claims
+        .iter()
+        .flat_map(|c| c.anchors.iter().map(|a| &a.0))
+    {
+        if let Some(entry) = ctx.registry.get(source_id) {
+            pins.insert(source_id.clone(), serde_json::json!(entry.sha256));
+        }
+    }
+    body["source_pins"] = Value::Object(pins);
     let response = match respond(ctx, RequestKind::Verify, &body, "verifier")? {
         Ok(value) => value,
         Err(reason) => {

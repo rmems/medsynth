@@ -75,6 +75,18 @@ impl Batch {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
             Err(e) => return Err(format!("cannot read {}: {e}", manifest_path.display())),
         };
+        // A present-but-malformed `anchor_receipts` section must never
+        // read as an absent one — `has_anchor_receipts` gates the drift
+        // check on the section being an array.
+        let receipts_malformed = manifest.as_ref().is_some_and(|m| {
+            !m["anchor_receipts"].is_null() && m["anchor_receipts"].as_array().is_none()
+        });
+        if receipts_malformed {
+            return Err(format!(
+                "{}: `anchor_receipts` must be an array",
+                manifest_path.display()
+            ));
+        }
 
         let mut records = Vec::new();
         for file in files {
@@ -230,7 +242,10 @@ pub(super) fn is_sidecar(rel: &Path) -> bool {
     if name.starts_with("admission-log") {
         return true;
     }
-    ["manifest.json", "config.json"].contains(&name)
+    // `manifest.json`/`config.json` are sidecars only at the batch root —
+    // a file of that name inside a format directory is a record.
+    let at_root = rel.parent().is_none_or(|p| p.as_os_str().is_empty());
+    (at_root && ["manifest.json", "config.json"].contains(&name))
         || ["-manifest.json", ".request.json", ".response.json"]
             .iter()
             .any(|s| name.ends_with(s))
