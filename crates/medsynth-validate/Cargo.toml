@@ -4,6 +4,7 @@ description = "CI data-validation gate for medsynth: schema validation, key/rati
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+default-run = "medsynth-validate"
 
 [dependencies]
 medsynth-schema = { path = "../medsynth-schema" }

@@ -99,23 +99,29 @@ impl RunConfig {
                 self.sample_rate
             ));
         }
+        self.check_pins_shape(&label())?;
+        self.check_distinct_runs(&label())
+    }
+
+    fn check_pins_shape(&self, label: &str) -> Result<(), String> {
         if let Some(solver) = &self.solver
             && (solver.run_id.trim().is_empty() || solver.model_id.trim().is_empty())
         {
-            return Err(format!(
-                "{label}: solver pin requires run_id and model_id",
-                label = label()
-            ));
+            return Err(format!("{label}: solver pin requires run_id and model_id"));
         }
         for (name, agent) in [("verifier", &self.verifier), ("reviewer", &self.reviewer)] {
             if let Some(agent) = agent
                 && agent.run_id.trim().is_empty()
             {
-                return Err(format!("{}: {name} run_id is blank", label()));
+                return Err(format!("{label}: {name} run_id is blank"));
             }
         }
-        // The review run must be a third agent — never the drafting run and
-        // never the stage-2 solver run.
+        Ok(())
+    }
+
+    /// The review run must be a third agent — never the drafting run and
+    /// never the stage-2 solver run.
+    fn check_distinct_runs(&self, label: &str) -> Result<(), String> {
         let ids: Vec<&str> = [
             self.solver.as_ref().map(|s| s.run_id.as_str()),
             self.verifier.as_ref().map(|a| a.run_id.as_str()),
@@ -129,8 +135,7 @@ impl RunConfig {
         unique.dedup();
         if unique.len() != ids.len() {
             return Err(format!(
-                "{}: solver, verifier, and reviewer run_ids must be distinct",
-                label()
+                "{label}: solver, verifier, and reviewer run_ids must be distinct"
             ));
         }
         Ok(())

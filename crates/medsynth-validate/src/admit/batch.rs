@@ -79,46 +79,7 @@ impl Batch {
         let mut records = Vec::new();
         for file in files {
             let rel = file.strip_prefix(dir).unwrap_or(&file).to_path_buf();
-            let Some(format) = format_of(&rel) else {
-                return Err(format!(
-                    "{}: record file lives outside a format directory \
-                     (mcq/ case_vignette/ tutoring_example/) and is not a \
-                     <format>.jsonl shard",
-                    rel.display()
-                ));
-            };
-            let text = fs::read_to_string(&file)
-                .map_err(|e| format!("cannot read {}: {e}", rel.display()))?;
-            if rel.extension().is_some_and(|e| e == "jsonl") {
-                for (idx, raw) in text.lines().enumerate() {
-                    if raw.trim().is_empty() {
-                        return Err(format!(
-                            "{}:{}: blank line in JSONL shard",
-                            rel.display(),
-                            idx + 1
-                        ));
-                    }
-                    let value = serde_json::from_str(raw)
-                        .map_err(|e| format!("{}:{}: invalid JSON: {e}", rel.display(), idx + 1))?;
-                    records.push(DraftRecord {
-                        path: rel.clone(),
-                        line: Some(idx + 1),
-                        format,
-                        value,
-                        raw: raw.to_owned(),
-                    });
-                }
-            } else {
-                let value = serde_json::from_str(&text)
-                    .map_err(|e| format!("{}: invalid JSON: {e}", rel.display()))?;
-                records.push(DraftRecord {
-                    path: rel,
-                    line: None,
-                    format,
-                    value,
-                    raw: text,
-                });
-            }
+            records.extend(load_record_file(&file, &rel)?);
         }
 
         let batch_id = manifest
@@ -185,6 +146,53 @@ impl Batch {
                     && e["locator"].as_str() == Some(locator)
             })
     }
+}
+
+/// Parse one record file: every line of a `.jsonl` shard, or the whole
+/// file for a `.json` record.
+fn load_record_file(file: &Path, rel: &Path) -> Result<Vec<DraftRecord>, String> {
+    let Some(format) = format_of(rel) else {
+        return Err(format!(
+            "{}: record file lives outside a format directory \
+             (mcq/ case_vignette/ tutoring_example/) and is not a \
+             <format>.jsonl shard",
+            rel.display()
+        ));
+    };
+    let text =
+        fs::read_to_string(file).map_err(|e| format!("cannot read {}: {e}", rel.display()))?;
+    if !rel.extension().is_some_and(|e| e == "jsonl") {
+        let value = serde_json::from_str(&text)
+            .map_err(|e| format!("{}: invalid JSON: {e}", rel.display()))?;
+        return Ok(vec![DraftRecord {
+            path: rel.to_path_buf(),
+            line: None,
+            format,
+            value,
+            raw: text,
+        }]);
+    }
+    text.lines()
+        .enumerate()
+        .map(|(idx, raw)| {
+            if raw.trim().is_empty() {
+                return Err(format!(
+                    "{}:{}: blank line in JSONL shard",
+                    rel.display(),
+                    idx + 1
+                ));
+            }
+            let value = serde_json::from_str(raw)
+                .map_err(|e| format!("{}:{}: invalid JSON: {e}", rel.display(), idx + 1))?;
+            Ok(DraftRecord {
+                path: rel.to_path_buf(),
+                line: Some(idx + 1),
+                format,
+                value,
+                raw: raw.to_owned(),
+            })
+        })
+        .collect()
 }
 
 /// Whether a batch-relative path classifies a record file: the first

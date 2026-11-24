@@ -556,24 +556,34 @@ fn stage_key(ctx: &Ctx, record: &DraftRecord) -> Result<Verdict, String> {
     }
 
     let body = claims::solve_body(&ctx.batch.batch_id, record, &item);
-    let value = match ctx.fulfillment.exchange(RequestKind::Solve, &body) {
-        Ok(Exchange::Response { value, .. }) => value,
-        Ok(Exchange::Unavailable { key }) => {
-            return Ok(Verdict::hold(format!(
-                "solver fulfillment unavailable ({key})"
-            )));
-        }
-        Ok(Exchange::Malformed { key, detail }) => {
-            return Ok(Verdict::hold(format!(
-                "solver response {key} is not usable JSON: {detail}"
-            )));
-        }
-        Err(e) => return Err(format!("solver fulfillment I/O: {e}")),
+    let value = match solve_exchange(ctx, &body)? {
+        Ok(value) => value,
+        Err(verdict) => return Ok(verdict),
     };
     if let Some(verdict) = identity_ok(&value, &solver.run_id, Some(&solver.model_id), "solver") {
         return Ok(verdict);
     }
-    Ok(match record.format {
+    Ok(compare_key(record, &value))
+}
+
+/// The solve exchange: `Ok(value)` on a usable response, `Err(verdict)`
+/// for the hold an absent or malformed response earns.
+fn solve_exchange(ctx: &Ctx, body: &Value) -> Result<Result<Value, Verdict>, String> {
+    Ok(match ctx.fulfillment.exchange(RequestKind::Solve, body) {
+        Ok(Exchange::Response { value }) => Ok(value),
+        Ok(Exchange::Unavailable { key }) => Err(Verdict::hold(format!(
+            "solver fulfillment unavailable ({key})"
+        ))),
+        Ok(Exchange::Malformed { key, detail }) => Err(Verdict::hold(format!(
+            "solver response {key} is not usable JSON: {detail}"
+        ))),
+        Err(e) => return Err(format!("solver fulfillment I/O: {e}")),
+    })
+}
+
+/// Stage 2's verdict on a usable solver response.
+fn compare_key(record: &DraftRecord, value: &Value) -> Verdict {
+    match record.format {
         Format::Mcq => {
             let key = record.value["key"].as_str().unwrap_or("");
             match value["answer"].as_str() {
@@ -588,12 +598,12 @@ fn stage_key(ctx: &Ctx, record: &DraftRecord) -> Result<Verdict, String> {
             Some("agree") => Verdict::Pass,
             Some("disagree") => Verdict::reject(format!(
                 "solver disagrees with the expected answer{}",
-                detail_suffix(&value)
+                detail_suffix(value)
             )),
             _ => Verdict::hold("solver response carries no `verdict`"),
         },
         Format::TutoringExample => Verdict::Pass,
-    })
+    }
 }
 
 /// Whether `model_id`/`pin_id` collides with the drafting identity: the
@@ -651,77 +661,22 @@ fn detail_suffix(response: &Value) -> String {
 
 fn stage_anchor(ctx: &Ctx, record: &DraftRecord) -> Result<(Verdict, Option<Value>), String> {
     let claim_blocks = claims::claim_blocks(record);
-    let mut rejections = Vec::new();
-    let mut holds = Vec::new();
+    let mut findings = Findings::default();
 
     // Deterministic resolution: registry membership, currency, locator
     // syntax, and #8's anchor receipts against the current registry.
     let mut locator_validators: HashMap<String, jsonschema::Validator> = HashMap::new();
     for block in &claim_blocks {
         for (source_id, locator) in &block.anchors {
-            let Some(entry) = ctx.registry.get(source_id) else {
-                rejections.push(format!(
-                    "{}: cites `{source_id}`, which is not in the source registry",
-                    block.path
-                ));
-                continue;
-            };
-            if !entry.is_current() {
-                holds.push(format!(
-                    "{}: `{source_id}` is `{}` — held for re-anchoring",
-                    block.path, entry.status
-                ));
-            }
-            let validator = match locator_validators.entry(source_id.clone()) {
-                std::collections::hash_map::Entry::Occupied(e) => e.into_mut(),
-                std::collections::hash_map::Entry::Vacant(e) => {
-                    let pattern = medsynth_schema::locator::pattern(&entry.locator_format)
-                        .ok_or_else(|| {
-                            format!(
-                                "registry entry `{source_id}` has an unrecognized \
-                                 locator convention `{}`",
-                                entry.locator_format
-                            )
-                        })?;
-                    e.insert(
-                        jsonschema::validator_for(&serde_json::json!({
-                            "type": "string",
-                            "pattern": pattern,
-                        }))
-                        .expect("locator patterns compile"),
-                    )
-                }
-            };
-            if !validator.is_valid(&serde_json::json!(locator)) {
-                rejections.push(format!(
-                    "{}: locator `{locator}` violates `{source_id}`'s convention `{}`",
-                    block.path, entry.locator_format
-                ));
-            }
-            // #8's anchor receipts pin the registry entry bytes at draft
-            // time; a drifted entry holds the record for re-anchoring.
-            if ctx.batch.has_anchor_receipts() {
-                match ctx
-                    .batch
-                    .anchor_receipt(&record.record_id(), source_id, locator)
-                {
-                    None => holds.push(format!(
-                        "{path}: anchor {source_id} {locator} has no batch receipt",
-                        path = block.path
-                    )),
-                    Some(receipt)
-                        if receipt["registry_entry_sha256"].as_str()
-                            != Some(entry.sha256.as_str()) =>
-                    {
-                        holds.push(format!(
-                            "{}: registry entry `{source_id}` changed since drafting — \
-                             held for re-anchoring",
-                            block.path
-                        ));
-                    }
-                    Some(_) => {}
-                }
-            }
+            check_anchor(
+                ctx,
+                record,
+                block,
+                source_id,
+                locator,
+                &mut locator_validators,
+                &mut findings,
+            )?;
         }
     }
 
@@ -731,86 +686,192 @@ fn stage_anchor(ctx: &Ctx, record: &DraftRecord) -> Result<(Verdict, Option<Valu
     // semantic to check; deterministic results alone decide.
     let distractor = claims::distractor_screen(record);
     if claim_blocks.is_empty() && distractor.is_none() {
-        return Ok((
-            if !rejections.is_empty() {
-                Verdict::Reject(rejections)
-            } else if !holds.is_empty() {
-                Verdict::Hold(holds)
-            } else {
-                Verdict::Pass
-            },
-            None,
-        ));
+        return Ok((findings.verdict(), None));
     }
-    let body = claims::verify_body(
-        &ctx.batch.batch_id,
+    let response = verify_claims(
+        ctx,
         record,
         &claim_blocks,
         distractor.as_ref(),
-    );
+        &mut findings,
+    )?;
+    Ok((findings.verdict(), response))
+}
+
+/// Reject/hold reasons collected while a stage walks a record.
+#[derive(Default)]
+struct Findings {
+    rejects: Vec<String>,
+    holds: Vec<String>,
+}
+
+impl Findings {
+    fn reject(&mut self, reason: impl Into<String>) {
+        self.rejects.push(reason.into());
+    }
+    fn hold(&mut self, reason: impl Into<String>) {
+        self.holds.push(reason.into());
+    }
+    fn verdict(self) -> Verdict {
+        if !self.rejects.is_empty() {
+            Verdict::Reject(self.rejects)
+        } else if !self.holds.is_empty() {
+            Verdict::Hold(self.holds)
+        } else {
+            Verdict::Pass
+        }
+    }
+}
+
+/// One anchor's deterministic checks: registry membership and currency,
+/// locator syntax under the entry's convention, and the #8 receipt.
+#[allow(clippy::too_many_arguments)]
+fn check_anchor(
+    ctx: &Ctx,
+    record: &DraftRecord,
+    block: &claims::ClaimBlock,
+    source_id: &str,
+    locator: &str,
+    locator_validators: &mut HashMap<String, jsonschema::Validator>,
+    findings: &mut Findings,
+) -> Result<(), String> {
+    let Some(entry) = ctx.registry.get(source_id) else {
+        findings.reject(format!(
+            "{}: cites `{source_id}`, which is not in the source registry",
+            block.path
+        ));
+        return Ok(());
+    };
+    if !entry.is_current() {
+        findings.hold(format!(
+            "{}: `{source_id}` is `{}` — held for re-anchoring",
+            block.path, entry.status
+        ));
+    }
+    let validator = match locator_validators.entry(source_id.to_owned()) {
+        std::collections::hash_map::Entry::Occupied(e) => e.into_mut(),
+        std::collections::hash_map::Entry::Vacant(e) => {
+            let pattern =
+                medsynth_schema::locator::pattern(&entry.locator_format).ok_or_else(|| {
+                    format!(
+                        "registry entry `{source_id}` has an unrecognized \
+                     locator convention `{}`",
+                        entry.locator_format
+                    )
+                })?;
+            e.insert(
+                jsonschema::validator_for(&serde_json::json!({
+                    "type": "string",
+                    "pattern": pattern,
+                }))
+                .expect("locator patterns compile"),
+            )
+        }
+    };
+    if !validator.is_valid(&serde_json::json!(locator)) {
+        findings.reject(format!(
+            "{}: locator `{locator}` violates `{source_id}`'s convention `{}`",
+            block.path, entry.locator_format
+        ));
+    }
+    // #8's anchor receipts pin the registry entry bytes at draft time; a
+    // drifted entry holds the record for re-anchoring.
+    if !ctx.batch.has_anchor_receipts() {
+        return Ok(());
+    }
+    match ctx
+        .batch
+        .anchor_receipt(&record.record_id(), source_id, locator)
+    {
+        None => findings.hold(format!(
+            "{path}: anchor {source_id} {locator} has no batch receipt",
+            path = block.path
+        )),
+        Some(receipt)
+            if receipt["registry_entry_sha256"].as_str() != Some(entry.sha256.as_str()) =>
+        {
+            findings.hold(format!(
+                "{}: registry entry `{source_id}` changed since drafting — \
+                 held for re-anchoring",
+                block.path
+            ));
+        }
+        Some(_) => {}
+    }
+    Ok(())
+}
+
+/// The verifier exchange: send the claim blocks and distractor screen,
+/// fold each returned verdict into findings, and hand the response back
+/// for stage 4's distractor check.
+fn verify_claims(
+    ctx: &Ctx,
+    record: &DraftRecord,
+    claim_blocks: &[claims::ClaimBlock],
+    distractor: Option<&claims::DistractorScreen>,
+    findings: &mut Findings,
+) -> Result<Option<Value>, String> {
+    let body = claims::verify_body(&ctx.batch.batch_id, record, claim_blocks, distractor);
     let response = match ctx.fulfillment.exchange(RequestKind::Verify, &body) {
-        Ok(Exchange::Response { value, .. }) => Some(value),
+        Ok(Exchange::Response { value }) => Some(value),
         Ok(Exchange::Unavailable { key }) => {
-            holds.push(format!("verifier fulfillment unavailable ({key})"));
+            findings.hold(format!("verifier fulfillment unavailable ({key})"));
             None
         }
         Ok(Exchange::Malformed { key, detail }) => {
-            holds.push(format!(
+            findings.hold(format!(
                 "verifier response {key} is not usable JSON: {detail}"
             ));
             None
         }
         Err(e) => return Err(format!("verifier fulfillment I/O: {e}")),
     };
+    let Some(value) = &response else {
+        return Ok(None);
+    };
     let verifier_run_id = &ctx.config.verifier.as_ref().expect("check_pins ran").run_id;
-    if let Some(value) = &response {
-        if let Some(verdict) = identity_ok(value, verifier_run_id, None, "verifier") {
-            holds.extend(match verdict {
-                Verdict::Hold(r) | Verdict::Reject(r) => r,
-                Verdict::Pass => Vec::new(),
-            });
-        }
-        let verdicts: HashMap<&str, &Value> = value["claims"]
-            .as_array()
-            .map(|vs| {
-                vs.iter()
-                    .filter_map(|v| v["path"].as_str().map(|p| (p, v)))
-                    .collect()
-            })
-            .unwrap_or_default();
-        for block in &claim_blocks {
-            match verdicts.get(block.path.as_str()) {
-                None => holds.push(format!("verifier returned no verdict for {}", block.path)),
-                Some(v) => match v["verdict"].as_str() {
-                    Some("supported") | Some("no-claim") => {}
-                    Some("unanchored") => rejections.push(format!(
-                        "{}: unanchored factual claim{}",
-                        block.path,
-                        detail_suffix(v)
-                    )),
-                    Some("unsupported") => rejections.push(format!(
-                        "{}: claim not supported by the cited passage{}",
-                        block.path,
-                        detail_suffix(v)
-                    )),
-                    other => holds.push(format!(
-                        "verifier returned unknown verdict `{}` for {}",
-                        other.unwrap_or("<missing>"),
-                        block.path
-                    )),
-                },
-            }
+    if let Some(verdict) = identity_ok(value, verifier_run_id, None, "verifier") {
+        match verdict {
+            Verdict::Hold(r) | Verdict::Reject(r) => findings.holds.extend(r),
+            Verdict::Pass => {}
         }
     }
+    let verdicts: HashMap<&str, &Value> = value["claims"]
+        .as_array()
+        .map(|vs| {
+            vs.iter()
+                .filter_map(|v| v["path"].as_str().map(|p| (p, v)))
+                .collect()
+        })
+        .unwrap_or_default();
+    for block in claim_blocks {
+        match verdicts.get(block.path.as_str()) {
+            None => findings.hold(format!("verifier returned no verdict for {}", block.path)),
+            Some(v) => apply_claim_verdict(block, v, findings),
+        }
+    }
+    Ok(response)
+}
 
-    let verdict = if !rejections.is_empty() {
-        Verdict::Reject(rejections)
-    } else if !holds.is_empty() {
-        Verdict::Hold(holds)
-    } else {
-        Verdict::Pass
-    };
-    Ok((verdict, response))
+fn apply_claim_verdict(block: &claims::ClaimBlock, v: &Value, findings: &mut Findings) {
+    match v["verdict"].as_str() {
+        Some("supported") | Some("no-claim") => {}
+        Some("unanchored") => findings.reject(format!(
+            "{}: unanchored factual claim{}",
+            block.path,
+            detail_suffix(v)
+        )),
+        Some("unsupported") => findings.reject(format!(
+            "{}: claim not supported by the cited passage{}",
+            block.path,
+            detail_suffix(v)
+        )),
+        other => findings.hold(format!(
+            "verifier returned unknown verdict `{}` for {}",
+            other.unwrap_or("<missing>"),
+            block.path
+        )),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1028,10 +1089,11 @@ fn admitted_record_ids(data_dir: &Path, batch_id: &str) -> Result<HashSet<String
         };
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().and_then(|e| e.to_str()) != Some("jsonl")
-                || path.file_name().and_then(|n| n.to_str())
-                    == Some(format!("{batch_id}.jsonl").as_str())
-            {
+            let own_shard = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n == format!("{batch_id}.jsonl"));
+            if path.extension().and_then(|e| e.to_str()) != Some("jsonl") || own_shard {
                 continue;
             }
             let text = std::fs::read_to_string(&path)

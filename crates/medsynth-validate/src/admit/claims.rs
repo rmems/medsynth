@@ -64,74 +64,83 @@ fn claim(path: impl Into<String>, block: &Value) -> Option<ClaimBlock> {
 /// Every claim-bearing block in the record, in record order.
 pub fn claim_blocks(record: &DraftRecord) -> Vec<ClaimBlock> {
     let v = &record.value;
-    let mut out = Vec::new();
     match record.format {
-        Format::Mcq => {
-            if let Some(c) = claim("/stem", &v["stem"]) {
-                out.push(c);
-            }
-            if let Some(options) = v["options"].as_array() {
-                for (i, option) in options.iter().enumerate() {
-                    // A distractor is normally anchored through the
-                    // rationale's refutation; an option carrying its own
-                    // anchors asserts a fact that needs verifying (§4).
-                    if option["anchors"].as_array().is_some_and(|a| !a.is_empty())
-                        && let Some(c) = claim(format!("/options/{i}"), option)
-                    {
-                        out.push(c);
-                    }
-                }
-            }
-            if let Some(c) = claim(
-                "/rationale/key_explanation",
-                &v["rationale"]["key_explanation"],
-            ) {
-                out.push(c);
-            }
-            if let Some(c) = claim(
-                "/rationale/strongest_distractor",
-                &v["rationale"]["strongest_distractor"],
-            ) {
-                out.push(c);
-            }
-        }
-        Format::CaseVignette => {
-            for (field, sub) in [
-                ("questions", "answer"),
-                ("reasoning_chain", ""),
-                ("teaching_points", ""),
-            ] {
-                if let Some(items) = v[field].as_array() {
-                    for (i, item) in items.iter().enumerate() {
-                        let block = if sub.is_empty() { item } else { &item[sub] };
-                        let path = if sub.is_empty() {
-                            format!("/{field}/{i}")
-                        } else {
-                            format!("/{field}/{i}/{sub}")
-                        };
-                        if let Some(c) = claim(path, block) {
-                            out.push(c);
-                        }
-                    }
-                }
-            }
-        }
-        Format::TutoringExample => {
-            // The learner's own wording is not a medsynth claim (schema
-            // docs); submit it only when it carries anchors of its own.
-            if v["learner_prompt"]["anchors"]
-                .as_array()
-                .is_some_and(|a| !a.is_empty())
-                && let Some(c) = claim("/learner_prompt", &v["learner_prompt"])
+        Format::Mcq => mcq_claims(v),
+        Format::CaseVignette => case_vignette_claims(v),
+        Format::TutoringExample => tutoring_example_claims(v),
+    }
+}
+
+fn mcq_claims(v: &Value) -> Vec<ClaimBlock> {
+    let mut out = Vec::new();
+    if let Some(c) = claim("/stem", &v["stem"]) {
+        out.push(c);
+    }
+    if let Some(options) = v["options"].as_array() {
+        for (i, option) in options.iter().enumerate() {
+            // A distractor is normally anchored through the rationale's
+            // refutation; an option carrying its own anchors asserts a
+            // fact that needs verifying (§4).
+            if option["anchors"].as_array().is_some_and(|a| !a.is_empty())
+                && let Some(c) = claim(format!("/options/{i}"), option)
             {
                 out.push(c);
             }
-            if let Some(c) = claim("/tutor_response", &v["tutor_response"]) {
+        }
+    }
+    out.extend(
+        [
+            claim(
+                "/rationale/key_explanation",
+                &v["rationale"]["key_explanation"],
+            ),
+            claim(
+                "/rationale/strongest_distractor",
+                &v["rationale"]["strongest_distractor"],
+            ),
+        ]
+        .into_iter()
+        .flatten(),
+    );
+    out
+}
+
+fn case_vignette_claims(v: &Value) -> Vec<ClaimBlock> {
+    let mut out = Vec::new();
+    for (field, sub) in [
+        ("questions", "answer"),
+        ("reasoning_chain", ""),
+        ("teaching_points", ""),
+    ] {
+        let Some(items) = v[field].as_array() else {
+            continue;
+        };
+        for (i, item) in items.iter().enumerate() {
+            let (block, path) = if sub.is_empty() {
+                (item, format!("/{field}/{i}"))
+            } else {
+                (&item[sub], format!("/{field}/{i}/{sub}"))
+            };
+            if let Some(c) = claim(path, block) {
                 out.push(c);
             }
         }
     }
     out
+}
+
+fn tutoring_example_claims(v: &Value) -> Vec<ClaimBlock> {
+    // The learner's own wording is not a medsynth claim (schema docs);
+    // submit it only when it carries anchors of its own.
+    let learner = v["learner_prompt"]["anchors"]
+        .as_array()
+        .is_some_and(|a| !a.is_empty())
+        .then(|| claim("/learner_prompt", &v["learner_prompt"]))
+        .flatten();
+    [learner, claim("/tutor_response", &v["tutor_response"])]
+        .into_iter()
+        .flatten()
+        .collect()
 }
 
 /// The distractor screen payload — `mcq` records only.
