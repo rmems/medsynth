@@ -42,7 +42,11 @@ pub(super) fn stage_anchor(
     if claim_blocks.is_empty() && distractor.is_none() {
         return Ok((findings.verdict(), None));
     }
-    let response = verify_claims(ctx, record, &claim_blocks, distractor.as_ref(), findings)?;
+    let input = VerifyInput {
+        claims: &claim_blocks,
+        distractor: distractor.as_ref(),
+    };
+    let response = verify_claims(ctx, record, &input, findings)?;
     Ok((response.0, response.1))
 }
 
@@ -183,17 +187,23 @@ struct AnchorRef<'a> {
     sha: &'a str,
 }
 
+/// The semantic surface the verifier judges: the claim blocks plus the
+/// optional distractor screen.
+struct VerifyInput<'a> {
+    claims: &'a [ClaimBlock],
+    distractor: Option<&'a DistractorScreen>,
+}
+
 /// The verifier exchange: send the claim blocks and distractor screen,
 /// fold each returned verdict into findings, and hand the response back
 /// for stage 4's distractor check.
 fn verify_claims(
     ctx: &Ctx,
     record: &DraftRecord,
-    claim_blocks: &[ClaimBlock],
-    distractor: Option<&DistractorScreen>,
+    input: &VerifyInput,
     mut findings: Findings,
 ) -> Result<(Verdict, Option<Value>), String> {
-    let body = claims::verify_body(&ctx.scope(), record, claim_blocks, distractor);
+    let body = claims::verify_body(&ctx.scope(), record, input.claims, input.distractor);
     let response = match respond(ctx, RequestKind::Verify, &body, "verifier")? {
         Ok(value) => value,
         Err(reason) => {
@@ -223,7 +233,7 @@ fn verify_claims(
             verdicts.entry(path).or_default().push(v);
         }
     }
-    for block in claim_blocks {
+    for block in input.claims {
         let vs = verdicts
             .get(block.path.as_str())
             .map_or(&[][..], Vec::as_slice);
