@@ -75,18 +75,7 @@ impl Batch {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
             Err(e) => return Err(format!("cannot read {}: {e}", manifest_path.display())),
         };
-        // A present-but-malformed `anchor_receipts` section must never
-        // read as an absent one — `has_anchor_receipts` gates the drift
-        // check on the section being an array.
-        let receipts_malformed = manifest.as_ref().is_some_and(|m| {
-            !m["anchor_receipts"].is_null() && m["anchor_receipts"].as_array().is_none()
-        });
-        if receipts_malformed {
-            return Err(format!(
-                "{}: `anchor_receipts` must be an array",
-                manifest_path.display()
-            ));
-        }
+        check_manifest_sections(manifest.as_ref(), &manifest_path)?;
 
         let mut records = Vec::new();
         for file in files {
@@ -232,6 +221,22 @@ fn format_of(rel: &Path) -> Option<Format> {
     rel.file_stem()
         .and_then(|s| s.to_str())
         .and_then(|stem| Format::all().into_iter().find(|f| f.slug() == stem))
+}
+
+/// Manifest-level integrity checks beyond JSON syntax. A present-but-
+/// malformed `anchor_receipts` section must never read as an absent one
+/// — `has_anchor_receipts` gates the drift check on it being an array.
+fn check_manifest_sections(manifest: Option<&Value>, path: &Path) -> Result<(), String> {
+    let malformed = manifest.is_some_and(|m| {
+        !m["anchor_receipts"].is_null() && m["anchor_receipts"].as_array().is_none()
+    });
+    if malformed {
+        return Err(format!(
+            "{}: `anchor_receipts` must be an array",
+            path.display()
+        ));
+    }
+    Ok(())
 }
 
 /// Files that are never records even though they end in `.json`.
