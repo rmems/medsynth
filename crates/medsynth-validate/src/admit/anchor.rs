@@ -205,18 +205,23 @@ fn verify_claims(
         findings.hold(reason);
         return Ok((findings.verdict(), None));
     }
-    let verdicts: HashMap<&str, &Value> = response["claims"]
-        .as_array()
-        .map(|vs| {
-            vs.iter()
-                .filter_map(|v| v["path"].as_str().map(|p| (p, v)))
-                .collect()
-        })
-        .unwrap_or_default();
+    // Every returned verdict applies — a duplicated path keeps all its
+    // verdicts, so a `supported` entry can never conceal an `unsupported`
+    // one for the same claim.
+    let mut verdicts: HashMap<&str, Vec<&Value>> = HashMap::new();
+    for v in response["claims"].as_array().into_iter().flatten() {
+        if let Some(path) = v["path"].as_str() {
+            verdicts.entry(path).or_default().push(v);
+        }
+    }
     for block in claim_blocks {
         match verdicts.get(block.path.as_str()) {
             None => findings.hold(format!("verifier returned no verdict for {}", block.path)),
-            Some(v) => apply_claim_verdict(block, v, &mut findings),
+            Some(vs) => {
+                for v in vs {
+                    apply_claim_verdict(block, v, &mut findings);
+                }
+            }
         }
     }
     Ok((findings.verdict(), Some(response)))
