@@ -58,29 +58,33 @@ fn compare_key(record: &DraftRecord, value: &Value) -> Verdict {
                 None => Verdict::hold("solver response carries no `answer`"),
             }
         }
-        Format::CaseVignette => {
-            // The solver must actually re-derive the answers — a bare
-            // `agree` without derivation artifacts proves nothing.
-            let questions = record.value["questions"].as_array().map_or(0, Vec::len);
-            let derived = value["answers"].as_array();
-            if derived.is_none_or(|a| {
-                a.len() != questions
-                    || a.iter()
-                        .any(|x| x.as_str().is_none_or(|s| s.trim().is_empty()))
-            }) {
-                return Verdict::hold(format!(
-                    "solver response carries no derived `answers` for the {questions} questions"
-                ));
-            }
-            match value["verdict"].as_str() {
-                Some("agree") => Verdict::Pass,
-                Some("disagree") => Verdict::reject(format!(
-                    "solver disagrees with the expected answer{}",
-                    detail_suffix(value)
-                )),
-                _ => Verdict::hold("solver response carries no `verdict`"),
-            }
-        }
+        Format::CaseVignette => vignette_verdict(record, value),
         Format::TutoringExample => Verdict::Pass,
     }
+}
+
+/// Stage 2's verdict for a vignette: the solver must actually re-derive
+/// the answers — a bare `agree` without derivation artifacts proves
+/// nothing.
+fn vignette_verdict(record: &DraftRecord, value: &Value) -> Verdict {
+    let questions = record.value["questions"].as_array().map_or(0, Vec::len);
+    let derived = value["answers"].as_array();
+    if !derived.is_some_and(|a| a.len() == questions && a.iter().all(answer_present)) {
+        return Verdict::hold(format!(
+            "solver response carries no derived `answers` for the {questions} questions"
+        ));
+    }
+    match value["verdict"].as_str() {
+        Some("agree") => Verdict::Pass,
+        Some("disagree") => Verdict::reject(format!(
+            "solver disagrees with the expected answer{}",
+            detail_suffix(value)
+        )),
+        _ => Verdict::hold("solver response carries no `verdict`"),
+    }
+}
+
+/// A derived-answer entry that carries a non-blank string.
+fn answer_present(x: &Value) -> bool {
+    x.as_str().is_some_and(|s| !s.trim().is_empty())
 }

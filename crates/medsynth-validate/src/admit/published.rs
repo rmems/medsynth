@@ -37,28 +37,36 @@ pub(super) fn published_record_ids(
 fn collect_file_ids(path: &Path, ids: &mut HashSet<String>) -> Result<(), String> {
     let text = std::fs::read_to_string(path)
         .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
-    if path.extension().and_then(|e| e.to_str()) != Some("jsonl") {
-        let v: Value = serde_json::from_str(&text)
-            .map_err(|e| format!("{}: unparseable published record: {e}", path.display()))?;
-        if let Some(id) = v["id"].as_str() {
-            ids.insert(id.to_owned());
+    if path.extension().and_then(|e| e.to_str()) == Some("jsonl") {
+        for (i, line) in text.lines().enumerate() {
+            collect_line(path, i + 1, line, ids)?;
         }
+    } else {
+        collect_line(path, 0, &text, ids)?;
+    }
+    Ok(())
+}
+
+/// Parse one record's text — a `.jsonl` line, or a whole `.json` file —
+/// into the id set. `line` is 1-based, or 0 for a whole-file record.
+fn collect_line(
+    path: &Path,
+    line: usize,
+    text: &str,
+    ids: &mut HashSet<String>,
+) -> Result<(), String> {
+    if text.trim().is_empty() {
         return Ok(());
     }
-    for (i, line) in text.lines().enumerate() {
-        if line.trim().is_empty() {
-            continue;
-        }
-        let v: Value = serde_json::from_str(line).map_err(|e| {
-            format!(
-                "{}:{}: unparseable published record: {e}",
-                path.display(),
-                i + 1
-            )
-        })?;
-        if let Some(id) = v["id"].as_str() {
-            ids.insert(id.to_owned());
-        }
+    let v: Value = serde_json::from_str(text).map_err(|e| {
+        let at = match line {
+            0 => path.display().to_string(),
+            n => format!("{}:{n}", path.display()),
+        };
+        format!("{at}: unparseable published record: {e}")
+    })?;
+    if let Some(id) = v["id"].as_str() {
+        ids.insert(id.to_owned());
     }
     Ok(())
 }

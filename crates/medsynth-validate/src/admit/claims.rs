@@ -201,16 +201,23 @@ pub struct RequestScope<'a> {
     pub registry_version: &'a str,
 }
 
-/// The stage-2 solve request body.
-pub fn solve_body(scope: &RequestScope, record: &DraftRecord, item: &Value) -> Value {
+/// The fields every request body opens with — kind plus the run/batch
+/// identity the response binds to.
+fn body_base(scope: &RequestScope, kind: &str, record: &DraftRecord) -> Value {
     json!({
-        "kind": "solve",
+        "kind": kind,
         "batch_id": scope.batch_id,
         "record_id": record.record_id(),
         "format": record.format.slug(),
         "contract_version": scope.contract_version,
-        "item": item,
     })
+}
+
+/// The stage-2 solve request body.
+pub fn solve_body(scope: &RequestScope, record: &DraftRecord, item: &Value) -> Value {
+    let mut body = body_base(scope, "solve", record);
+    body["item"] = item.clone();
+    body
 }
 
 /// The stage-3/4 verify request body.
@@ -241,27 +248,17 @@ pub fn verify_body(
             "refutation": d.refutation,
         })
     });
-    json!({
-        "kind": "verify",
-        "batch_id": scope.batch_id,
-        "record_id": record.record_id(),
-        "format": record.format.slug(),
-        "contract_version": scope.contract_version,
-        "registry_version": scope.registry_version,
-        "claims": claims,
-        "distractor": distractor,
-    })
+    let mut body = body_base(scope, "verify", record);
+    body["registry_version"] = json!(scope.registry_version);
+    body["claims"] = json!(claims);
+    body["distractor"] = distractor.unwrap_or(Value::Null);
+    body
 }
 
 /// The stage-5 review request body — the full record as it stands after
 /// stages 1–4.
 pub fn review_body(scope: &RequestScope, record: &DraftRecord) -> Value {
-    json!({
-        "kind": "review",
-        "batch_id": scope.batch_id,
-        "record_id": record.record_id(),
-        "format": record.format.slug(),
-        "contract_version": scope.contract_version,
-        "record": record.value,
-    })
+    let mut body = body_base(scope, "review", record);
+    body["record"] = record.value.clone();
+    body
 }

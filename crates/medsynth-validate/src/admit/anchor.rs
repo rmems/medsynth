@@ -94,7 +94,13 @@ impl<'a, 'b> AnchorCheck<'a, 'b> {
         // its current locator convention may not be the one the draft
         // was written against — the record holds for re-anchoring rather
         // than rejecting against a convention it never claimed to meet.
-        if self.receipt_stale(block, source_id, locator, entry.sha256.as_str()) {
+        let anchor = AnchorRef {
+            path: &block.path,
+            source_id,
+            locator,
+            sha: entry.sha256.as_str(),
+        };
+        if self.receipt_stale(&anchor) {
             return Ok(());
         }
         if !self.locator_valid(source_id, locator, &entry.locator_format)? {
@@ -137,41 +143,44 @@ impl<'a, 'b> AnchorCheck<'a, 'b> {
     /// Returns true when the receipt is stale — the anchor is then done:
     /// the drifted entry's current convention proves nothing about the
     /// locator the draft was written against.
-    fn receipt_stale(
-        &mut self,
-        block: &ClaimBlock,
-        source_id: &str,
-        locator: &str,
-        sha: &str,
-    ) -> bool {
+    fn receipt_stale(&mut self, anchor: &AnchorRef) -> bool {
         if !self.ctx.batch.has_anchor_receipts() {
             return false;
         }
-        match self
-            .ctx
-            .batch
-            .anchor_receipt(&self.record.record_id(), source_id, locator)
-        {
+        match self.ctx.batch.anchor_receipt(
+            &self.record.record_id(),
+            anchor.source_id,
+            anchor.locator,
+        ) {
             None => {
                 self.findings.hold(format!(
-                    "{path}: anchor {source_id} {locator} has no batch receipt",
-                    path = block.path
+                    "{}: anchor {} {} has no batch receipt",
+                    anchor.path, anchor.source_id, anchor.locator
                 ));
                 false
             }
             Some(receipt) => {
-                let stale = receipt["registry_entry_sha256"].as_str() != Some(sha);
+                let stale = receipt["registry_entry_sha256"].as_str() != Some(anchor.sha);
                 if stale {
                     self.findings.hold(format!(
-                        "{}: registry entry `{source_id}` changed since drafting — \
+                        "{}: registry entry `{}` changed since drafting — \
                          held for re-anchoring",
-                        block.path
+                        anchor.path, anchor.source_id
                     ));
                 }
                 stale
             }
         }
     }
+}
+
+/// One anchor's context: the claim path it sits under, the cited source
+/// and locator, and the registry entry hash it must match.
+struct AnchorRef<'a> {
+    path: &'a str,
+    source_id: &'a str,
+    locator: &'a str,
+    sha: &'a str,
 }
 
 /// The verifier exchange: send the claim blocks and distractor screen,
@@ -218,14 +227,20 @@ fn verify_claims(
         let vs = verdicts
             .get(block.path.as_str())
             .map_or(&[][..], Vec::as_slice);
-        if vs.is_empty() {
-            findings.hold(format!("verifier returned no verdict for {}", block.path));
-        }
-        for v in vs {
-            apply_claim_verdict(block, v, &mut findings);
-        }
+        apply_verdicts(block, vs, &mut findings);
     }
     Ok((findings.verdict(), Some(response)))
+}
+
+/// Fold every verdict the verifier returned for one claim block — none
+/// holds, any number fold in order so a rejection can never hide.
+fn apply_verdicts(block: &ClaimBlock, vs: &[&Value], findings: &mut Findings) {
+    if vs.is_empty() {
+        findings.hold(format!("verifier returned no verdict for {}", block.path));
+    }
+    for v in vs {
+        apply_claim_verdict(block, v, findings);
+    }
 }
 
 fn apply_claim_verdict(block: &ClaimBlock, v: &Value, findings: &mut Findings) {
