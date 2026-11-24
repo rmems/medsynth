@@ -86,7 +86,10 @@ fn run_config_load_validates_shape() {
     assert_eq!(config.contract_version, "0.1");
     assert_eq!(config.sample_rate, 0.10); // default
 
-    assert!(write("{nope").is_err());
+    // Unreadable vs unparseable are distinct diagnostics.
+    let missing = admit::load_run_config(&harness.dir.join("no-such-config.json"));
+    assert!(missing.unwrap_err().contains("cannot read"));
+    assert!(write("{nope").unwrap_err().contains("run config"));
 
     let mut v = good.clone();
     v["contract_version"] = json!(" ");

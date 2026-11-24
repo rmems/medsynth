@@ -55,7 +55,9 @@ fn collect_line(
     text: &str,
     ids: &mut HashSet<String>,
 ) -> Result<(), String> {
-    if text.trim().is_empty() {
+    // Blank `.jsonl` lines are ordinary; an empty `.json` file is a
+    // malformed published record — the corpus scan fails on it.
+    if line != 0 && text.trim().is_empty() {
         return Ok(());
     }
     let v: Value = serde_json::from_str(text).map_err(|e| {
