@@ -236,14 +236,16 @@ pub fn run(opts: &AdmissionOptions) -> Result<AdmissionReport, String> {
 
 /// The log is written after the shards, so a log path colliding with a
 /// shard destination would silently replace the shard — refuse to start.
+/// Comparison is canonicalized where possible and lexically normalized
+/// otherwise, so `..` segments and symlinked data dirs cannot alias a
+/// shard past the check.
 fn check_log_path(data_dir: &Path, batch_id: &str, log_path: &Path) -> Result<(), String> {
-    let absolute_log = std::path::absolute(log_path).unwrap_or_else(|_| log_path.to_path_buf());
+    let normalized_log = normalize_path(log_path);
     for format in Format::all() {
         let shard = data_dir
             .join(format.slug())
             .join(format!("{batch_id}.jsonl"));
-        let absolute_shard = std::path::absolute(&shard).unwrap_or(shard);
-        if absolute_log == absolute_shard {
+        if normalized_log == normalize_path(&shard) {
             return Err(format!(
                 "admission log path {} collides with the {} shard destination",
                 log_path.display(),
@@ -251,7 +253,55 @@ fn check_log_path(data_dir: &Path, batch_id: &str, log_path: &Path) -> Result<()
             ));
         }
     }
+    // Preflight the write itself: a log path that is an existing
+    // directory fails only after the shards publish, leaving admitted
+    // records visible with no report. Fail before anything is written.
+    if log_path.is_dir() {
+        return Err(format!(
+            "admission log path {} is a directory",
+            log_path.display()
+        ));
+    }
     Ok(())
+}
+
+/// Canonicalize what exists and normalize the rest lexically — absolute,
+/// with `.`/`..` resolved component-wise. Symlinks in the final component
+/// are unresolvable before the file exists, which no path comparison can
+/// cover; the shard destinations never exist at check time by design.
+fn normalize_path(path: &Path) -> PathBuf {
+    let absolute = std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+    // Canonicalize the longest existing ancestor, then re-attach the
+    // non-existing tail — the shards and log typically do not exist yet.
+    let mut ancestor = absolute.as_path();
+    let mut tail = Vec::new();
+    while !ancestor.exists() {
+        let Some(file_name) = ancestor.file_name() else {
+            break;
+        };
+        tail.push(file_name.to_owned());
+        let Some(parent) = ancestor.parent() else {
+            break;
+        };
+        ancestor = parent;
+    }
+    let base = std::fs::canonicalize(ancestor).unwrap_or_else(|_| ancestor.to_path_buf());
+    let mut resolved = base;
+    for component in tail.iter().rev() {
+        resolved.push(component);
+    }
+    // Lexical `.`/`..` resolution for any remainder.
+    let mut out = PathBuf::new();
+    for component in resolved.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
 }
 
 /// Fail-closed pin checks need the batch's shape — which semantic stages

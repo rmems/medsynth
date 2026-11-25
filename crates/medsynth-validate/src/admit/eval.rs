@@ -274,23 +274,30 @@ pub(super) fn identity_mismatch(
     None
 }
 
-/// Whether a fulfillment response names the drafting model — the
-/// independence guarantee for verifier/reviewer pins that carry no
-/// `model_id` of their own. Runs after identity confirmation: a
-/// correctly pinned run answering with the drafting model is still the
-/// drafting model.
-pub(super) fn response_is_drafter(
+/// The independence guarantee for verifier/reviewer fulfillment, run
+/// after identity confirmation. Two failure modes: the response names
+/// the drafting model (a correctly pinned run answering with the
+/// drafting model is still the drafting model), or — when the pin
+/// carries no `model_id` of its own — the response names no model at
+/// all, leaving independence unconfirmable. `pin_model` is the pin's
+/// optional model; when present, identity confirmation already forces
+/// the response to name it, so the missing-model case cannot occur.
+pub(super) fn independence_gap(
     ctx: &Ctx,
     record: &DraftRecord,
     response: &Value,
+    pin_model: Option<&str>,
     label: &str,
 ) -> Option<String> {
-    let model = response["model_id"].as_str()?;
-    same_model(ctx, record, model, None).then(|| {
-        format!(
+    match response["model_id"].as_str() {
+        Some(model) if same_model(ctx, record, model, None) => Some(format!(
             "{label} response names the drafting model `{model}` — the check is not independent"
-        )
-    })
+        )),
+        None if pin_model.is_none() => Some(format!(
+            "{label} response carries no `model_id` — independence cannot be confirmed"
+        )),
+        _ => None,
+    }
 }
 
 /// `": <detail>"` when a response carries a detail string, else empty —

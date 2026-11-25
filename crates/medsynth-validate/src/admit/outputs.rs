@@ -51,19 +51,25 @@ pub(super) fn write_admitted(
 
 /// The records a shard already holds, keyed by id — kept verbatim so a
 /// held re-run never un-admits them.
+/// The shard's text — `None` when no shard exists yet. An unreadable
+/// shard must never read as an absent one: the merge would overwrite it
+/// and un-admit every record it held.
+fn read_shard_text(path: &Path) -> Result<Option<String>, String> {
+    match std::fs::read_to_string(path) {
+        Ok(text) => Ok(Some(text)),
+        Err(e) if e.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(format!(
+            "cannot read existing shard {}: {e}",
+            path.display()
+        )),
+    }
+}
+
 fn existing_shard(path: &Path) -> Result<BTreeMap<String, Value>, String> {
     let mut records = BTreeMap::new();
-    let text = match std::fs::read_to_string(path) {
-        Ok(text) => text,
-        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(records), // no shard yet
-        // An unreadable shard must never read as an empty one — the merge
-        // would overwrite it and un-admit every record it held.
-        Err(e) => {
-            return Err(format!(
-                "cannot read existing shard {}: {e}",
-                path.display()
-            ));
-        }
+    let text = match read_shard_text(path)? {
+        Some(text) => text,
+        None => return Ok(records), // no shard yet
     };
     for (i, line) in text.lines().enumerate() {
         if line.trim().is_empty() {

@@ -8,9 +8,12 @@ use serde_json::Value;
 
 /// Ids already published under `data/` — every record file the CI gate
 /// scans (all `.jsonl` shards and `.json` records, nested dirs included),
-/// minus shards named for this batch id so a re-run is idempotent rather
-/// than self-conflicting. Malformed files are hard errors: a gate that
-/// cannot read the corpus cannot claim uniqueness.
+/// minus this run's own shards so a re-run is idempotent rather than
+/// self-conflicting, and minus the gold near-miss probes: they are
+/// corrective fixtures CI itself excludes, not published records, so a
+/// corrected probe reusing its id must not block itself at the duplicate
+/// check. Malformed files are hard errors: a gate that cannot read the
+/// corpus cannot claim uniqueness.
 pub(super) fn published_record_ids(
     data_dir: &Path,
     batch_id: &str,
@@ -26,8 +29,12 @@ pub(super) fn published_record_ids(
     let mut ids = HashSet::new();
     let mut files = Vec::new();
     walk_tree(data_dir, &mut files)?;
+    let near_miss = std::path::PathBuf::from("gold").join("near-miss");
     for path in files {
         let rel = path.strip_prefix(data_dir).unwrap_or(&path).to_path_buf();
+        if rel.starts_with(&near_miss) {
+            continue; // probes, not publications — CI excludes them too
+        }
         if own_shards.contains(&rel) {
             continue;
         }

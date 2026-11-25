@@ -63,10 +63,7 @@ fn entry_integrity(ctx: &Ctx, record: &DraftRecord, entry: Option<&Value>) -> Op
 /// provenance), else the provenance-inferred lane. Unknown or
 /// contradictory lanes reject.
 fn resolve_lane(record: &DraftRecord, entry: Option<&Value>) -> Result<String, Verdict> {
-    if let Some(e) = entry
-        && e.get("lane")
-            .is_some_and(|l| !l.is_null() && !l.is_string())
-    {
+    if entry.is_some_and(malformed_lane) {
         return Err(Verdict::reject(
             "manifest entry's `lane` is not a string — the listing is malformed",
         ));
@@ -86,6 +83,14 @@ fn resolve_lane(record: &DraftRecord, entry: Option<&Value>) -> Result<String, V
             "manifest lane `{other}` is not a drafting lane"
         ))),
     }
+}
+
+/// Whether the entry carries a present-but-non-string `lane` — JSON null
+/// reads as absent, anything else non-string is corruption.
+fn malformed_lane(entry: &Value) -> bool {
+    entry
+        .get("lane")
+        .is_some_and(|l| !l.is_null() && !l.is_string())
 }
 
 /// The drafting lane inferred from `provenance` — `template:` generators

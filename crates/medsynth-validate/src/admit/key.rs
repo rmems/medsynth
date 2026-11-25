@@ -78,6 +78,16 @@ fn vignette_verdict(record: &DraftRecord, value: &Value) -> Verdict {
         ));
     }
     let derived = derived.expect("checked above");
+    if let Some(idx) = questions.iter().enumerate().find_map(|(i, q)| {
+        let missing = q["answer"]["text"]
+            .as_str()
+            .is_none_or(|t| t.trim().is_empty());
+        missing.then_some(i + 1)
+    }) {
+        return Verdict::reject(format!(
+            "question {idx} carries no answer text — the key cannot be verified"
+        ));
+    }
     if let Some((idx, want, got)) = questions.iter().enumerate().find_map(|(i, q)| {
         let want = q["answer"]["text"].as_str().unwrap_or("");
         let got = derived[i].as_str().unwrap_or("");
@@ -97,21 +107,33 @@ fn vignette_verdict(record: &DraftRecord, value: &Value) -> Verdict {
     }
 }
 
-/// Free-text agreement: exact match after normalization, or containment
-/// either way — an independently derived answer rarely matches the
-/// record's prose byte-for-byte, but a correct derivation restates the
-/// same conclusion. Anything weaker is the solver's `verdict` to report,
-/// not the gate's to guess.
+/// Free-text agreement: the shorter normalized token sequence appears
+/// contiguously in the longer one. Token granularity matters — substring
+/// matching equates `stratified` with `pseudostratified`, the exact
+/// confusion this gate exists to catch — and contiguity rules out
+/// coincidental overlap. An independently derived answer rarely matches
+/// the record's prose token-for-token beyond the shared conclusion, so a
+/// correct paraphrase with no contiguous span is the solver's `verdict`
+/// to account for, not the gate's to guess: a mismatch rejects with both
+/// texts recorded.
 fn answers_agree(derived: &str, expected: &str) -> bool {
-    let normalize = |s: &str| {
+    let tokenize = |s: &str| {
         s.to_lowercase()
             .split(|c: char| !c.is_alphanumeric())
             .filter(|t| !t.is_empty())
+            .map(str::to_owned)
             .collect::<Vec<_>>()
-            .join(" ")
     };
-    let (d, e) = (normalize(derived), normalize(expected));
-    d == e || d.contains(&e) || e.contains(&d)
+    let (d, e) = (tokenize(derived), tokenize(expected));
+    if d.is_empty() || e.is_empty() {
+        return false;
+    }
+    let (short, long) = if d.len() <= e.len() {
+        (&d, &e)
+    } else {
+        (&e, &d)
+    };
+    long.windows(short.len()).any(|w| w == short.as_slice())
 }
 
 /// A derived-answer entry that carries a non-blank string.

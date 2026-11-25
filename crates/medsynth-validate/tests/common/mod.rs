@@ -52,40 +52,56 @@ pub struct Overrides {
     pub review_outcome: Option<String>,
 }
 
+/// The solve response: the record's key (or the override) for MCQs, a
+/// faithful echo of the vignette answers (or the override) plus `agree`.
+fn solve_response(
+    records: &HashMap<String, Value>,
+    body: &Value,
+    overrides: &Overrides,
+    rid: &str,
+) -> Value {
+    let mut resp = json!({"run_id": SOLVER_RUN, "model_id": SOLVER_MODEL});
+    match body["format"].as_str() {
+        Some("mcq") => {
+            let answer = overrides
+                .solve_answer
+                .get(rid)
+                .cloned()
+                .unwrap_or_else(|| records[rid]["key"].as_str().unwrap().to_owned());
+            resp["answer"] = json!(answer);
+        }
+        Some("case_vignette") => {
+            resp["verdict"] = json!("agree");
+            resp["answers"] = json!(vignette_answers(records, overrides, rid));
+        }
+        _ => {}
+    }
+    resp
+}
+
+/// The vignette answers the solver claims it derived — the override when
+/// set, else a faithful echo of the record's own answers.
+fn vignette_answers(
+    records: &HashMap<String, Value>,
+    overrides: &Overrides,
+    rid: &str,
+) -> Vec<Value> {
+    if let Some(answers) = overrides.solve_vignette_answers.get(rid) {
+        return answers.iter().map(|a| json!(a)).collect();
+    }
+    records[rid]["questions"]
+        .as_array()
+        .map(|qs| qs.iter().map(|q| q["answer"]["text"].clone()).collect())
+        .unwrap_or_default()
+}
+
 /// The default fulfiller: solver answers the record's key (or the
 /// override), every claim is `supported` when anchored and `no-claim` when
 /// not (or the override), distractor and review pass.
 pub fn response(records: &HashMap<String, Value>, body: &Value, overrides: &Overrides) -> Value {
     let rid = body["record_id"].as_str().unwrap_or("").to_owned();
     match body["kind"].as_str() {
-        Some("solve") => {
-            let mut resp = json!({"run_id": SOLVER_RUN, "model_id": SOLVER_MODEL});
-            match body["format"].as_str() {
-                Some("mcq") => {
-                    let answer = overrides
-                        .solve_answer
-                        .get(&rid)
-                        .cloned()
-                        .unwrap_or_else(|| records[&rid]["key"].as_str().unwrap().to_owned());
-                    resp["answer"] = json!(answer);
-                }
-                Some("case_vignette") => {
-                    resp["verdict"] = json!("agree");
-                    let answers: Vec<Value> =
-                        if let Some(answers) = overrides.solve_vignette_answers.get(&rid) {
-                            answers.iter().map(|a| json!(a)).collect()
-                        } else {
-                            records[&rid]["questions"]
-                                .as_array()
-                                .map(|qs| qs.iter().map(|q| q["answer"]["text"].clone()).collect())
-                                .unwrap_or_default()
-                        };
-                    resp["answers"] = json!(answers);
-                }
-                _ => {}
-            }
-            resp
-        }
+        Some("solve") => solve_response(records, body, overrides, &rid),
         Some("verify") => {
             let claims: Vec<Value> = body["claims"]
                 .as_array()
