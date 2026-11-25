@@ -151,3 +151,40 @@ fn answers_agree(derived: &str, expected: &str) -> bool {
 fn answer_present(x: &Value) -> bool {
     x.as_str().is_some_and(|s| !s.trim().is_empty())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::answers_agree;
+
+    #[test]
+    fn symbolic_answers_compare_exactly() {
+        // Purely symbolic answers tokenize to nothing — identical symbols
+        // agree, different ones do not.
+        assert!(answers_agree("↑", "↑"));
+        assert!(!answers_agree("↑", "↓"));
+        assert!(answers_agree("↑ ", " ↑"));
+    }
+
+    #[test]
+    fn token_containment_not_substring() {
+        // The pseudo-prefix trap: `stratified` is a substring of
+        // `pseudostratified` but never the same token.
+        assert!(!answers_agree(
+            "stratified epithelium",
+            "pseudostratified epithelium"
+        ));
+        // A correct restatement with the conclusion embedded passes.
+        assert!(answers_agree(
+            "The answer is pseudostratified epithelium: the cells form one layer despite appearances",
+            "Pseudostratified epithelium: the cells form one layer"
+        ));
+        // Inserting even one token inside the sequence breaks contiguity.
+        assert!(!answers_agree(
+            "pseudostratified epithelium, since the cells form one layer",
+            "Pseudostratified epithelium: the cells form one layer"
+        ));
+        // An empty side never agrees.
+        assert!(!answers_agree("", "anything"));
+        assert!(!answers_agree("anything", ""));
+    }
+}
