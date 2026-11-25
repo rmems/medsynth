@@ -124,6 +124,17 @@ fn answers_agree(derived: &str, expected: &str) -> bool {
             .map(str::to_owned)
             .collect::<Vec<_>>()
     };
+    // Exact normalized equality first — purely symbolic answers (`↑`)
+    // tokenize to nothing, but identical symbols plainly agree.
+    let collapse = |s: &str| {
+        s.split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .to_lowercase()
+    };
+    if collapse(derived) == collapse(expected) {
+        return true;
+    }
     let (d, e) = (tokenize(derived), tokenize(expected));
     if d.is_empty() || e.is_empty() {
         return false;

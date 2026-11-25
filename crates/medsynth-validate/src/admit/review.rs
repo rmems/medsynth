@@ -8,10 +8,7 @@ use std::collections::HashMap;
 use super::batch::DraftRecord;
 use super::claims;
 use super::config::AgentPin;
-use super::eval::{
-    Ctx, RecordEval, identity_mismatch, respond, response_is_drafter, same_model,
-    unconfirmable_independence,
-};
+use super::eval::{Ctx, RecordEval, identity_mismatch, respond, response_is_drafter, same_model};
 use super::fulfill::RequestKind;
 use super::pipeline::{Outcome, ReviewReport, ReviewResult, Stage};
 
@@ -129,12 +126,12 @@ fn review_one(
     ) {
         return Ok(result("identity-mismatch", Some(reason)));
     }
-    // A pin without a model_id cannot pre-check independence — but the
-    // response names its model, and the drafting model reviewing its own
-    // record is not a review.
-    if let Some(reason) = response_is_drafter(ctx, record, &outcome, "reviewer")
-        .or_else(|| unconfirmable_independence(&outcome, reviewer.model_id.as_deref(), "reviewer"))
-    {
+    // The drafting model must not review its own record — checked
+    // against whatever model the response names. A response naming no
+    // model is *not* held here the way verification holds it: the
+    // contract's review sample is a human spot-check, and a human
+    // reviewer has no model id to offer.
+    if let Some(reason) = response_is_drafter(ctx, record, &outcome, "reviewer") {
         return Ok(result("held", Some(reason)));
     }
     match outcome["outcome"].as_str() {
