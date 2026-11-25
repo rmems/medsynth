@@ -43,7 +43,9 @@ pub struct SourceRegistry {
 struct RegistryFile {
     #[serde(default)]
     registry_version: String,
-    #[serde(default)]
+    // No default: a missing `sources` member is a malformed registry, not
+    // an empty one — failing closed here beats rejecting every anchored
+    // record as unlisted downstream.
     sources: Vec<Box<RawValue>>,
 }
 
