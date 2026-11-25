@@ -274,30 +274,37 @@ pub(super) fn identity_mismatch(
     None
 }
 
-/// The independence guarantee for verifier/reviewer fulfillment, run
-/// after identity confirmation. Two failure modes: the response names
-/// the drafting model (a correctly pinned run answering with the
-/// drafting model is still the drafting model), or — when the pin
-/// carries no `model_id` of its own — the response names no model at
-/// all, leaving independence unconfirmable. `pin_model` is the pin's
-/// optional model; when present, identity confirmation already forces
-/// the response to name it, so the missing-model case cannot occur.
-pub(super) fn independence_gap(
+/// Whether a fulfillment response names the drafting model — a
+/// correctly pinned run answering with the drafting model is still the
+/// drafting model. Runs after identity confirmation.
+pub(super) fn response_is_drafter(
     ctx: &Ctx,
     record: &DraftRecord,
+    response: &Value,
+    label: &str,
+) -> Option<String> {
+    let model = response["model_id"].as_str()?;
+    same_model(ctx, record, model, None).then(|| {
+        format!(
+            "{label} response names the drafting model `{model}` — the check is not independent"
+        )
+    })
+}
+
+/// The other independence failure mode: when the pin carries no
+/// `model_id` of its own, a response naming no model at all leaves
+/// independence unconfirmable — the drafting model could be fulfilling
+/// its own check by simply not naming itself. When the pin does carry a
+/// model, identity confirmation already forces the response to name it,
+/// so the gap cannot occur.
+pub(super) fn unconfirmable_independence(
     response: &Value,
     pin_model: Option<&str>,
     label: &str,
 ) -> Option<String> {
-    match response["model_id"].as_str() {
-        Some(model) if same_model(ctx, record, model, None) => Some(format!(
-            "{label} response names the drafting model `{model}` — the check is not independent"
-        )),
-        None if pin_model.is_none() => Some(format!(
-            "{label} response carries no `model_id` — independence cannot be confirmed"
-        )),
-        _ => None,
-    }
+    (pin_model.is_none() && response["model_id"].as_str().is_none()).then(|| {
+        format!("{label} response carries no `model_id` — independence cannot be confirmed")
+    })
 }
 
 /// `": <detail>"` when a response carries a detail string, else empty —

@@ -12,7 +12,8 @@ use crate::Format;
 use super::batch::DraftRecord;
 use super::claims::{self, ClaimBlock, DistractorScreen};
 use super::eval::{
-    Ctx, Findings, Verdict, detail_suffix, identity_mismatch, independence_gap, respond, same_model,
+    Ctx, Findings, Verdict, detail_suffix, identity_mismatch, respond, response_is_drafter,
+    same_model, unconfirmable_independence,
 };
 use super::fulfill::RequestKind;
 
@@ -262,13 +263,9 @@ fn verify_claims(
     }
     // The verifier must be independent of the drafting run — the response
     // names its model even when the pin does not.
-    if let Some(reason) = independence_gap(
-        ctx,
-        record,
-        &response,
-        verifier.model_id.as_deref(),
-        "verifier",
-    ) {
+    if let Some(reason) = response_is_drafter(ctx, record, &response, "verifier")
+        .or_else(|| unconfirmable_independence(&response, verifier.model_id.as_deref(), "verifier"))
+    {
         findings.hold(reason);
         return Ok((findings.verdict(), None));
     }
