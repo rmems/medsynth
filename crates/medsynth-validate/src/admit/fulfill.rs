@@ -9,10 +9,23 @@
 //! lane's convention so the same harness pattern fulfills all of them.
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde_json::Value;
 
 use super::hash::sha256_str;
+
+/// A per-write unique staging-file tag: process id plus a monotonically
+/// increasing counter, so two concurrent writers staging the same target
+/// never share — or clean up — each other's temp file.
+pub fn tmp_tag() -> String {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    format!(
+        "{}-{}",
+        std::process::id(),
+        COUNTER.fetch_add(1, Ordering::Relaxed)
+    )
+}
 
 /// Which external check a fulfillment file belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -86,7 +99,7 @@ impl Fulfillment {
         // replaced by the rename, never followed to truncate its target.
         // create_new for the staging file itself so a planted link fails
         // loudly instead of redirecting the write.
-        let tmp_path = request_path.with_extension(format!("tmp-{}", std::process::id()));
+        let tmp_path = request_path.with_extension(format!("tmp-{}", tmp_tag()));
         let write = std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)

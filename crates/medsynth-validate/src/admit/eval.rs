@@ -257,6 +257,25 @@ pub(super) fn identity_mismatch(
     None
 }
 
+/// Whether a fulfillment response names the drafting model — the
+/// independence guarantee for verifier/reviewer pins that carry no
+/// `model_id` of their own. Runs after identity confirmation: a
+/// correctly pinned run answering with the drafting model is still the
+/// drafting model.
+pub(super) fn response_is_drafter(
+    ctx: &Ctx,
+    record: &DraftRecord,
+    response: &Value,
+    label: &str,
+) -> Option<String> {
+    let model = response["model_id"].as_str()?;
+    same_model(ctx, record, model, None).then(|| {
+        format!(
+            "{label} response names the drafting model `{model}` — the check is not independent"
+        )
+    })
+}
+
 /// `": <detail>"` when a response carries a detail string, else empty —
 /// appended to reject/hold reasons.
 pub(super) fn detail_suffix(response: &Value) -> String {

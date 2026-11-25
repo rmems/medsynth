@@ -41,6 +41,9 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
 pub struct Overrides {
     /// record id -> the answer the solver claims it derived.
     pub solve_answer: HashMap<String, String>,
+    /// record id -> vignette answers the solver claims it derived,
+    /// replacing the faithful echo of the record's answers.
+    pub solve_vignette_answers: HashMap<String, Vec<String>>,
     /// (record id, claim path) -> the verifier's verdict for that block.
     pub claim_verdict: HashMap<(String, String), String>,
     /// The distractor screen's verdict (`pass` unless overridden).
@@ -68,10 +71,15 @@ pub fn response(records: &HashMap<String, Value>, body: &Value, overrides: &Over
                 }
                 Some("case_vignette") => {
                     resp["verdict"] = json!("agree");
-                    let answers: Vec<Value> = records[&rid]["questions"]
-                        .as_array()
-                        .map(|qs| qs.iter().map(|q| q["answer"]["text"].clone()).collect())
-                        .unwrap_or_default();
+                    let answers: Vec<Value> =
+                        if let Some(answers) = overrides.solve_vignette_answers.get(&rid) {
+                            answers.iter().map(|a| json!(a)).collect()
+                        } else {
+                            records[&rid]["questions"]
+                                .as_array()
+                                .map(|qs| qs.iter().map(|q| q["answer"]["text"].clone()).collect())
+                                .unwrap_or_default()
+                        };
                     resp["answers"] = json!(answers);
                 }
                 _ => {}

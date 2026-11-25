@@ -81,21 +81,27 @@ pub fn load_run_config(path: &Path) -> Result<RunConfig, String> {
         .map_err(|e| format!("cannot read run config {}: {e}", path.display()))?;
     let config: RunConfig =
         serde_json::from_str(&text).map_err(|e| format!("run config {}: {e}", path.display()))?;
-    config.check_shape(path)?;
+    config.check_shape(&format!("run config {}", path.display()))?;
     Ok(config)
 }
 
 impl RunConfig {
+    /// Field-level validation for library callers — `run()` invokes this
+    /// regardless of how the config was constructed, so building a
+    /// `RunConfig` directly cannot bypass the checks `load_run_config`
+    /// applies.
+    pub fn validate(&self) -> Result<(), String> {
+        self.check_shape("run config")
+    }
+
     /// Field-level checks that do not depend on the batch.
-    fn check_shape(&self, path: &Path) -> Result<(), String> {
-        let label = || format!("run config {}", path.display());
-        if self.contract_version.trim().is_empty() {
-            return Err(format!("{}: contract_version is blank", label()));
-        }
+    fn check_shape(&self, label: &str) -> Result<(), String> {
+        let label = || label.to_owned();
         // Contract §9: the gate verifies against the currently effective
-        // version — a run configured for a superseded contract refuses to
-        // start rather than stamp records with stale rules.
-        if self.contract_version.trim() != medsynth_schema::CONTRACT_VERSION {
+        // version — a run configured for a superseded (or sloppy, since the
+        // string is stamped verbatim into admitted records) contract
+        // refuses to start rather than stamp records with stale rules.
+        if self.contract_version != medsynth_schema::CONTRACT_VERSION {
             return Err(format!(
                 "{}: contract_version `{}` is not the gate's `{}`",
                 label(),
@@ -122,9 +128,27 @@ impl RunConfig {
         {
             return Err(format!("{label}: solver pin requires run_id and model_id"));
         }
+        if self
+            .solver
+            .as_ref()
+            .and_then(|s| s.pin_id.as_deref())
+            .is_some_and(|p| p.trim().is_empty())
+        {
+            return Err(format!("{label}: solver pin_id is blank"));
+        }
         for (name, agent) in [("verifier", &self.verifier), ("reviewer", &self.reviewer)] {
             if agent.as_ref().is_some_and(|a| a.run_id.trim().is_empty()) {
                 return Err(format!("{label}: {name} run_id is blank"));
+            }
+            // A present-but-blank model id is not an unpinned model — it
+            // is a malformed pin, and it would slip past every comparison
+            // the pin exists to enforce.
+            if agent
+                .as_ref()
+                .and_then(|a| a.model_id.as_deref())
+                .is_some_and(|m| m.trim().is_empty())
+            {
+                return Err(format!("{label}: {name} model_id is blank"));
             }
         }
         Ok(())

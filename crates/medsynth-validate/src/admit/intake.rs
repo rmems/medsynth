@@ -63,6 +63,14 @@ fn entry_integrity(ctx: &Ctx, record: &DraftRecord, entry: Option<&Value>) -> Op
 /// provenance), else the provenance-inferred lane. Unknown or
 /// contradictory lanes reject.
 fn resolve_lane(record: &DraftRecord, entry: Option<&Value>) -> Result<String, Verdict> {
+    if let Some(e) = entry
+        && e.get("lane")
+            .is_some_and(|l| !l.is_null() && !l.is_string())
+    {
+        return Err(Verdict::reject(
+            "manifest entry's `lane` is not a string — the listing is malformed",
+        ));
+    }
     let declared = entry.and_then(|e| e["lane"].as_str());
     let inferred = lane_of(record);
     if let Some(lane) = declared

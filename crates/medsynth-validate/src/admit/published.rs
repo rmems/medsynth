@@ -15,15 +15,22 @@ pub(super) fn published_record_ids(
     data_dir: &Path,
     batch_id: &str,
 ) -> Result<HashSet<String>, String> {
-    let own_shard = format!("{batch_id}.jsonl");
+    // This run's own shards are exactly `data/<format>/<batch_id>.jsonl`
+    // — comparing full relative paths, not file names, so a nested shard
+    // that happens to share the name (`mcq/archive/<batch>.jsonl`) still
+    // counts toward the duplicate scan.
+    let own_shards: Vec<std::path::PathBuf> = crate::Format::all()
+        .iter()
+        .map(|f| std::path::PathBuf::from(f.slug()).join(format!("{batch_id}.jsonl")))
+        .collect();
     let mut ids = HashSet::new();
     let mut files = Vec::new();
     walk_tree(data_dir, &mut files)?;
     for path in files {
-        if path.file_name().and_then(|n| n.to_str()) == Some(own_shard.as_str()) {
+        let rel = path.strip_prefix(data_dir).unwrap_or(&path).to_path_buf();
+        if own_shards.contains(&rel) {
             continue;
         }
-        let rel = path.strip_prefix(data_dir).unwrap_or(&path).to_path_buf();
         if super::batch::is_sidecar(&rel) {
             continue;
         }

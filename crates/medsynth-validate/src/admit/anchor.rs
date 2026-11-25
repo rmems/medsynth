@@ -11,7 +11,10 @@ use crate::Format;
 
 use super::batch::DraftRecord;
 use super::claims::{self, ClaimBlock, DistractorScreen};
-use super::eval::{Ctx, Findings, Verdict, detail_suffix, identity_mismatch, respond};
+use super::eval::{
+    Ctx, Findings, Verdict, detail_suffix, identity_mismatch, respond, response_is_drafter,
+    same_model,
+};
 use super::fulfill::RequestKind;
 
 /// Stage 3 — deterministic anchor checks plus the verifier's per-claim
@@ -203,6 +206,17 @@ fn verify_claims(
     input: &VerifyInput,
     mut findings: Findings,
 ) -> Result<(Verdict, Option<Value>), String> {
+    // The verifier must never be the drafting model — checked before any
+    // request is emitted, the same rule the stage-2 solver follows.
+    let verifier = ctx.config.verifier.as_ref().expect("check_pins ran");
+    if verifier
+        .model_id
+        .as_deref()
+        .is_some_and(|m| same_model(ctx, record, m, None))
+    {
+        findings.hold("stage-3/4 verifier is the model that drafted this record");
+        return Ok((findings.verdict(), None));
+    }
     let mut body = claims::verify_body(&ctx.scope(), record, input.claims, input.distractor);
     body["source_pins"] = source_pins(ctx.registry, input.claims);
     let response = match respond(ctx, RequestKind::Verify, &body, "verifier")? {
@@ -215,13 +229,18 @@ fn verify_claims(
     // A response from the wrong run/model is untrusted: hold for a
     // correct fulfillment and stop — its claim verdicts must not reject
     // or support anything.
-    let verifier = ctx.config.verifier.as_ref().expect("check_pins ran");
     if let Some(reason) = identity_mismatch(
         &response,
         &verifier.run_id,
         verifier.model_id.as_deref(),
         "verifier",
     ) {
+        findings.hold(reason);
+        return Ok((findings.verdict(), None));
+    }
+    // The verifier must be independent of the drafting run — the response
+    // names its model even when the pin does not.
+    if let Some(reason) = response_is_drafter(ctx, record, &response, "verifier") {
         findings.hold(reason);
         return Ok((findings.verdict(), None));
     }

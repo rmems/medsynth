@@ -244,7 +244,11 @@ pub(super) fn is_sidecar(rel: &Path) -> bool {
     let Some(name) = rel.file_name().and_then(|n| n.to_str()) else {
         return true;
     };
-    if name.starts_with("admission-log") {
+    // Admission logs are `.json`; the prefix rule must never swallow a
+    // `.jsonl` shard — `admission-log-<x>` is a legal batch id, and its
+    // shard has to stay visible to the published-corpus scan.
+    if name.starts_with("admission-log") && rel.extension().and_then(|e| e.to_str()) == Some("json")
+    {
         return true;
     }
     // `manifest.json`/`config.json` are sidecars only at the batch root —

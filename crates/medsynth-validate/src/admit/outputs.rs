@@ -53,8 +53,17 @@ pub(super) fn write_admitted(
 /// held re-run never un-admits them.
 fn existing_shard(path: &Path) -> Result<BTreeMap<String, Value>, String> {
     let mut records = BTreeMap::new();
-    let Ok(text) = std::fs::read_to_string(path) else {
-        return Ok(records); // no shard yet
+    let text = match std::fs::read_to_string(path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(records), // no shard yet
+        // An unreadable shard must never read as an empty one — the merge
+        // would overwrite it and un-admit every record it held.
+        Err(e) => {
+            return Err(format!(
+                "cannot read existing shard {}: {e}",
+                path.display()
+            ));
+        }
     };
     for (i, line) in text.lines().enumerate() {
         if line.trim().is_empty() {
@@ -98,7 +107,7 @@ fn write_text(path: &Path, text: &str) -> io::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let tmp = path.with_extension(format!("tmp-{}", std::process::id()));
+    let tmp = path.with_extension(format!("tmp-{}", super::fulfill::tmp_tag()));
     let result = std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)

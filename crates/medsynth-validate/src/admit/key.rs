@@ -64,14 +64,27 @@ fn compare_key(record: &DraftRecord, value: &Value) -> Verdict {
 }
 
 /// Stage 2's verdict for a vignette: the solver must actually re-derive
-/// the answers — a bare `agree` without derivation artifacts proves
-/// nothing.
+/// the answers, and each derivation is compared with the record's answer
+/// — a bare `agree` proves nothing (issue #9: disagreement = reject).
 fn vignette_verdict(record: &DraftRecord, value: &Value) -> Verdict {
-    let questions = record.value["questions"].as_array().map_or(0, Vec::len);
+    let Some(questions) = record.value["questions"].as_array() else {
+        return Verdict::hold("record carries no `questions` array");
+    };
     let derived = value["answers"].as_array();
-    if !derived.is_some_and(|a| a.len() == questions && a.iter().all(answer_present)) {
+    if !derived.is_some_and(|a| a.len() == questions.len() && a.iter().all(answer_present)) {
         return Verdict::hold(format!(
-            "solver response carries no derived `answers` for the {questions} questions"
+            "solver response carries no derived `answers` for the {} questions",
+            questions.len()
+        ));
+    }
+    let derived = derived.expect("checked above");
+    if let Some((idx, want, got)) = questions.iter().enumerate().find_map(|(i, q)| {
+        let want = q["answer"]["text"].as_str().unwrap_or("");
+        let got = derived[i].as_str().unwrap_or("");
+        (!answers_agree(got, want)).then(|| (i + 1, want.to_owned(), got.to_owned()))
+    }) {
+        return Verdict::reject(format!(
+            "solver derived `{got}` but question {idx} answers `{want}`"
         ));
     }
     match value["verdict"].as_str() {
@@ -82,6 +95,23 @@ fn vignette_verdict(record: &DraftRecord, value: &Value) -> Verdict {
         )),
         _ => Verdict::hold("solver response carries no `verdict`"),
     }
+}
+
+/// Free-text agreement: exact match after normalization, or containment
+/// either way — an independently derived answer rarely matches the
+/// record's prose byte-for-byte, but a correct derivation restates the
+/// same conclusion. Anything weaker is the solver's `verdict` to report,
+/// not the gate's to guess.
+fn answers_agree(derived: &str, expected: &str) -> bool {
+    let normalize = |s: &str| {
+        s.to_lowercase()
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|t| !t.is_empty())
+            .collect::<Vec<_>>()
+            .join(" ")
+    };
+    let (d, e) = (normalize(derived), normalize(expected));
+    d == e || d.contains(&e) || e.contains(&d)
 }
 
 /// A derived-answer entry that carries a non-blank string.

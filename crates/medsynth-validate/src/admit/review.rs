@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use super::batch::DraftRecord;
 use super::claims;
 use super::config::AgentPin;
-use super::eval::{Ctx, RecordEval, identity_mismatch, respond, same_model};
+use super::eval::{Ctx, RecordEval, identity_mismatch, respond, response_is_drafter, same_model};
 use super::fulfill::RequestKind;
 use super::pipeline::{Outcome, ReviewReport, ReviewResult, Stage};
 
@@ -117,6 +117,12 @@ fn review_one(
         "reviewer",
     ) {
         return Ok(result("identity-mismatch", Some(reason)));
+    }
+    // A pin without a model_id cannot pre-check independence — but the
+    // response names its model, and the drafting model reviewing its own
+    // record is not a review.
+    if let Some(reason) = response_is_drafter(ctx, record, &outcome, "reviewer") {
+        return Ok(result("held", Some(reason)));
     }
     match outcome["outcome"].as_str() {
         Some(name) => Ok(result(name, outcome["detail"].as_str().map(str::to_owned))),

@@ -4,7 +4,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use rayon::prelude::*;
 use serde::Serialize;
@@ -156,6 +156,9 @@ pub struct AdmissionOptions {
 /// Run the admission pipeline and write its outputs. Returns the report
 /// that was also written to `log_path`.
 pub fn run(opts: &AdmissionOptions) -> Result<AdmissionReport, String> {
+    // Validate regardless of how the config was constructed — library
+    // callers build `RunConfig` directly, bypassing `load_run_config`.
+    opts.config.validate()?;
     let batch = Batch::load(&opts.batch_dir)?;
     let registry = SourceRegistry::load(&opts.sources_path)?;
     let validators = crate::Validators::compile();
@@ -167,6 +170,7 @@ pub fn run(opts: &AdmissionOptions) -> Result<AdmissionReport, String> {
     })?;
 
     check_batch_pins(&batch, &opts.config)?;
+    check_log_path(&opts.data_dir, &batch.batch_id, &opts.log_path)?;
     let admitted_ids = published_record_ids(&opts.data_dir, &batch.batch_id)?;
 
     // Stage 1's duplicate check reads counts, not the whole batch.
@@ -226,6 +230,26 @@ pub fn run(opts: &AdmissionOptions) -> Result<AdmissionReport, String> {
         )
     })?;
     Ok(report)
+}
+
+/// The log is written after the shards, so a log path colliding with a
+/// shard destination would silently replace the shard — refuse to start.
+fn check_log_path(data_dir: &Path, batch_id: &str, log_path: &Path) -> Result<(), String> {
+    let absolute_log = std::path::absolute(log_path).unwrap_or_else(|_| log_path.to_path_buf());
+    for format in Format::all() {
+        let shard = data_dir
+            .join(format.slug())
+            .join(format!("{batch_id}.jsonl"));
+        let absolute_shard = std::path::absolute(&shard).unwrap_or(shard);
+        if absolute_log == absolute_shard {
+            return Err(format!(
+                "admission log path {} collides with the {} shard destination",
+                log_path.display(),
+                format.slug()
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Fail-closed pin checks need the batch's shape — which semantic stages
