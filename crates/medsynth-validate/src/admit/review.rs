@@ -106,9 +106,17 @@ fn review_one(
         ));
     }
     let body = claims::review_body(&ctx.scope(), record);
-    let outcome = match respond(ctx, RequestKind::Review, &body, "review")? {
-        Ok(value) => value,
-        Err(reason) => return Ok(result("unfulfilled", Some(reason))),
+    let outcome = match respond(ctx, RequestKind::Review, &body, "review") {
+        Ok(Ok(value)) => value,
+        Ok(Err(reason)) => return Ok(result("unfulfilled", Some(reason))),
+        // Infrastructure failure — the review holds like any other
+        // transient outage rather than sinking the batch's log.
+        Err(e) => {
+            return Ok(result(
+                "unfulfilled",
+                Some(format!("review fulfillment I/O: {e}")),
+            ));
+        }
     };
     if let Some(reason) = identity_mismatch(
         &outcome,

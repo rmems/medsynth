@@ -251,10 +251,15 @@ pub(super) fn is_sidecar(rel: &Path) -> bool {
     {
         return true;
     }
-    // `manifest.json`/`config.json` are sidecars only at the batch root —
-    // a file of that name inside a format directory is a record.
-    let at_root = rel.parent().is_none_or(|p| p.as_os_str().is_empty());
-    (at_root && ["manifest.json", "config.json"].contains(&name))
+    // `manifest.json`/`config.json` are records only inside a format
+    // directory — anywhere else (batch root, a settings/ subdir) they are
+    // sidecars, since they could never parse as a record there anyway.
+    let in_format_dir = rel
+        .parent()
+        .and_then(|p| p.file_name())
+        .and_then(|n| n.to_str())
+        .is_some_and(|dir| crate::Format::all().iter().any(|f| f.slug() == dir));
+    (!in_format_dir && ["manifest.json", "config.json"].contains(&name))
         || ["-manifest.json", ".request.json", ".response.json"]
             .iter()
             .any(|s| name.ends_with(s))

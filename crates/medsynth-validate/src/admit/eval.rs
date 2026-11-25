@@ -139,32 +139,49 @@ fn stopped(record: &DraftRecord, verdict: Verdict, stage: Stage, status: &str) -
 
 /// Stages 0–4, in order — a record stops at its first non-pass verdict.
 /// Cleared records come back as review candidates; the batch-level review
-/// decides admitted vs held.
-pub(super) fn evaluate(ctx: &Ctx, record: &DraftRecord) -> Result<RecordEval, String> {
-    let mut status = "unverified";
-    for (stage, v) in [
-        (Stage::Intake, intake::stage_intake(ctx, record)),
-        (Stage::Schema, intake::stage_schema(ctx, record)),
-    ] {
-        if !v.is_pass() {
-            return Ok(stopped(record, v, stage, status));
+/// decides admitted vs held. Infallible by design: infrastructure
+/// failures hold the record at the stage that hit them (contract §8),
+/// they never sink the batch's run.
+pub(super) fn evaluate(ctx: &Ctx, record: &DraftRecord) -> RecordEval {
+    // Intake gates schema: a draft that fails the envelope checks never
+    // incurs the schema scan.
+    let v = intake::stage_intake(ctx, record);
+    if !v.is_pass() {
+        return stopped(record, v, Stage::Intake, "unverified");
+    }
+    let v = intake::stage_schema(ctx, record);
+    if !v.is_pass() {
+        return stopped(record, v, Stage::Schema, "unverified");
+    }
+    evaluate_key(ctx, record)
+}
+
+fn evaluate_key(ctx: &Ctx, record: &DraftRecord) -> RecordEval {
+    let v = key::stage_key(ctx, record)
+        .unwrap_or_else(|e| Verdict::hold(format!("stage-2 evaluation error: {e}")));
+    if !v.is_pass() {
+        return stopped(record, v, Stage::Key, "unverified");
+    }
+    evaluate_anchor(ctx, record)
+}
+
+fn evaluate_anchor(ctx: &Ctx, record: &DraftRecord) -> RecordEval {
+    let result = anchor::stage_anchor(ctx, record);
+    let (v, verify_response) = match result {
+        Ok(pair) => pair,
+        Err(e) => {
+            let v = Verdict::hold(format!("stage-3 evaluation error: {e}"));
+            return stopped(record, v, Stage::Anchor, "key-checked");
         }
-    }
-    let v = key::stage_key(ctx, record)?;
+    };
     if !v.is_pass() {
-        return Ok(stopped(record, v, Stage::Key, status));
+        return stopped(record, v, Stage::Anchor, "key-checked");
     }
-    status = "key-checked";
-    let (v, verify_response) = anchor::stage_anchor(ctx, record)?;
-    if !v.is_pass() {
-        return Ok(stopped(record, v, Stage::Anchor, status));
-    }
-    status = "anchor-checked";
     let v = anchor::stage_distractor(record, verify_response.as_ref());
     if !v.is_pass() {
-        return Ok(stopped(record, v, Stage::Distractor, status));
+        return stopped(record, v, Stage::Distractor, "anchor-checked");
     }
-    Ok(RecordEval {
+    RecordEval {
         outcome: Outcome::Admitted,
         outcome_record: RecordOutcome {
             record_id: record.record_id(),
@@ -173,13 +190,13 @@ pub(super) fn evaluate(ctx: &Ctx, record: &DraftRecord) -> Result<RecordEval, St
             outcome: Outcome::Admitted,
             stage: None,
             stage_name: None,
-            status: status.to_owned(),
+            status: "anchor-checked".to_owned(),
             reasons: Vec::new(),
         },
         path: record.path.clone(),
         stage: None,
         review_candidate: true,
-    })
+    }
 }
 
 // ---------------------------------------------------------------------------

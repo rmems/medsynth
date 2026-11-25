@@ -25,7 +25,15 @@ pub(super) fn stage_anchor(
     record: &DraftRecord,
 ) -> Result<(Verdict, Option<Value>), String> {
     let claim_blocks = claims::claim_blocks(record);
-    let mut findings = AnchorCheck::new(ctx, record).run(&claim_blocks)?;
+    let (mut findings, drifted) = AnchorCheck::new(ctx, record).run(&claim_blocks)?;
+    // Claims anchored to drifted entries are re-verified after
+    // re-anchoring — the verifier never judges them against passage
+    // content the draft did not cite.
+    let verifiable: Vec<ClaimBlock> = claim_blocks
+        .iter()
+        .filter(|b| !drifted.contains(&b.path))
+        .cloned()
+        .collect();
 
     // Contract §4's floor, mirroring the CI anchor-presence check: a
     // record that admits with zero registry anchors fails the corpus
@@ -42,11 +50,11 @@ pub(super) fn stage_anchor(
     // record with neither claims nor a distractor screen has nothing
     // semantic to check; deterministic results alone decide.
     let distractor = claims::distractor_screen(record);
-    if claim_blocks.is_empty() && distractor.is_none() {
+    if verifiable.is_empty() && distractor.is_none() {
         return Ok((findings.verdict(), None));
     }
     let input = VerifyInput {
-        claims: &claim_blocks,
+        claims: &verifiable,
         distractor: distractor.as_ref(),
     };
     let response = verify_claims(ctx, record, &input, findings)?;
@@ -61,6 +69,10 @@ struct AnchorCheck<'a, 'b> {
     record: &'a DraftRecord,
     validators: HashMap<String, jsonschema::Validator>,
     findings: Findings,
+    /// Claim blocks whose anchors drifted since drafting — excluded from
+    /// the verify request, since a verdict against the replacement
+    /// passage proves nothing about the citation as drafted.
+    drifted: std::collections::HashSet<String>,
 }
 
 impl<'a, 'b> AnchorCheck<'a, 'b> {
@@ -70,16 +82,20 @@ impl<'a, 'b> AnchorCheck<'a, 'b> {
             record,
             validators: HashMap::new(),
             findings: Findings::default(),
+            drifted: std::collections::HashSet::new(),
         }
     }
 
-    fn run(mut self, blocks: &[ClaimBlock]) -> Result<Findings, String> {
+    fn run(
+        mut self,
+        blocks: &[ClaimBlock],
+    ) -> Result<(Findings, std::collections::HashSet<String>), String> {
         for block in blocks {
             for (source_id, locator) in &block.anchors {
                 self.check(block, source_id, locator)?;
             }
         }
-        Ok(self.findings)
+        Ok((self.findings, self.drifted))
     }
 
     fn check(&mut self, block: &ClaimBlock, source_id: &str, locator: &str) -> Result<(), String> {
@@ -95,6 +111,12 @@ impl<'a, 'b> AnchorCheck<'a, 'b> {
                 "{}: `{source_id}` is `{}` — held for re-anchoring",
                 block.path, entry.status
             ));
+            // The drifted entry's current convention and content prove
+            // nothing about the citation as drafted — skip both the
+            // receipt and locator checks so a registry change can never
+            // read as a record defect.
+            self.drifted.insert(block.path.clone());
+            return Ok(());
         }
         // The #8 receipt check runs before locator syntax: a stale
         // receipt means the registry entry drifted since drafting, so
@@ -108,6 +130,7 @@ impl<'a, 'b> AnchorCheck<'a, 'b> {
             sha: entry.sha256.as_str(),
         };
         if self.receipt_stale(&anchor) {
+            self.drifted.insert(block.path.clone());
             return Ok(());
         }
         if !self.locator_valid(source_id, locator, &entry.locator_format)? {
@@ -164,7 +187,7 @@ impl<'a, 'b> AnchorCheck<'a, 'b> {
                     "{}: anchor {} {} has no batch receipt",
                     anchor.path, anchor.source_id, anchor.locator
                 ));
-                false
+                true
             }
             Some(receipt) => {
                 let stale = receipt["registry_entry_sha256"].as_str() != Some(anchor.sha);
@@ -274,6 +297,15 @@ fn apply_verdicts(block: &ClaimBlock, vs: &[&Value], findings: &mut Findings) {
 }
 
 fn apply_claim_verdict(block: &ClaimBlock, v: &Value, findings: &mut Findings) {
+    // `supported` requires a citation to be supported by — on an
+    // anchor-less block it is an unusable response, not a pass.
+    if v["verdict"].as_str() == Some("supported") && block.anchors.is_empty() {
+        findings.hold(format!(
+            "{}: verifier claims `supported` but the block cites no source",
+            block.path
+        ));
+        return;
+    }
     match v["verdict"].as_str() {
         Some("supported") | Some("no-claim") => {}
         Some("unanchored") => findings.reject(format!(
@@ -294,8 +326,6 @@ fn apply_claim_verdict(block: &ClaimBlock, v: &Value, findings: &mut Findings) {
     }
 }
 
-/// Count `anchors[]` entries anywhere in the record citing a registered
-/// source id — the same walk the CI `anchor-presence` check performs.
 /// `{source_id: entry sha256}` for every cited registry entry — binds the
 /// verify request to the bytes actually checked, so a changed entry
 /// produces a different fulfillment key and a stale `supported` can
@@ -313,6 +343,8 @@ fn source_pins(registry: &super::registry::SourceRegistry, claims_list: &[ClaimB
         .into()
 }
 
+/// Count `anchors[]` entries anywhere in the record citing a registered
+/// source id — the same walk the CI `anchor-presence` check performs.
 fn registry_anchor_count(value: &Value, registry: &super::registry::SourceRegistry) -> usize {
     match value {
         Value::Object(map) => map

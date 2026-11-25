@@ -19,10 +19,11 @@
 //!    sample of the batch; a failed review holds the record.
 //!
 //! Semantic work (solving, claim support, review) is fulfilled externally
-//! through request/response files — the crate writes `<key>.request.json`
-//! into the configured fulfillment dir and reads `<key>.response.json`
-//! back. Missing or unusable responses hold the record (a transient
-//! outage), never silently pass it.
+//! through request/response files — the crate writes
+//! `<key>.<kind>.request.json` into the configured fulfillment dir and
+//! reads `<key>.<kind>.response.json` back, where `<kind>` is `solve`,
+//! `verify`, or `review`. Missing or unusable responses hold the record
+//! (a transient outage), never silently pass it.
 //!
 //! Admitted records — and only admitted records — are written to
 //! `data/<format>/<batch-id>.jsonl` with `verification_status: "admitted"`

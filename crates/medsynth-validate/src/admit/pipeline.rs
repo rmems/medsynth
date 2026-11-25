@@ -189,12 +189,14 @@ pub fn run(opts: &AdmissionOptions) -> Result<AdmissionReport, String> {
         id_counts: &id_counts,
     };
 
-    // Stages 0–4 per record, in parallel; order inside one record is strict.
+    // Stages 0–4 per record, in parallel; order inside one record is
+    // strict. Evaluation is infallible — per-record infrastructure
+    // failures are holds, so every run reaches its admission log.
     let mut results: Vec<RecordEval> = batch
         .records
         .par_iter()
         .map(|record| evaluate(&ctx, record))
-        .collect::<Result<_, _>>()?;
+        .collect();
 
     // Stage 5: batch-level review sample over records that cleared 0–4.
     let review = run_review(&ctx, &mut results)?;

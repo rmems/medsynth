@@ -31,19 +31,25 @@ fn gold_set_is_admitted() {
     assert_eq!(report.admitted_shards.len(), 3);
     assert!(harness.dir.join("admission-log.json").exists());
 
-    // The shard contents: admitted status and the run's contract version.
-    let shard = fs::read_to_string(
-        harness
-            .dir
-            .join("data/mcq")
-            .join(format!("{}.jsonl", report.batch_id)),
-    )
-    .unwrap();
-    for line in shard.lines() {
-        let v: Value = serde_json::from_str(line).unwrap();
-        assert_eq!(v["verification_status"], "admitted");
-        assert_eq!(v["contract_version"], "0.1");
+    // The shard contents: every input record persisted with admitted
+    // status and the run's contract version — across all three formats.
+    let mut persisted = 0;
+    for format in ["mcq", "case_vignette", "tutoring_example"] {
+        let shard = fs::read_to_string(
+            harness
+                .dir
+                .join(format!("data/{format}"))
+                .join(format!("{}.jsonl", report.batch_id)),
+        )
+        .unwrap();
+        for line in shard.lines() {
+            let v: Value = serde_json::from_str(line).unwrap();
+            assert_eq!(v["verification_status"], "admitted");
+            assert_eq!(v["contract_version"], "0.1");
+            persisted += 1;
+        }
     }
+    assert_eq!(persisted, 24, "every admitted record reaches its shard");
     // The review ran: a 5-record sample at rate 0.2 over 24 candidates.
     assert_eq!(report.review.sampled.len(), 5);
     assert!(
