@@ -421,9 +421,14 @@ fn stale_registry_entry_holds_for_reanchoring() {
     let opts = harness.opts(harness.config(true), &drifted);
     let report = harness.settle(&opts, &Overrides::default());
 
-    assert_eq!(report.counts.rejected, 0);
-    assert_eq!(report.counts.admitted, 0);
-    assert_eq!(report.counts.held, report.counts.input);
+    assert_eq!(
+        (
+            report.counts.rejected,
+            report.counts.admitted,
+            report.counts.held,
+        ),
+        (0, 0, report.counts.input)
+    );
     assert!(report.held_by_stage.contains_key("3-anchor"));
     for o in &report.outcomes {
         assert_eq!(o.stage, Some(3), "{} held at {:?}", o.record_id, o.stage);
@@ -479,8 +484,7 @@ fn schema_defect_rejects_at_stage_1() {
 
     assert_eq!(report.counts.rejected, 1);
     let o = &report.outcomes[0];
-    assert_eq!(o.outcome, Outcome::Rejected);
-    assert_eq!(o.stage, Some(1));
+    assert_eq!((o.outcome, o.stage), (Outcome::Rejected, Some(1)));
     assert_eq!(harness.request_count("solve"), 0);
 }
 
@@ -602,8 +606,7 @@ fn verifier_same_model_holds_before_verifying() {
     let report = harness.settle(&opts, &Overrides::default());
 
     let o = outcome(&report, id);
-    assert_eq!(o.outcome, Outcome::Held);
-    assert_eq!(o.stage, Some(3));
+    assert_eq!((o.outcome, o.stage), (Outcome::Held, Some(3)));
     assert!(
         o.reasons
             .iter()
@@ -637,8 +640,7 @@ fn verifier_response_from_drafting_model_holds() {
     let report = harness.settle(&opts, &Overrides::default());
 
     let o = outcome(&report, id);
-    assert_eq!(o.outcome, Outcome::Held);
-    assert_eq!(o.stage, Some(3));
+    assert_eq!((o.outcome, o.stage), (Outcome::Held, Some(3)));
     assert!(
         o.reasons.iter().any(|r| r.contains("not independent")),
         "missing response-model hold: {:?}",
