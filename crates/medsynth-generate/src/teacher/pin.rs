@@ -8,6 +8,10 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
+use medsynth_schema::teacher_pin::{
+    TeacherPinEntry, ensure_unique_pin_ids, parse_teacher_pin_entries,
+};
+
 use crate::hash::{sha256_str, text_file_sha256};
 use crate::teacher::TeacherError;
 
@@ -105,19 +109,12 @@ impl TeacherPinRegistry {
     pub fn load(path: &Path) -> Result<Self, TeacherError> {
         let text = std::fs::read_to_string(path)
             .map_err(|e| TeacherError::PinParse(format!("cannot read {}: {e}", path.display())))?;
+        let entries = parse_teacher_pin_entries(&text);
+        ensure_unique_pin_ids(&entries).map_err(|e| TeacherError::PinParse(e.to_string()))?;
         let mut pins = BTreeMap::new();
-        for entry_text in pin_blocks(&text) {
-            let pin = parse_pin(&entry_text)?;
-            if pin.pin_id.trim().is_empty() {
-                return Err(TeacherError::PinParse(
-                    "a Pin block has a blank pin_id".to_owned(),
-                ));
-            }
-            if pins.insert(pin.pin_id.clone(), pin).is_some() {
-                return Err(TeacherError::PinParse(
-                    "duplicate pin_id in docs/teachers.md".to_owned(),
-                ));
-            }
+        for entry in entries {
+            let pin = parse_pin(&entry);
+            pins.insert(pin.pin_id.clone(), pin);
         }
         let file_sha256 = text_file_sha256(path)
             .map_err(|e| TeacherError::PinParse(format!("cannot hash {}: {e}", path.display())))?;
@@ -261,51 +258,14 @@ fn require_terms(pin: &TeacherPin) -> Result<(), TeacherError> {
     Ok(())
 }
 
-fn pin_blocks(text: &str) -> Vec<String> {
-    let mut blocks = Vec::new();
-    let mut current: Vec<&str> = Vec::new();
-    let mut in_pin = false;
-    for line in text.lines() {
-        if line.starts_with("## ") || line.starts_with("### ") {
-            if in_pin {
-                blocks.push(join_block(&current));
-                current.clear();
-            }
-            in_pin = line.starts_with("### Pin:") || line.starts_with("## Pin:");
-        }
-        if in_pin {
-            current.push(line);
-        }
-    }
-    if in_pin {
-        blocks.push(join_block(&current));
-    }
-    blocks
-}
-
-fn join_block(lines: &[&str]) -> String {
-    lines.join("\n").trim().to_owned()
-}
-
-fn parse_pin(entry_text: &str) -> Result<TeacherPin, TeacherError> {
-    let mut fields = BTreeMap::new();
-    for line in entry_text.lines() {
-        let trimmed = line.trim();
-        let Some(rest) = trimmed.strip_prefix("- **") else {
-            continue;
-        };
-        let Some((key, value)) = rest.split_once(":**") else {
-            continue;
-        };
-        fields.insert(key.trim().to_ascii_lowercase(), clean_value(value));
-    }
-    let get = |key: &str| fields.get(key).cloned().unwrap_or_default();
+fn parse_pin(entry: &TeacherPinEntry) -> TeacherPin {
+    let get = |key: &str| entry.field(key).unwrap_or("").to_owned();
     let lane = match get("lane").to_ascii_lowercase().as_str() {
         "teacher" => Some(PinLane::Teacher),
         "research_only" | "research-only" => Some(PinLane::ResearchOnly),
         _ => None,
     };
-    Ok(TeacherPin {
+    TeacherPin {
         pin_id: get("pin_id"),
         provider: get("provider"),
         family: get("family"),
@@ -319,26 +279,11 @@ fn parse_pin(entry_text: &str) -> Result<TeacherPin, TeacherError> {
         terms_date: get("terms_date"),
         terms_url: get("terms_url"),
         terms_clause: get("terms_clause"),
-        permits_distillation: parse_bool(&get("permits_distillation")),
-        permits_synthetic_data: parse_bool(&get("permits_synthetic_data")),
+        permits_distillation: entry.bool_field("permits_distillation"),
+        permits_synthetic_data: entry.bool_field("permits_synthetic_data"),
         snapshot_date: get("snapshot_date"),
         notes: get("notes"),
-        entry_text: entry_text.to_owned(),
-        entry_sha256: sha256_str(entry_text),
-    })
-}
-
-fn clean_value(value: &str) -> String {
-    let value = value.trim();
-    let value = value.strip_prefix('`').unwrap_or(value);
-    let value = value.strip_suffix('`').unwrap_or(value);
-    value.trim().to_owned()
-}
-
-fn parse_bool(value: &str) -> Option<bool> {
-    match value.trim().to_ascii_lowercase().as_str() {
-        "yes" | "true" | "1" => Some(true),
-        "no" | "false" | "0" => Some(false),
-        _ => None,
+        entry_text: entry.entry_text.clone(),
+        entry_sha256: entry.entry_sha256.clone(),
     }
 }

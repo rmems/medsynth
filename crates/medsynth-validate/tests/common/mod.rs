@@ -328,32 +328,14 @@ pub fn teachers_path() -> PathBuf {
     workspace_root().join("docs/teachers.md")
 }
 
-/// Exact pin block from `docs/teachers.md`, LF-normalized and trimmed the way
-/// the generation and admission parsers canonicalize it for hashing.
+/// Exact pin block from `docs/teachers.md`, canonicalized by the shared
+/// teacher-pin parser used by both generation and admission.
 pub fn teacher_pin_entry(pin_id: &str) -> String {
     let text = fs::read_to_string(teachers_path()).unwrap();
-    let mut blocks = Vec::new();
-    let mut current: Vec<&str> = Vec::new();
-    let mut in_pin = false;
-    for line in text.lines() {
-        if line.starts_with("## ") || line.starts_with("### ") {
-            if in_pin {
-                blocks.push(current.join("\n").trim().to_owned());
-                current.clear();
-            }
-            in_pin = line.starts_with("### Pin:") || line.starts_with("## Pin:");
-        }
-        if in_pin {
-            current.push(line);
-        }
-    }
-    if in_pin {
-        blocks.push(current.join("\n").trim().to_owned());
-    }
-    let marker = format!("- **pin_id:** `{pin_id}`");
-    blocks
+    medsynth_schema::teacher_pin::parse_teacher_pin_entries(&text)
         .into_iter()
-        .find(|block| block.contains(&marker))
+        .find(|entry| entry.pin_id == pin_id)
+        .map(|entry| entry.entry_text)
         .unwrap_or_else(|| panic!("no test pin `{pin_id}` in docs/teachers.md"))
 }
 

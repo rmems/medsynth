@@ -57,6 +57,7 @@ pub mod provenance;
 mod records;
 mod schemas;
 pub mod taxonomy;
+pub mod teacher_pin;
 pub mod text;
 mod version;
 

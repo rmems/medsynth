@@ -1,0 +1,148 @@
+//! Canonical parsing of the `docs/teachers.md` pin registry.
+//!
+//! Generation interprets the complete entries when preparing a teacher;
+//! admission needs only their ids and exact hashes. Both crates use this one
+//! extraction implementation so a registry block can never hash one way when
+//! written into an envelope and another way when checked at intake.
+
+use std::collections::BTreeSet;
+
+use sha2::{Digest, Sha256};
+
+/// One extracted `### Pin:` block and its normalized fields.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TeacherPinEntry {
+    /// The entry's `pin_id` field, without surrounding backticks.
+    pub pin_id: String,
+    /// Exact canonical block text: trimmed, with LF line endings.
+    pub entry_text: String,
+    /// SHA-256 of `entry_text`.
+    pub entry_sha256: String,
+    fields: std::collections::BTreeMap<String, String>,
+}
+
+impl TeacherPinEntry {
+    /// A normalized lowercase field value, if present.
+    pub fn field(&self, key: &str) -> Option<&str> {
+        self.fields
+            .get(&key.to_ascii_lowercase())
+            .map(String::as_str)
+    }
+
+    /// A pin-document boolean (`yes`/`true`/`1` or `no`/`false`/`0`).
+    pub fn bool_field(&self, key: &str) -> Option<bool> {
+        match self.field(key)?.trim().to_ascii_lowercase().as_str() {
+            "yes" | "true" | "1" => Some(true),
+            "no" | "false" | "0" => Some(false),
+            _ => None,
+        }
+    }
+}
+
+/// Errors common to every consumer of the pin registry.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum TeacherPinIndexError {
+    #[error("teacher pin registry has a Pin block with a blank or missing pin_id")]
+    BlankPinId,
+    #[error("duplicate pin_id `{0}` in teacher pin registry")]
+    DuplicatePinId(String),
+}
+
+/// Extract every pin block in canonical form.
+///
+/// A block starts at a `### Pin:` or `## Pin:` heading and ends immediately
+/// before the next level-two or level-three markdown heading. CRLF and lone CR
+/// newlines are canonicalized before extraction, so the resulting entry text
+/// is stable across platform checkouts.
+pub fn parse_teacher_pin_entries(text: &str) -> Vec<TeacherPinEntry> {
+    let normalized = normalize_newlines(text);
+    let mut entries = Vec::new();
+    let mut current: Vec<&str> = Vec::new();
+    let mut in_pin = false;
+    for line in normalized.lines() {
+        if line.starts_with("## ") || line.starts_with("### ") {
+            if in_pin {
+                entries.push(parse_entry(join_block(&current)));
+                current.clear();
+            }
+            in_pin = line.starts_with("### Pin:") || line.starts_with("## Pin:");
+        }
+        if in_pin {
+            current.push(line);
+        }
+    }
+    if in_pin {
+        entries.push(parse_entry(join_block(&current)));
+    }
+    entries
+}
+
+/// Reject blank, missing, or duplicated pin ids before a consumer indexes the
+/// entries. The exact registry path is added by the caller's error context.
+pub fn ensure_unique_pin_ids(entries: &[TeacherPinEntry]) -> Result<(), TeacherPinIndexError> {
+    let mut seen = BTreeSet::new();
+    for entry in entries {
+        if entry.pin_id.trim().is_empty() {
+            return Err(TeacherPinIndexError::BlankPinId);
+        }
+        if !seen.insert(entry.pin_id.as_str()) {
+            return Err(TeacherPinIndexError::DuplicatePinId(entry.pin_id.clone()));
+        }
+    }
+    Ok(())
+}
+
+/// SHA-256 of a pin entry after the same newline canonicalization used at
+/// extraction time. Tests and envelope builders use this instead of hashing
+/// raw, platform-dependent text bytes.
+pub fn teacher_pin_entry_sha256(entry_text: &str) -> String {
+    sha256_str(&normalize_newlines(entry_text))
+}
+
+fn parse_entry(entry_text: String) -> TeacherPinEntry {
+    let mut fields = std::collections::BTreeMap::new();
+    for line in entry_text.lines() {
+        let trimmed = line.trim();
+        let Some(rest) = trimmed.strip_prefix("- **") else {
+            continue;
+        };
+        let Some((key, value)) = rest.split_once(":**") else {
+            continue;
+        };
+        fields.insert(key.trim().to_ascii_lowercase(), clean_value(value));
+    }
+    let pin_id = fields.get("pin_id").cloned().unwrap_or_default();
+    let entry_sha256 = teacher_pin_entry_sha256(&entry_text);
+    TeacherPinEntry {
+        pin_id,
+        entry_text,
+        entry_sha256,
+        fields,
+    }
+}
+
+fn join_block(lines: &[&str]) -> String {
+    lines.join("\n").trim().to_owned()
+}
+
+fn clean_value(value: &str) -> String {
+    let value = value.trim();
+    let value = value.strip_prefix('`').unwrap_or(value);
+    let value = value.strip_suffix('`').unwrap_or(value);
+    value.trim().to_owned()
+}
+
+fn normalize_newlines(text: &str) -> String {
+    text.replace("\r\n", "\n").replace('\r', "\n")
+}
+
+fn sha256_str(text: &str) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(text.as_bytes());
+    let digest = hasher.finalize();
+    let mut out = String::with_capacity(digest.len() * 2);
+    for byte in digest {
+        out.push_str(&format!("{byte:02x}"));
+    }
+    out
+}

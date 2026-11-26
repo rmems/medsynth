@@ -10,7 +10,8 @@ mod common;
 
 use std::fs;
 
-use medsynth_validate::admit::{self, Outcome};
+use medsynth_schema::teacher_pin::teacher_pin_entry_sha256;
+use medsynth_validate::admit::{self, AdmissionReport, Outcome};
 use serde_json::{Value, json};
 
 use common::{
@@ -21,42 +22,214 @@ use common::{
 const TRUSTED_PIN: &str = "deepseek-v4.1-flash";
 const TRUSTED_VARIANT: &str = "DeepSeek-V4.1-Flash-1017";
 
-fn trusted_rights_envelope(id: &str, model: &str, content_sha: &str) -> Value {
-    let pin_entry = teacher_pin_entry(TRUSTED_PIN);
+#[derive(Clone, Copy)]
+struct DraftCase {
+    id: &'static str,
+    model: &'static str,
+}
+
+#[derive(Clone, Copy)]
+struct TeacherCase {
+    name: &'static str,
+    draft: DraftCase,
+}
+
+struct TeacherFixture {
+    harness: Harness,
+    case: TeacherCase,
+    content_sha: String,
+}
+
+struct ManifestSpec<'a> {
+    harness: &'a Harness,
+    record_id: &'a str,
+    content_sha256: &'a str,
+}
+
+struct EnvelopeSpec<'a> {
+    record_id: &'a str,
+    teacher_variant: &'a str,
+    model_id: &'a str,
+    pin_id: &'a str,
+    pin_entry: &'a str,
+    content_sha256: &'a str,
+}
+
+struct PinRejectionCase {
+    teacher: TeacherCase,
+    teacher_variant: &'static str,
+    pin_id: &'static str,
+    pin_entry: String,
+    expected_reason: &'static str,
+}
+
+const SAME_MODEL_CASE: TeacherCase = TeacherCase {
+    name: "same-model",
+    draft: DraftCase {
+        id: "same-model-draft-0001",
+        model: SOLVER_MODEL,
+    },
+};
+
+const TRUSTED_CASE: TeacherCase = TeacherCase {
+    name: "trusted-envelope",
+    draft: DraftCase {
+        id: "trusted-envelope-0001",
+        model: "deepseek-flash",
+    },
+};
+
+fn write_teacher_record(harness: &Harness, case: &DraftCase, record: &mut Value) -> String {
+    record["id"] = json!(case.id);
+    record["provenance"]["model"] = json!(case.model);
+    record["provenance"]["prompt_version"] = json!("v1");
+    let text = serde_json::to_string(&record).unwrap();
+    let content_sha = sha256_hex(text.as_bytes());
+    harness.add_batch_file(&format!("mcq/{}.json", case.id), &text);
+    content_sha
+}
+
+fn setup_teacher_case(case: TeacherCase) -> TeacherFixture {
+    let harness = Harness::new(case.name);
+    let mut record: Value =
+        serde_json::from_str(gold_shard("mcq").lines().next().unwrap()).unwrap();
+    let content_sha = write_teacher_record(&harness, &case.draft, &mut record);
+    TeacherFixture {
+        harness,
+        case,
+        content_sha,
+    }
+}
+
+fn rights_envelope(spec: &EnvelopeSpec) -> Value {
     json!({
-        "record_id": id,
-        "teacher_variant": TRUSTED_VARIANT,
-        "model_id": model,
-        "pin_id": TRUSTED_PIN,
-        "pin_entry": pin_entry,
-        "pin_entry_sha256": sha256_hex(pin_entry.as_bytes()),
-        "content_sha256": content_sha,
+        "record_id": spec.record_id,
+        "teacher_variant": spec.teacher_variant,
+        "model_id": spec.model_id,
+        "pin_id": spec.pin_id,
+        "pin_entry": spec.pin_entry,
+        "pin_entry_sha256": teacher_pin_entry_sha256(spec.pin_entry),
+        "content_sha256": spec.content_sha256,
     })
 }
 
-fn write_teacher_manifest(harness: &Harness, id: &str, model: &str, content_sha: &str) {
+fn trusted_rights_envelope(fixture: &TeacherFixture) -> Value {
+    let pin_entry = teacher_pin_entry(TRUSTED_PIN);
+    rights_envelope(&EnvelopeSpec {
+        record_id: fixture.case.draft.id,
+        teacher_variant: TRUSTED_VARIANT,
+        model_id: fixture.case.draft.model,
+        pin_id: TRUSTED_PIN,
+        pin_entry: &pin_entry,
+        content_sha256: &fixture.content_sha,
+    })
+}
+
+fn write_manifest_with_envelope(spec: &ManifestSpec, envelope: Value) {
     fs::write(
-        harness.dir.join("batch/manifest.json"),
+        spec.harness.dir.join("batch/manifest.json"),
         serde_json::to_string_pretty(&json!({
             "manifest_version": 1,
-            "batch_id": format!("{id}-batch"),
-            "records": [{"id": id, "lane": "teacher", "sha256": content_sha}],
-            "rights_envelopes": [trusted_rights_envelope(id, model, content_sha)],
+            "batch_id": format!("{}-batch", spec.record_id),
+            "records": [{
+                "id": spec.record_id,
+                "lane": "teacher",
+                "sha256": spec.content_sha256,
+            }],
+            "rights_envelopes": [envelope],
         }))
         .unwrap(),
     )
     .unwrap();
 }
 
-/// Write one teacher-lane draft and return its exact content hash.
-fn write_teacher_record(harness: &Harness, id: &str, record: &mut Value, model: &str) -> String {
-    record["id"] = json!(id);
-    record["provenance"]["model"] = json!(model);
-    record["provenance"]["prompt_version"] = json!("v1");
-    let text = serde_json::to_string(&record).unwrap();
-    let content_sha = sha256_hex(text.as_bytes());
-    harness.add_batch_file(&format!("mcq/{id}.json"), &text);
-    content_sha
+fn write_teacher_manifest(fixture: &TeacherFixture) {
+    write_manifest_with_envelope(
+        &ManifestSpec {
+            harness: &fixture.harness,
+            record_id: fixture.case.draft.id,
+            content_sha256: &fixture.content_sha,
+        },
+        trusted_rights_envelope(fixture),
+    );
+}
+
+fn settle_prepared_fixture(mut fixture: TeacherFixture) -> (TeacherFixture, AdmissionReport) {
+    fixture.harness.index();
+    let opts = fixture
+        .harness
+        .opts(fixture.harness.config(true), &sources_path());
+    let report = fixture.harness.settle(&opts, &Overrides::default());
+    (fixture, report)
+}
+
+fn fabricated_pin_case() -> PinRejectionCase {
+    PinRejectionCase {
+        teacher: TeacherCase {
+            name: "fabricated-pin",
+            draft: DraftCase {
+                id: "fabricated-pin-0001",
+                model: "fabricated-model",
+            },
+        },
+        teacher_variant: "fabricated-model",
+        pin_id: "fabricated-pin",
+        pin_entry: "fabricated teacher entry".to_owned(),
+        expected_reason: "not listed",
+    }
+}
+
+fn tampered_pin_case() -> PinRejectionCase {
+    PinRejectionCase {
+        teacher: TeacherCase {
+            name: "pin-hash-mismatch",
+            draft: DraftCase {
+                id: "pin-hash-mismatch-0001",
+                model: "deepseek-flash",
+            },
+        },
+        teacher_variant: TRUSTED_VARIANT,
+        pin_id: TRUSTED_PIN,
+        pin_entry: format!(
+            "{}\n- **attacker_added:** `yes`",
+            teacher_pin_entry(TRUSTED_PIN)
+        ),
+        expected_reason: "does not match the trusted teachers registry entry",
+    }
+}
+
+fn run_pin_rejection(case: PinRejectionCase) {
+    let fixture = setup_teacher_case(case.teacher);
+    let envelope = rights_envelope(&EnvelopeSpec {
+        record_id: fixture.case.draft.id,
+        teacher_variant: case.teacher_variant,
+        model_id: fixture.case.draft.model,
+        pin_id: case.pin_id,
+        pin_entry: &case.pin_entry,
+        content_sha256: &fixture.content_sha,
+    });
+    write_manifest_with_envelope(
+        &ManifestSpec {
+            harness: &fixture.harness,
+            record_id: fixture.case.draft.id,
+            content_sha256: &fixture.content_sha,
+        },
+        envelope,
+    );
+    let (fixture, report) = settle_prepared_fixture(fixture);
+
+    let o = outcome(&report, fixture.case.draft.id);
+    assert_eq!((o.outcome, o.stage), (Outcome::Rejected, Some(0)));
+    assert!(
+        o.reasons.iter().any(|r| r.contains(case.expected_reason)),
+        "missing `{}` rejection: {:?}",
+        case.expected_reason,
+        o.reasons
+    );
+    assert_eq!(
+        fixture.harness.request_count("solve") + fixture.harness.request_count("verify"),
+        0
+    );
 }
 
 #[test]
@@ -64,45 +237,31 @@ fn same_model_draft_rejects_without_solving() {
     // A teacher-lane draft whose rights envelope names the stage-2 solver
     // as its drafting model must be refused before a solve request is
     // ever emitted.
-    let mut harness = Harness::new("same-model");
-    let mut record: Value =
-        serde_json::from_str(gold_shard("mcq").lines().next().unwrap()).unwrap();
-    let id = "same-model-draft-0001";
-    let content_sha = write_teacher_record(&harness, id, &mut record, SOLVER_MODEL);
-    write_teacher_manifest(&harness, id, SOLVER_MODEL, &content_sha);
-    harness.index();
-    let opts = harness.opts(harness.config(true), &sources_path());
-    let report = harness.settle(&opts, &Overrides::default());
+    let fixture = setup_teacher_case(SAME_MODEL_CASE);
+    write_teacher_manifest(&fixture);
+    let (fixture, report) = settle_prepared_fixture(fixture);
 
-    let o = outcome(&report, id);
-    assert_eq!(o.outcome, Outcome::Rejected);
-    assert_eq!(o.stage, Some(2));
+    let o = outcome(&report, fixture.case.draft.id);
+    assert_eq!((o.outcome, o.stage), (Outcome::Rejected, Some(2)));
     // The check ran before any request was written.
-    assert_eq!(harness.request_count("solve"), 0);
+    assert_eq!(fixture.harness.request_count("solve"), 0);
 }
 
 #[test]
 fn trusted_teacher_envelope_admits() {
     // The positive control: an envelope copied verbatim from the trusted
     // registry clears stage 0 and the record can complete admission.
-    let mut harness = Harness::new("trusted-envelope");
-    let mut record: Value =
-        serde_json::from_str(gold_shard("mcq").lines().next().unwrap()).unwrap();
-    let id = "trusted-envelope-0001";
-    let content_sha = write_teacher_record(&harness, id, &mut record, "deepseek-flash");
-    write_teacher_manifest(&harness, id, "deepseek-flash", &content_sha);
-    harness.index();
-    let opts = harness.opts(harness.config(true), &sources_path());
-    let report = harness.settle(&opts, &Overrides::default());
+    let fixture = setup_teacher_case(TRUSTED_CASE);
+    write_teacher_manifest(&fixture);
+    let (fixture, report) = settle_prepared_fixture(fixture);
 
-    let o = outcome(&report, id);
+    let o = outcome(&report, fixture.case.draft.id);
     assert_eq!(
-        o.outcome,
-        Outcome::Admitted,
+        (o.outcome, o.stage),
+        (Outcome::Admitted, None),
         "trusted envelope must not stop at intake: {:?}",
         o.reasons
     );
-    assert_eq!(o.stage, None);
     assert_eq!(report.run.teachers_sha256.len(), 64);
 }
 
@@ -110,45 +269,7 @@ fn trusted_teacher_envelope_admits() {
 fn fabricated_unlisted_teacher_pin_rejects_at_stage_0() {
     // Self-consistency alone proves nothing: this envelope hashes its own
     // fabricated pin entry correctly, but the pin is not in docs/teachers.md.
-    let mut harness = Harness::new("fabricated-pin");
-    let mut record: Value =
-        serde_json::from_str(gold_shard("mcq").lines().next().unwrap()).unwrap();
-    let id = "fabricated-pin-0001";
-    let content_sha = write_teacher_record(&harness, id, &mut record, "fabricated-model");
-    let pin_entry = "fabricated teacher entry";
-    fs::write(
-        harness.dir.join("batch/manifest.json"),
-        serde_json::to_string_pretty(&json!({
-            "manifest_version": 1,
-            "batch_id": format!("{id}-batch"),
-            "records": [{"id": id, "lane": "teacher", "sha256": content_sha}],
-            "rights_envelopes": [{
-                "record_id": id,
-                "teacher_variant": "fabricated-model",
-                "model_id": "fabricated-model",
-                "pin_id": "fabricated-pin",
-                "pin_entry": pin_entry,
-                "pin_entry_sha256": sha256_hex(pin_entry.as_bytes()),
-                "content_sha256": content_sha,
-            }],
-        }))
-        .unwrap(),
-    )
-    .unwrap();
-    harness.index();
-    let opts = harness.opts(harness.config(true), &sources_path());
-    let report = harness.settle(&opts, &Overrides::default());
-
-    let o = outcome(&report, id);
-    assert_eq!(o.outcome, Outcome::Rejected);
-    assert_eq!(o.stage, Some(0));
-    assert!(
-        o.reasons.iter().any(|r| r.contains("not listed")),
-        "missing unlisted-pin rejection: {:?}",
-        o.reasons
-    );
-    assert_eq!(harness.request_count("solve"), 0);
-    assert_eq!(harness.request_count("verify"), 0);
+    run_pin_rejection(fabricated_pin_case());
 }
 
 #[test]
@@ -156,50 +277,7 @@ fn teacher_pin_hash_mismatch_rejects_at_stage_0() {
     // The pin is listed, but the envelope embeds a changed entry. Its hash is
     // internally self-consistent, so only comparison with the trusted registry
     // can catch it.
-    let mut harness = Harness::new("pin-hash-mismatch");
-    let mut record: Value =
-        serde_json::from_str(gold_shard("mcq").lines().next().unwrap()).unwrap();
-    let id = "pin-hash-mismatch-0001";
-    let content_sha = write_teacher_record(&harness, id, &mut record, "deepseek-flash");
-    let pin_entry = format!(
-        "{}\n- **attacker_added:** `yes`",
-        teacher_pin_entry(TRUSTED_PIN)
-    );
-    fs::write(
-        harness.dir.join("batch/manifest.json"),
-        serde_json::to_string_pretty(&json!({
-            "manifest_version": 1,
-            "batch_id": format!("{id}-batch"),
-            "records": [{"id": id, "lane": "teacher", "sha256": content_sha}],
-            "rights_envelopes": [{
-                "record_id": id,
-                "teacher_variant": TRUSTED_VARIANT,
-                "model_id": "deepseek-flash",
-                "pin_id": TRUSTED_PIN,
-                "pin_entry": pin_entry,
-                "pin_entry_sha256": sha256_hex(pin_entry.as_bytes()),
-                "content_sha256": content_sha,
-            }],
-        }))
-        .unwrap(),
-    )
-    .unwrap();
-    harness.index();
-    let opts = harness.opts(harness.config(true), &sources_path());
-    let report = harness.settle(&opts, &Overrides::default());
-
-    let o = outcome(&report, id);
-    assert_eq!(o.outcome, Outcome::Rejected);
-    assert_eq!(o.stage, Some(0));
-    assert!(
-        o.reasons
-            .iter()
-            .any(|r| r.contains("does not match the trusted teachers registry entry")),
-        "missing trusted-hash rejection: {:?}",
-        o.reasons
-    );
-    assert_eq!(harness.request_count("solve"), 0);
-    assert_eq!(harness.request_count("verify"), 0);
+    run_pin_rejection(tampered_pin_case());
 }
 
 #[test]
@@ -408,9 +486,25 @@ fn schema_defect_rejects_at_stage_1() {
 
 /// A teacher-lane draft whose envelope names `model` as its drafting
 /// model — the same-model test pattern, parameterized by the model.
-fn teacher_draft(harness: &Harness, id: &str, record: &mut Value, model: &str) {
-    let content_sha = write_teacher_record(harness, id, record, model);
-    write_teacher_manifest(harness, id, model, &content_sha);
+fn teacher_draft(harness: &Harness, case: &DraftCase, record: &mut Value) {
+    let content_sha = write_teacher_record(harness, case, record);
+    let pin_entry = teacher_pin_entry(TRUSTED_PIN);
+    let envelope = rights_envelope(&EnvelopeSpec {
+        record_id: case.id,
+        teacher_variant: TRUSTED_VARIANT,
+        model_id: case.model,
+        pin_id: TRUSTED_PIN,
+        pin_entry: &pin_entry,
+        content_sha256: &content_sha,
+    });
+    write_manifest_with_envelope(
+        &ManifestSpec {
+            harness,
+            record_id: case.id,
+            content_sha256: &content_sha,
+        },
+        envelope,
+    );
 }
 
 #[test]
@@ -495,7 +589,14 @@ fn verifier_same_model_holds_before_verifying() {
     let mut record: Value =
         serde_json::from_str(gold_shard("mcq").lines().next().unwrap()).unwrap();
     let id = "verifier-same-model-0001";
-    teacher_draft(&harness, id, &mut record, VERIFIER_MODEL);
+    teacher_draft(
+        &harness,
+        &DraftCase {
+            id,
+            model: VERIFIER_MODEL,
+        },
+        &mut record,
+    );
     harness.index();
     let opts = harness.opts(harness.config(true), &sources_path());
     let report = harness.settle(&opts, &Overrides::default());
@@ -521,7 +622,14 @@ fn verifier_response_from_drafting_model_holds() {
     let mut record: Value =
         serde_json::from_str(gold_shard("mcq").lines().next().unwrap()).unwrap();
     let id = "verifier-unpinned-0001";
-    teacher_draft(&harness, id, &mut record, VERIFIER_MODEL);
+    teacher_draft(
+        &harness,
+        &DraftCase {
+            id,
+            model: VERIFIER_MODEL,
+        },
+        &mut record,
+    );
     harness.index();
     let mut config = harness.config(true);
     config.verifier.as_mut().unwrap().model_id = None;
