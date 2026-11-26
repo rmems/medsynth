@@ -23,14 +23,14 @@ pub struct TeacherPinEntry {
 
 impl TeacherPinEntry {
     /// A normalized lowercase field value, if present.
-    pub fn field(&self, key: &str) -> Option<&str> {
+    pub fn field(&self, key: impl AsRef<str>) -> Option<&str> {
         self.fields
-            .get(&key.to_ascii_lowercase())
+            .get(&key.as_ref().to_ascii_lowercase())
             .map(String::as_str)
     }
 
     /// A pin-document boolean (`yes`/`true`/`1` or `no`/`false`/`0`).
-    pub fn bool_field(&self, key: &str) -> Option<bool> {
+    pub fn bool_field(&self, key: impl AsRef<str>) -> Option<bool> {
         match self.field(key)?.trim().to_ascii_lowercase().as_str() {
             "yes" | "true" | "1" => Some(true),
             "no" | "false" | "0" => Some(false),
@@ -54,12 +54,12 @@ pub enum TeacherPinIndexError {
 /// before the next level-two or level-three markdown heading. CRLF and lone CR
 /// newlines are canonicalized before extraction, so the resulting entry text
 /// is stable across platform checkouts.
-pub fn parse_teacher_pin_entries(text: &str) -> Vec<TeacherPinEntry> {
-    let normalized = normalize_newlines(text);
+pub fn parse_teacher_pin_entries(text: impl AsRef<str>) -> Vec<TeacherPinEntry> {
+    let normalized = CanonicalPinText::new(text);
     let mut entries = Vec::new();
     let mut current: Vec<&str> = Vec::new();
     let mut in_pin = false;
-    for line in normalized.lines() {
+    for line in normalized.0.lines() {
         if line.starts_with("## ") || line.starts_with("### ") {
             if in_pin {
                 entries.push(parse_entry(join_block(&current)));
@@ -95,11 +95,44 @@ pub fn ensure_unique_pin_ids(entries: &[TeacherPinEntry]) -> Result<(), TeacherP
 /// SHA-256 of a pin entry after the same newline canonicalization used at
 /// extraction time. Tests and envelope builders use this instead of hashing
 /// raw, platform-dependent text bytes.
-pub fn teacher_pin_entry_sha256(entry_text: &str) -> String {
-    sha256_str(&normalize_newlines(entry_text))
+pub fn teacher_pin_entry_sha256(entry_text: impl AsRef<str>) -> String {
+    CanonicalPinText::new(entry_text).sha256()
 }
 
-fn parse_entry(entry_text: String) -> TeacherPinEntry {
+/// Text whose line endings have one canonical representation. Keeping the
+/// normalization behind this type prevents raw checkout text and canonical
+/// entry text from being mixed up inside the parser.
+struct CanonicalPinText(String);
+
+impl CanonicalPinText {
+    fn new(text: impl AsRef<str>) -> Self {
+        Self(text.as_ref().replace("\r\n", "\n").replace('\r', "\n"))
+    }
+
+    fn sha256(&self) -> String {
+        sha256_bytes(self.0.as_bytes())
+    }
+
+    fn into_string(self) -> String {
+        self.0
+    }
+}
+
+/// A raw markdown field value before its optional backtick quoting is removed.
+struct RawPinValue<'a>(&'a str);
+
+impl RawPinValue<'_> {
+    fn clean(self) -> String {
+        let value = self.0.trim();
+        let value = value.strip_prefix('`').unwrap_or(value);
+        let value = value.strip_suffix('`').unwrap_or(value);
+        value.trim().to_owned()
+    }
+}
+
+fn parse_entry(entry_text: CanonicalPinText) -> TeacherPinEntry {
+    let entry_sha256 = entry_text.sha256();
+    let entry_text = entry_text.into_string();
     let mut fields = std::collections::BTreeMap::new();
     for line in entry_text.lines() {
         let trimmed = line.trim();
@@ -109,10 +142,9 @@ fn parse_entry(entry_text: String) -> TeacherPinEntry {
         let Some((key, value)) = rest.split_once(":**") else {
             continue;
         };
-        fields.insert(key.trim().to_ascii_lowercase(), clean_value(value));
+        fields.insert(key.trim().to_ascii_lowercase(), RawPinValue(value).clean());
     }
     let pin_id = fields.get("pin_id").cloned().unwrap_or_default();
-    let entry_sha256 = teacher_pin_entry_sha256(&entry_text);
     TeacherPinEntry {
         pin_id,
         entry_text,
@@ -121,24 +153,13 @@ fn parse_entry(entry_text: String) -> TeacherPinEntry {
     }
 }
 
-fn join_block(lines: &[&str]) -> String {
-    lines.join("\n").trim().to_owned()
+fn join_block(lines: &[&str]) -> CanonicalPinText {
+    CanonicalPinText(lines.join("\n").trim().to_owned())
 }
 
-fn clean_value(value: &str) -> String {
-    let value = value.trim();
-    let value = value.strip_prefix('`').unwrap_or(value);
-    let value = value.strip_suffix('`').unwrap_or(value);
-    value.trim().to_owned()
-}
-
-fn normalize_newlines(text: &str) -> String {
-    text.replace("\r\n", "\n").replace('\r', "\n")
-}
-
-fn sha256_str(text: &str) -> String {
+fn sha256_bytes(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(text.as_bytes());
+    hasher.update(bytes);
     let digest = hasher.finalize();
     let mut out = String::with_capacity(digest.len() * 2);
     for byte in digest {
