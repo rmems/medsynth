@@ -110,7 +110,8 @@ impl TeacherPinRegistry {
         let text = std::fs::read_to_string(path)
             .map_err(|e| TeacherError::PinParse(format!("cannot read {}: {e}", path.display())))?;
         let entries = parse_teacher_pin_entries(&text);
-        ensure_unique_pin_ids(&entries).map_err(|e| TeacherError::PinParse(e.to_string()))?;
+        ensure_unique_pin_ids(&entries)
+            .map_err(|e| TeacherError::PinParse(format!("{}: {e}", path.display())))?;
         let mut pins = BTreeMap::new();
         for entry in entries {
             let pin = parse_pin(&entry);

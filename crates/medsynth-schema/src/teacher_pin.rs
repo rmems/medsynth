@@ -146,3 +146,27 @@ fn sha256_str(text: &str) -> String {
     }
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_teacher_pin_entries, teacher_pin_entry_sha256};
+
+    const PIN_BLOCK: &str = "### Pin: `example`\n\n- **pin_id:** `example`";
+    const PIN_BLOCK_SHA256: &str =
+        "716087ef98597b6b621a7377eb5f2c37921b21c57a81b1e397a526e9e7132139";
+
+    #[test]
+    fn pin_hash_is_fixed_across_newline_styles() {
+        let crlf = PIN_BLOCK.replace('\n', "\r\n");
+        let lone_cr = PIN_BLOCK.replace('\n', "\r");
+        for text in [PIN_BLOCK, crlf.as_str(), lone_cr.as_str()] {
+            let entries = parse_teacher_pin_entries(text);
+            assert_eq!(entries.len(), 1);
+            assert_eq!(entries[0].entry_sha256, PIN_BLOCK_SHA256);
+            assert_eq!(
+                teacher_pin_entry_sha256(&entries[0].entry_text),
+                PIN_BLOCK_SHA256
+            );
+        }
+    }
+}
