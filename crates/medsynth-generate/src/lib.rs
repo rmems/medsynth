@@ -23,7 +23,7 @@
 pub const TAXONOMY_VERSION: &str = "0.1";
 
 /// Version of `docs/contract.md` this generator writes into records.
-pub const CONTRACT_VERSION: &str = "0.1";
+pub use medsynth_schema::CONTRACT_VERSION;
 
 pub mod batch;
 pub mod config;

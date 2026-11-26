@@ -43,10 +43,16 @@ macro_rules! string_enum {
     };
 }
 
+/// Version of `docs/contract.md` the workspace writes into records —
+/// generators stamp it and the admission gate (#9) verifies against it
+/// (contract §9).
+pub const CONTRACT_VERSION: &str = "0.1";
+
 pub mod anchor;
 mod error;
 mod id;
 mod labels;
+pub mod locator;
 pub mod provenance;
 mod records;
 mod schemas;
