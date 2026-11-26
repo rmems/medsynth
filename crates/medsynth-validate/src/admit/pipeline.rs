@@ -20,6 +20,7 @@ use super::outputs::{display, write_admitted, write_json};
 use super::published::published_record_ids;
 use super::registry::SourceRegistry;
 use super::review::run_review;
+use super::teachers::TeacherPinRegistry;
 
 /// A pipeline stage, in execution order.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -91,6 +92,9 @@ pub struct RunReport {
     pub contract_version: String,
     /// The `docs/sources.json` version anchors were checked against.
     pub registry_version: String,
+    /// SHA-256 of the trusted `docs/teachers.md` rights envelopes were
+    /// checked against.
+    pub teachers_sha256: String,
     pub fulfillment_dir: String,
 }
 
@@ -148,6 +152,8 @@ pub struct AdmissionOptions {
     pub data_dir: PathBuf,
     /// `docs/sources.json`.
     pub sources_path: PathBuf,
+    /// Trusted teacher pin registry (`docs/teachers.md`).
+    pub teachers_path: PathBuf,
     pub config: RunConfig,
     /// Where the admission log JSON is written.
     pub log_path: PathBuf,
@@ -161,6 +167,7 @@ pub fn run(opts: &AdmissionOptions) -> Result<AdmissionReport, String> {
     opts.config.validate()?;
     let batch = Batch::load(&opts.batch_dir)?;
     let registry = SourceRegistry::load(&opts.sources_path)?;
+    let teacher_registry = TeacherPinRegistry::load(&opts.teachers_path)?;
     let validators = crate::Validators::compile();
     let fulfillment = Fulfillment::new(&opts.config.fulfillment_dir).map_err(|e| {
         format!(
@@ -183,6 +190,7 @@ pub fn run(opts: &AdmissionOptions) -> Result<AdmissionReport, String> {
         batch: &batch,
         validators: &validators,
         registry: &registry,
+        teacher_registry: &teacher_registry,
         config: &opts.config,
         fulfillment: &fulfillment,
         admitted_ids: &admitted_ids,
@@ -216,6 +224,7 @@ pub fn run(opts: &AdmissionOptions) -> Result<AdmissionReport, String> {
             sample_rate: opts.config.sample_rate,
             contract_version: opts.config.contract_version.clone(),
             registry_version: registry.registry_version.clone(),
+            teachers_sha256: teacher_registry.file_sha256.clone(),
             fulfillment_dir: display(&opts.config.fulfillment_dir),
         },
         counts: count(&results),

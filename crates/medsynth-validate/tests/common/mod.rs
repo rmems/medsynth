@@ -222,9 +222,20 @@ impl Harness {
     }
 
     pub fn opts(&self, config: RunConfig, sources: &Path) -> AdmissionOptions {
+        let teachers = teachers_path();
+        self.opts_with_teachers(config, sources, &teachers)
+    }
+
+    pub fn opts_with_teachers(
+        &self,
+        config: RunConfig,
+        sources: &Path,
+        teachers: &Path,
+    ) -> AdmissionOptions {
         AdmissionOptions {
             batch_dir: self.dir.join("batch"),
             sources_path: sources.to_path_buf(),
+            teachers_path: teachers.to_path_buf(),
             data_dir: self.dir.join("data"),
             log_path: self.dir.join("admission-log.json"),
             config,
@@ -311,6 +322,39 @@ pub fn gold_shard(format: &str) -> String {
 
 pub fn sources_path() -> PathBuf {
     workspace_root().join("docs/sources.json")
+}
+
+pub fn teachers_path() -> PathBuf {
+    workspace_root().join("docs/teachers.md")
+}
+
+/// Exact pin block from `docs/teachers.md`, LF-normalized and trimmed the way
+/// the generation and admission parsers canonicalize it for hashing.
+pub fn teacher_pin_entry(pin_id: &str) -> String {
+    let text = fs::read_to_string(teachers_path()).unwrap();
+    let mut blocks = Vec::new();
+    let mut current: Vec<&str> = Vec::new();
+    let mut in_pin = false;
+    for line in text.lines() {
+        if line.starts_with("## ") || line.starts_with("### ") {
+            if in_pin {
+                blocks.push(current.join("\n").trim().to_owned());
+                current.clear();
+            }
+            in_pin = line.starts_with("### Pin:") || line.starts_with("## Pin:");
+        }
+        if in_pin {
+            current.push(line);
+        }
+    }
+    if in_pin {
+        blocks.push(current.join("\n").trim().to_owned());
+    }
+    let marker = format!("- **pin_id:** `{pin_id}`");
+    blocks
+        .into_iter()
+        .find(|block| block.contains(&marker))
+        .unwrap_or_else(|| panic!("no test pin `{pin_id}` in docs/teachers.md"))
 }
 
 pub fn outcome<'a>(
