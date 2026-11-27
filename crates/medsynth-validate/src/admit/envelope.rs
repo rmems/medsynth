@@ -17,6 +17,8 @@ const ENVELOPE_FIELDS: &[&str] = &[
     "pin_entry",
     "pin_entry_sha256",
     "content_sha256",
+    "route",
+    "serving_vendor",
 ];
 
 pub(super) fn intake_teacher(ctx: &Ctx, record: &DraftRecord) -> Verdict {
@@ -34,6 +36,18 @@ pub(super) fn intake_teacher(ctx: &Ctx, record: &DraftRecord) -> Verdict {
             "incomplete rights envelope — missing: {}",
             missing.join(", ")
         ));
+    }
+    if envelope["route"]
+        .as_str()
+        .is_some_and(|route| route.to_ascii_lowercase().contains("hermes"))
+    {
+        for field in ["session_file", "session_sha256"] {
+            if envelope[field].as_str().is_none_or(|v| v.trim().is_empty()) {
+                return Verdict::reject(format!(
+                    "Hermes rights envelope missing {field} provenance"
+                ));
+            }
+        }
     }
     if let Some(reason) = envelope_consistent(record, envelope) {
         return Verdict::reject(reason);

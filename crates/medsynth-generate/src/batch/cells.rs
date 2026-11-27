@@ -299,6 +299,8 @@ fn teacher_attempt(ctx: &AttemptCtx<'_>) -> Result<ProducedDraft, FailedAttempt>
         ServingMetadata {
             model: completion.served_model.as_deref(),
             vendor: completion.served_vendor.as_deref(),
+            session_file: completion.session_file.as_deref(),
+            session_sha256: completion.session_sha256.as_deref(),
         },
     )
 }

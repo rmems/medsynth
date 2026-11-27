@@ -51,6 +51,10 @@ pub struct TeacherCompletion {
     /// The execution vendor reported by a gateway (`routing.vendor_used` or
     /// an equivalent top-level vendor field), when present.
     pub served_vendor: Option<String>,
+    /// Hermes session-record sidecar backing this completion, when supplied.
+    pub session_file: Option<String>,
+    /// SHA-256 of the exact session-record sidecar text.
+    pub session_sha256: Option<String>,
 }
 
 /// A teacher fulfillment source. Production uses [`RecordedTeacherClient`];
@@ -118,19 +122,20 @@ impl RecordedTeacherClient {
         Ok(Self { dir })
     }
 
-    fn paths(&self, request: &TeacherRequest) -> (PathBuf, PathBuf, PathBuf) {
+    fn paths(&self, request: &TeacherRequest) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
         let key = fulfillment_key(request);
         (
             self.dir.join(format!("{key}.request.json")),
             self.dir.join(format!("{key}.response.json")),
             self.dir.join(format!("{key}.vendor.txt")),
+            self.dir.join(format!("{key}.session.json")),
         )
     }
 }
 
 impl TeacherClient for RecordedTeacherClient {
     fn complete(&self, request: &TeacherRequest) -> Result<TeacherCompletion, TeacherError> {
-        let (request_path, response_path, vendor_path) = self.paths(request);
+        let (request_path, response_path, vendor_path, session_path) = self.paths(request);
         // Stage then rename: a pre-existing symlink at the request path is
         // replaced by the rename, never followed to truncate its target.
         // Per-process staging name: overlapping reruns never share a tmp file.
@@ -168,6 +173,12 @@ impl TeacherClient for RecordedTeacherClient {
         })?;
         let mut completion = parse_chat_completion(&value)?;
         apply_vendor_sidecar(&mut completion, &vendor_path, &sha256_str(&text))?;
+        if let Ok(session) = std::fs::read_to_string(&session_path) {
+            completion.session_file = session_path
+                .file_name()
+                .map(|name| name.to_string_lossy().into_owned());
+            completion.session_sha256 = Some(sha256_str(&session));
+        }
         Ok(completion)
     }
 }
@@ -235,6 +246,8 @@ pub fn parse_chat_completion(value: &Value) -> Result<TeacherCompletion, Teacher
         content: content.to_owned(),
         served_model,
         served_vendor,
+        session_file: None,
+        session_sha256: None,
     })
 }
 
@@ -408,6 +421,18 @@ mod tests {
         .unwrap();
         let completion = client.complete(&request).unwrap();
         assert_eq!(completion.served_vendor.as_deref(), Some("openrouter"));
+
+        let session = "{\"session_id\":\"hermes-session-1\",\"events\":[]}";
+        std::fs::write(dir.path.join(format!("{key}.session.json")), session).unwrap();
+        let completion = client.complete(&request).unwrap();
+        assert_eq!(
+            completion.session_file.as_deref(),
+            Some(format!("{key}.session.json").as_str())
+        );
+        assert_eq!(
+            completion.session_sha256.as_deref(),
+            Some(sha256_str(session).as_str())
+        );
 
         std::fs::write(
             dir.path.join(format!("{key}.response.json")),

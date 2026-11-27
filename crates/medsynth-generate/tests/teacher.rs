@@ -402,6 +402,8 @@ fn rights_envelope_requires_every_piece() {
         ServingMetadata {
             model: None,
             vendor: Some("openrouter"),
+            session_file: Some("session.json"),
+            session_sha256: Some("session-hash"),
         },
     )
     .unwrap();
@@ -412,7 +414,7 @@ fn rights_envelope_requires_every_piece() {
     assert!(envelope.pin_entry.starts_with("### Pin:"));
     assert_eq!(
         (envelope.route.as_str(), envelope.serving_vendor.as_str(),),
-        ("Merge Gateway", "openrouter")
+        ("Hermes via Merge Gateway", "openrouter")
     );
     assert!(
         RightsEnvelope::build(
@@ -422,6 +424,22 @@ fn rights_envelope_requires_every_piece() {
             ServingMetadata {
                 model: None,
                 vendor: None,
+                session_file: None,
+                session_sha256: None,
+            },
+        )
+        .is_err()
+    );
+    assert!(
+        RightsEnvelope::build(
+            "draft-test-000",
+            raw,
+            &pin,
+            ServingMetadata {
+                model: None,
+                vendor: Some("openrouter"),
+                session_file: None,
+                session_sha256: None,
             },
         )
         .is_err()
@@ -436,6 +454,8 @@ fn rights_envelope_requires_every_piece() {
             ServingMetadata {
                 model: None,
                 vendor: None,
+                session_file: None,
+                session_sha256: None,
             },
         )
         .is_err()
@@ -451,6 +471,8 @@ fn rights_envelope_requires_every_piece() {
             ServingMetadata {
                 model: None,
                 vendor: None,
+                session_file: None,
+                session_sha256: None,
             },
         )
         .is_err()
@@ -468,6 +490,8 @@ fn direct_route_envelope_uses_the_pinned_provider_not_response_metadata() {
         ServingMetadata {
             model: None,
             vendor: Some("unrelated-vendor"),
+            session_file: None,
+            session_sha256: None,
         },
     )
     .unwrap();
@@ -518,6 +542,8 @@ impl TeacherClient for FakeTeacher {
             content: self.content.clone(),
             served_model: Some("deepseek-flash".to_owned()),
             served_vendor: Some("openrouter".to_owned()),
+            session_file: Some("session.json".to_owned()),
+            session_sha256: Some("session-hash".to_owned()),
         })
     }
 }
@@ -605,6 +631,13 @@ fn teacher_batch_writes_an_enveloped_unverified_draft_from_a_recorded_response()
         )
     );
     assert!(envelope.pin_entry.starts_with("### Pin:"));
+    assert_eq!(
+        (
+            envelope.session_file.as_deref(),
+            envelope.session_sha256.as_deref()
+        ),
+        (Some("session.json"), Some("session-hash"))
+    );
     assert_eq!(
         record.record.verification_status(),
         medsynth_schema::VerificationStatus::Unverified

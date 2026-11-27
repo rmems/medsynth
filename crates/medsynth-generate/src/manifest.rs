@@ -160,6 +160,8 @@ pub struct DroppedDraft {
 pub struct ServingMetadata<'a> {
     pub model: Option<&'a str>,
     pub vendor: Option<&'a str>,
+    pub session_file: Option<&'a str>,
+    pub session_sha256: Option<&'a str>,
 }
 
 /// Rights envelope for one teacher draft.
@@ -178,6 +180,10 @@ pub struct RightsEnvelope {
     /// must come from routing metadata; for a direct route it is the pinned
     /// provider.
     pub serving_vendor: String,
+    /// Hermes session-record file backing this draft, when the route uses Hermes.
+    pub session_file: Option<String>,
+    /// SHA-256 of the exact Hermes session-record file text.
+    pub session_sha256: Option<String>,
     pub pin_id: String,
     /// Exact `docs/teachers.md` pin entry the output was generated under.
     pub pin_entry: String,
@@ -223,6 +229,15 @@ impl RightsEnvelope {
         } else {
             pin.provider.clone()
         };
+        let hermes = pin.route.to_ascii_lowercase().contains("hermes");
+        if hermes
+            && (serving.session_file.is_none_or(|v| v.trim().is_empty())
+                || serving.session_sha256.is_none_or(|v| v.trim().is_empty()))
+        {
+            return Err(
+                "rights envelope: Hermes response lacks session-record provenance".to_owned(),
+            );
+        }
         Ok(Self {
             record_id: record_id.to_owned(),
             teacher_variant: pin.variant.clone(),
@@ -230,6 +245,8 @@ impl RightsEnvelope {
             served_model: serving.model.map(str::to_owned),
             route: pin.route.clone(),
             serving_vendor,
+            session_file: serving.session_file.map(str::to_owned),
+            session_sha256: serving.session_sha256.map(str::to_owned),
             pin_id: pin.pin_id.clone(),
             pin_entry: pin.entry_text.clone(),
             pin_entry_sha256: pin.entry_sha256.clone(),

@@ -79,6 +79,14 @@ const TRUSTED_CASE: TeacherCase = TeacherCase {
     },
 };
 
+const MISSING_SESSION_CASE: TeacherCase = TeacherCase {
+    name: "missing-session",
+    draft: DraftCase {
+        id: "missing-session-0001",
+        model: "deepseek-flash",
+    },
+};
+
 fn write_teacher_record(harness: &Harness, case: &DraftCase, record: &mut Value) -> String {
     record["id"] = json!(case.id);
     record["provenance"]["model"] = json!(case.model);
@@ -110,6 +118,10 @@ fn rights_envelope(spec: &EnvelopeSpec) -> Value {
         "pin_entry": spec.pin_entry,
         "pin_entry_sha256": teacher_pin_entry_sha256(spec.pin_entry),
         "content_sha256": spec.content_sha256,
+        "route": "Hermes via Merge Gateway",
+        "serving_vendor": "openrouter",
+        "session_file": "session.json",
+        "session_sha256": "session-hash",
     })
 }
 
@@ -263,6 +275,33 @@ fn trusted_teacher_envelope_admits() {
         o.reasons
     );
     assert_eq!(report.run.teachers_sha256.len(), 64);
+}
+
+#[test]
+fn hermes_envelope_without_session_rejects_at_stage_0() {
+    let fixture = setup_teacher_case(MISSING_SESSION_CASE);
+    let mut envelope = trusted_rights_envelope(&fixture);
+    envelope.as_object_mut().unwrap().remove("session_file");
+    write_manifest_with_envelope(
+        &ManifestSpec {
+            harness: &fixture.harness,
+            record_id: fixture.case.draft.id,
+            content_sha256: &fixture.content_sha,
+        },
+        envelope,
+    );
+    let (fixture, report) = settle_prepared_fixture(fixture);
+
+    let o = outcome(&report, fixture.case.draft.id);
+    assert_eq!((o.outcome, o.stage), (Outcome::Rejected, Some(0)));
+    assert!(
+        o.reasons
+            .iter()
+            .any(|reason| reason.contains("missing session_file provenance")),
+        "missing session rejection: {:?}",
+        o.reasons
+    );
+    assert_eq!(fixture.harness.request_count("solve"), 0);
 }
 
 #[test]

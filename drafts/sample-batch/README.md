@@ -43,7 +43,8 @@ dispatches them to the pinned endpoint (it owns the API key), and writes the
 raw responses back as `<key>.response.json`. For a Merge-routed pin, preserve
 routing metadata too: either the body contains `routing.vendor_used` (or an
 equivalent vendor field), or the harness copies a header-only `x-merge-vendor`
-into `<key>.vendor.txt` as `<sha256(response-json)> <vendor>`:
+into `<key>.vendor.txt` as `<sha256(response-json)> <vendor>`, and exports the
+Hermes session record as `<key>.session.json`:
 
 ```sh
 cargo run -p medsynth-generate -- run \
@@ -87,7 +88,8 @@ A teacher cell looks like this (omit `template`; the lane is chosen by `lane`):
   bare locator.
 - `rights_envelopes` is empty here because there are no teacher drafts. When
   present, each envelope carries the record id, teacher variant, exact
-  `docs/teachers.md` pin entry, and the draft's content hash.
+  `docs/teachers.md` pin entry, the draft's content hash, and — for a Hermes
+  route — the exact session-record file and hash.
 - `teacher_lane.status` is `not_requested`; `teacher_pin` is null.
 
 Drafts belong in an output directory outside `data/`; `medsynth-generate`

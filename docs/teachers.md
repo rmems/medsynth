@@ -19,11 +19,10 @@ Terms pages and model cards were read on **2026-11-27**. Terms can change;
 re-snapshot and re-review before a later run. The exact clause relied on is
 quoted in each entry, so the basis is auditable without re-fetching the page.
 
-| Teacher / route | Terms document | Version / date | URL |
+| Teacher / serving route | Terms document | Version / date | URL |
 | --- | --- | --- | --- |
 | DeepSeek V4.1 Flash | DeepSeek Open Platform Terms of Service | Release 2026-04-22; effective 2026-04-29 | <https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html> |
-| MiMo V2.6 Flash | `XiaomiMiMo/MiMo-V2.6-Flash-RL` model card metadata | Hugging Face revision `f657ba2f7d24c9adc5730675baaa2d34de878a49`, modified 2026-10-28 | <https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Flash-RL> |
-| Merge Gateway route | Merge Gateway Terms | Last updated 2026-04-02 | <https://www.merge.dev/legal/gateway-terms> |
+| Merge Gateway serving route | Merge Gateway Terms | Last updated 2026-04-02 | <https://www.merge.dev/legal/gateway-terms> |
 | NVIDIA Nemotron 3 Ultra | NVIDIA Nemotron Open Model License | v. December 15, 2025 | <https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-nemotron-open-model-license/> |
 
 Merge Gateway's routing documentation is part of the route receipt rather than
@@ -31,13 +30,19 @@ a license basis: requests may set `include_routing_metadata`, and the response's
 `routing.vendor_used` field (or the `x-merge-vendor` header in a harness that
 preserves headers) identifies the serving vendor.
 
+Hermes is the execution route for teacher generation: DeepSeek V4.1 Flash
+drives the Hermes sessions, and each `<key>.session.json` record is part of
+the fulfillment set. Rights envelopes therefore name the full path — teacher,
+Hermes, serving route, and serving vendor — and fail closed when the session
+record is absent.
+
 ## Teacher pins
 
 ### Pin: `deepseek-v4.1-flash`
 
 - **pin_id:** `deepseek-v4.1-flash`
 - **provider:** `DeepSeek`
-- **route:** `Merge Gateway`
+- **route:** `Hermes via Merge Gateway`
 - **family:** `deepseek`
 - **variant:** `DeepSeek-V4.1-Flash-1017`
 - **model_id:** `deepseek/deepseek-v4.1-flash-1017`
@@ -88,6 +93,7 @@ as teacher drafts:
 
 - **Grok (xAI)** — research-only. Not an approved teacher family.
 - **Claude (Anthropic)** — research-only. Not an approved teacher family.
+- **Xiaomi MiMo V2.6 Flash** — removed from the teacher roster on 2026-11-27. Its MIT weights license does not grant rights in hosted API output, so it is not an approved teacher.
 
 A pin entry whose `lane` is not `teacher`, or whose `family` is neither
 `deepseek` nor `nvidia-nemotron`, is rejected by the gate even if its terms
@@ -118,8 +124,10 @@ For a Merge Gateway pin the generated request sets
 `include_routing_metadata: true`. The harness must preserve the response body.
 If Merge returns vendor identity only in the `x-merge-vendor` header, the
 harness writes `<sha256(response-json)> <vendor>` to `<key>.vendor.txt` beside
-the raw response file. The hash binds the vendor attribution to that exact
+the raw response file and exports the Hermes session record as
+`<key>.session.json`. The hash binds the vendor attribution to that exact
 response body, so replacing a response without refreshing the sidecar cannot
 reuse stale routing metadata. When neither the body nor a matching sidecar
 supplies vendor metadata the generated draft is dropped at the rights-envelope
-gate rather than written.
+gate rather than written. A missing or unreadable Hermes session record is
+likewise fail-closed.
