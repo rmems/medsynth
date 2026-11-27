@@ -59,32 +59,6 @@ preserves headers) identifies the serving vendor.
 - **snapshot_date:** `2026-11-27`
 - **notes:** `Variant as updated 2026-10-17 (DeepSeek-V4.1-Flash-1017), addressed through the exact Merge catalog id deepseek/deepseek-v4.1-flash-1017. Outputs are assigned to the developer under DeepSeek §4.2(2) and may be used for model distillation under §4.2(3). The serving vendor must be captured from Merge routing metadata in each rights envelope.`
 
-### Pin: `mimo-v2.6-flash`
-
-- **pin_id:** `mimo-v2.6-flash`
-- **provider:** `Xiaomi MiMo`
-- **route:** `Merge Gateway`
-- **family:** `xiaomi-mimo`
-- **variant:** `MiMo-V2.6-Flash-RL`
-- **model_id:** `xiaomimimo/mimo-v2.6-flash`
-- **endpoint:** `https://api-gateway.merge.dev/v1/chat/completions`
-- **api_key_env:** `MERGE_GATEWAY_API_KEY`
-- **lane:** `teacher`
-- **terms_document:** `XiaomiMiMo/MiMo-V2.6-Flash-RL model card license metadata`
-- **terms_version:** `Hugging Face revision f657ba2f7d24c9adc5730675baaa2d34de878a49`
-- **terms_date:** `2026-10-28`
-- **terms_url:** `https://huggingface.co/XiaomiMiMo/MiMo-V2.6-Flash-RL`
-- **terms_clause:** `Model card metadata: "license: mit". The card names MiMo-V2.6-Flash-RL the efficiency-balanced checkpoint and states that it is also available in the Xiaomi MiMo Open Platform API and OpenRouter. The MIT license grants permission "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies" of the software/model artifact.`
-- **route_terms_document:** `Merge Gateway Terms`
-- **route_terms_version:** `last updated 2026-04-02`
-- **route_terms_date:** `2026-04-02`
-- **route_terms_url:** `https://www.merge.dev/legal/gateway-terms`
-- **route_terms_clause:** `§1: Customer Data includes Inputs and "any outputs received through the Service from AI Providers ... based on such Inputs". §5.1: Customer grants Merge only a limited license to use Customer Data to provide and maintain the Service and develop Usage Data; except when payload logging is enabled, Merge does not retain Inputs or Outputs. §4.2: Customer must comply with the terms for each AI Provider used through the Service.`
-- **permits_distillation:** `yes`
-- **permits_synthetic_data:** `yes`
-- **snapshot_date:** `2026-11-27`
-- **notes:** `309B total / 15B active MIT-licensed open-weights checkpoint. The weight repos carry no LICENSE file, so the model card metadata is the license record; the card links the same checkpoint to API availability. Merge catalog id xiaomimimo/mimo-v2.6-flash is the pilot route. The serving vendor must be captured from Merge routing metadata in each rights envelope.`
-
 ### Pin: `nemotron-3-ultra`
 
 - **pin_id:** `nemotron-3-ultra`
@@ -115,8 +89,8 @@ as teacher drafts:
 - **Grok (xAI)** — research-only. Not an approved teacher family.
 - **Claude (Anthropic)** — research-only. Not an approved teacher family.
 
-A pin entry whose `lane` is not `teacher`, or whose `family` is not `deepseek`,
-`xiaomi-mimo`, or `nvidia-nemotron`, is rejected by the gate even if its terms
+A pin entry whose `lane` is not `teacher`, or whose `family` is neither
+`deepseek` nor `nvidia-nemotron`, is rejected by the gate even if its terms
 look permissive. The gate also rejects an entry that omits any required field
 or that does not affirm both `permits_distillation` and
 `permits_synthetic_data`, and an entry whose `endpoint` is not an approved

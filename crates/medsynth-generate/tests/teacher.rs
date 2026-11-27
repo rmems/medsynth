@@ -127,21 +127,10 @@ fn pin_registry_parses_all_teacher_pins() {
             && deepseek.entry_text.starts_with("### Pin:")
     );
 
-    let mimo = pins.ensure_teacher("mimo-v2.6-flash").unwrap();
-    assert_eq!(
-        (
-            mimo.variant.as_str(),
-            mimo.model_id.as_str(),
-            mimo.route.as_str(),
-            mimo.route_terms_document.as_str(),
-        ),
-        (
-            "MiMo-V2.6-Flash-RL",
-            "xiaomimimo/mimo-v2.6-flash",
-            "Merge Gateway",
-            "Merge Gateway Terms",
-        )
-    );
+    assert!(matches!(
+        pins.ensure_teacher("mimo-v2.6-flash"),
+        Err(TeacherError::Unpinned(_))
+    ));
 
     let nemotron = pins.ensure_teacher("nemotron-3-ultra").unwrap();
     assert_eq!(nemotron.variant, "NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4");

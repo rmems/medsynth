@@ -31,7 +31,7 @@ pub enum TeacherError {
     )]
     ResearchOnly(String),
     #[error(
-        "teacher lane refused: family `{family}` is not an approved teacher family (DeepSeek, MiMo, or Nemotron 3 only)"
+        "teacher lane refused: family `{family}` is not an approved teacher family (DeepSeek or Nemotron 3 only)"
     )]
     IneligibleFamily { family: String },
     #[error(

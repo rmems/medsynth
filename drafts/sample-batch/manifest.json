@@ -92,16 +92,11 @@
   },
   "teachers": {
     "path": "docs/teachers.md",
-    "sha256": "60b3074ff73d5794fa28ec2d62bffc10e45df2a8d68b0d4465efc2b75399a6c0",
+    "sha256": "881d66a3cd00cc653c117b8318ed0c9ea5c99c9994c21783def3176bbb2ee514",
     "pins": [
       {
         "pin_id": "deepseek-v4.1-flash",
         "variant": "DeepSeek-V4.1-Flash-1017",
-        "lane": "teacher"
-      },
-      {
-        "pin_id": "mimo-v2.6-flash",
-        "variant": "MiMo-V2.6-Flash-RL",
         "lane": "teacher"
       },
       {

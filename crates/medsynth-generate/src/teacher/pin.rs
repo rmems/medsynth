@@ -198,7 +198,7 @@ impl TeacherPinRegistry {
 const RESEARCH_ONLY_KEYS: &[&str] = &["claude", "anthropic", "grok", "xai"];
 
 /// Teacher families approved under the standing distillation rule.
-const APPROVED_FAMILIES: &[&str] = &["deepseek", "nvidia-nemotron", "nemotron", "xiaomi-mimo"];
+const APPROVED_FAMILIES: &[&str] = &["deepseek", "nvidia-nemotron", "nemotron"];
 
 fn is_research_only_name(pin: &TeacherPin) -> bool {
     [&pin.family, &pin.provider].iter().any(|name| {
