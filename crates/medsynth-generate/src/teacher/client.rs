@@ -547,8 +547,15 @@ mod tests {
         .to_string();
         std::fs::write(dir.path.join(format!("{key}.response.json")), &response).unwrap();
 
-        std::fs::write(dir.path.join(format!("{key}.session.json")), "not json").unwrap();
+        let malformed = "not json";
+        std::fs::write(dir.path.join(format!("{key}.session.json")), malformed).unwrap();
+        std::fs::write(
+            dir.path.join(format!("{key}.session.txt")),
+            format!("{} {}", sha256_str(&response), sha256_str(malformed)),
+        )
+        .unwrap();
         assert_eq!(client.complete(&request).unwrap().session_file, None);
+        std::fs::remove_file(dir.path.join(format!("{key}.session.txt"))).unwrap();
 
         let session = "{\"run_id\":\"run-1\",\"session_id\":\"hermes-session-1\",\"task_id\":\"task-1\",\"raw_trace_id\":\"trace-1\",\"completed\":true,\"partial\":false,\"messages\":[{\"role\":\"assistant\",\"content\":\"{}\"}]}";
         std::fs::write(dir.path.join(format!("{key}.session.json")), session).unwrap();
