@@ -4,6 +4,8 @@
 //! allowances apply per target.
 #![allow(dead_code)]
 
+pub mod teacher;
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};

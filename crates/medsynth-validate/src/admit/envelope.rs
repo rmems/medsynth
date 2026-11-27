@@ -17,6 +17,8 @@ const ENVELOPE_FIELDS: &[&str] = &[
     "pin_entry",
     "pin_entry_sha256",
     "content_sha256",
+    "route",
+    "serving_vendor",
 ];
 
 pub(super) fn intake_teacher(ctx: &Ctx, record: &DraftRecord) -> Verdict {
@@ -34,6 +36,18 @@ pub(super) fn intake_teacher(ctx: &Ctx, record: &DraftRecord) -> Verdict {
             "incomplete rights envelope — missing: {}",
             missing.join(", ")
         ));
+    }
+    if envelope["route"]
+        .as_str()
+        .is_some_and(|route| route.to_ascii_lowercase().contains("hermes"))
+    {
+        for field in ["session_file", "session_sha256"] {
+            if envelope[field].as_str().is_none_or(|v| v.trim().is_empty()) {
+                return Verdict::reject(format!(
+                    "Hermes rights envelope missing {field} provenance"
+                ));
+            }
+        }
     }
     if let Some(reason) = envelope_consistent(record, envelope) {
         return Verdict::reject(reason);
@@ -77,6 +91,13 @@ fn trusted_pin_consistent(ctx: &Ctx, envelope: &Value) -> Option<String> {
     if envelope["pin_entry_sha256"].as_str().unwrap_or_default() != pin.entry_sha256 {
         return Some(format!(
             "rights envelope pin_entry_sha256 does not match the trusted teachers registry entry for `{pin_id}`"
+        ));
+    }
+    if let Some(route) = pin.route.as_deref()
+        && envelope["route"].as_str() != Some(route)
+    {
+        return Some(format!(
+            "rights envelope route does not match the trusted teachers registry entry for `{pin_id}`"
         ));
     }
     None

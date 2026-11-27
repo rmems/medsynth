@@ -19,6 +19,7 @@ use super::hash::{normalize_newlines, sha256_str};
 #[derive(Debug, Clone)]
 pub struct TrustedTeacherPin {
     pub entry_sha256: String,
+    pub route: Option<String>,
 }
 
 /// The parsed trusted teacher-pin registry.
@@ -48,6 +49,7 @@ impl TeacherPinRegistry {
             pins.insert(
                 entry.pin_id.clone(),
                 TrustedTeacherPin {
+                    route: entry.field("route").map(str::to_owned),
                     entry_sha256: entry.entry_sha256,
                 },
             );

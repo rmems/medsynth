@@ -4,6 +4,8 @@
 //! the fulfillment directory as `<key>.request.json` — an OpenAI-compatible
 //! chat-completion body an external harness can dispatch however it likes —
 //! and the harness drops the teacher's raw response at `<key>.response.json`.
+//! Hermes routes also use `<key>.session.json` plus a hash-binding
+//! `<key>.session.txt`, so replacement responses cannot reuse stale sessions.
 //! The key is a hash of the exact request-file bytes, so responses cannot be
 //! mixed up across cells, attempts, pins, or runs.
 
@@ -38,6 +40,9 @@ pub struct TeacherRequest {
     /// Ask a gateway route to include machine-readable vendor routing
     /// metadata in its response body.
     pub include_routing_metadata: bool,
+    /// Whether this pin executes through Hermes and therefore uses session
+    /// provenance. Direct routes ignore session sidecars entirely.
+    pub requires_session_record: bool,
 }
 
 /// The teacher's raw text output.
@@ -51,6 +56,10 @@ pub struct TeacherCompletion {
     /// The execution vendor reported by a gateway (`routing.vendor_used` or
     /// an equivalent top-level vendor field), when present.
     pub served_vendor: Option<String>,
+    /// Hermes session-record sidecar backing this completion, when supplied.
+    pub session_file: Option<String>,
+    /// SHA-256 of the exact session-record sidecar text.
+    pub session_sha256: Option<String>,
 }
 
 /// A teacher fulfillment source. Production uses [`RecordedTeacherClient`];
@@ -118,19 +127,22 @@ impl RecordedTeacherClient {
         Ok(Self { dir })
     }
 
-    fn paths(&self, request: &TeacherRequest) -> (PathBuf, PathBuf, PathBuf) {
+    fn paths(&self, request: &TeacherRequest) -> (PathBuf, PathBuf, PathBuf, PathBuf, PathBuf) {
         let key = fulfillment_key(request);
         (
             self.dir.join(format!("{key}.request.json")),
             self.dir.join(format!("{key}.response.json")),
             self.dir.join(format!("{key}.vendor.txt")),
+            self.dir.join(format!("{key}.session.json")),
+            self.dir.join(format!("{key}.session.txt")),
         )
     }
 }
 
 impl TeacherClient for RecordedTeacherClient {
     fn complete(&self, request: &TeacherRequest) -> Result<TeacherCompletion, TeacherError> {
-        let (request_path, response_path, vendor_path) = self.paths(request);
+        let (request_path, response_path, vendor_path, session_path, session_binding_path) =
+            self.paths(request);
         // Stage then rename: a pre-existing symlink at the request path is
         // replaced by the rename, never followed to truncate its target.
         // Per-process staging name: overlapping reruns never share a tmp file.
@@ -167,9 +179,110 @@ impl TeacherClient for RecordedTeacherClient {
             ))
         })?;
         let mut completion = parse_chat_completion(&value)?;
-        apply_vendor_sidecar(&mut completion, &vendor_path, &sha256_str(&text))?;
+        let response_sha256 = sha256_str(&text);
+        apply_vendor_sidecar(&mut completion, &vendor_path, &response_sha256)?;
+        if request.requires_session_record {
+            apply_session_sidecar(
+                &mut completion,
+                &session_path,
+                &session_binding_path,
+                &response_sha256,
+            )?;
+        }
         Ok(completion)
     }
+}
+
+fn apply_session_sidecar(
+    completion: &mut TeacherCompletion,
+    session_path: &std::path::Path,
+    binding_path: &std::path::Path,
+    response_sha256: &str,
+) -> Result<(), TeacherError> {
+    let Some(session) = read_optional_text(session_path, "Hermes session file")? else {
+        return Ok(());
+    };
+    if !valid_session_record(&session) {
+        return Ok(());
+    }
+    let Some(binding) = read_optional_text(binding_path, "Hermes session binding file")? else {
+        return Ok(());
+    };
+    let session_sha256 = sha256_str(&session);
+    if !session_binding_matches(&binding, response_sha256, &session_sha256) {
+        return Ok(());
+    }
+    completion.session_file = session_path
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned());
+    completion.session_sha256 = Some(session_sha256);
+    Ok(())
+}
+
+fn read_optional_text(
+    path: &std::path::Path,
+    description: &str,
+) -> Result<Option<String>, TeacherError> {
+    match std::fs::read_to_string(path) {
+        Ok(text) => Ok(Some(text)),
+        Err(e)
+            if matches!(
+                e.kind(),
+                std::io::ErrorKind::NotFound | std::io::ErrorKind::InvalidData
+            ) =>
+        {
+            Ok(None)
+        }
+        Err(e) => Err(TeacherError::Transport(format!(
+            "cannot read {description} {}: {e}",
+            path.display()
+        ))),
+    }
+}
+
+fn session_binding_matches(binding: &str, response_sha256: &str, session_sha256: &str) -> bool {
+    let mut parts = binding.split_whitespace();
+    let (Some(bound_response), Some(bound_session), None) =
+        (parts.next(), parts.next(), parts.next())
+    else {
+        return false;
+    };
+    if !bound_response.eq_ignore_ascii_case(response_sha256) {
+        return false;
+    }
+    bound_session.eq_ignore_ascii_case(session_sha256)
+}
+
+fn required_id_fields(value: &Value) -> bool {
+    ["run_id", "session_id", "task_id", "raw_trace_id"]
+        .iter()
+        .all(|key| value[key].as_str().is_some_and(|id| !id.trim().is_empty()))
+}
+
+fn required_boolean_fields(value: &Value) -> bool {
+    ["completed", "partial"]
+        .iter()
+        .all(|key| value[key].is_boolean())
+}
+
+fn valid_message(message: &Value) -> bool {
+    message["role"]
+        .as_str()
+        .is_some_and(|role| !role.trim().is_empty())
+        && message["content"].is_string()
+}
+
+fn valid_messages(value: &Value) -> bool {
+    value["messages"]
+        .as_array()
+        .is_some_and(|messages| !messages.is_empty() && messages.iter().all(valid_message))
+}
+
+fn valid_session_record(session: &str) -> bool {
+    let Ok(value) = serde_json::from_str::<Value>(session) else {
+        return false;
+    };
+    required_id_fields(&value) && required_boolean_fields(&value) && valid_messages(&value)
 }
 
 fn apply_vendor_sidecar(
@@ -235,6 +348,8 @@ pub fn parse_chat_completion(value: &Value) -> Result<TeacherCompletion, Teacher
         content: content.to_owned(),
         served_model,
         served_vendor,
+        session_file: None,
+        session_sha256: None,
     })
 }
 
@@ -281,6 +396,7 @@ mod tests {
             pin_id: "deepseek-v4.1-flash".to_owned(),
             pin_variant: "DeepSeek-V4.1-Flash-1017".to_owned(),
             include_routing_metadata: false,
+            requires_session_record: false,
         }
     }
 
@@ -411,11 +527,70 @@ mod tests {
 
         std::fs::write(
             dir.path.join(format!("{key}.response.json")),
-            format!("{response}\n"),
+            format!(
+                "{response}
+"
+            ),
         )
         .unwrap();
         let completion = client.complete(&request).unwrap();
         assert_eq!(completion.served_vendor, None);
+    }
+
+    #[test]
+    fn session_records_must_be_valid_and_bound_to_the_response() {
+        let dir = FulfillmentDir::new("session-binding");
+        let client = RecordedTeacherClient::new(dir.path.clone()).unwrap();
+        let mut request = request();
+        request.requires_session_record = true;
+        let _ = client.complete(&request);
+        let key = fulfillment_key(&request);
+        let response = json!({
+            "choices": [{"message": {"content": "{\"ok\":true}"}}]
+        })
+        .to_string();
+        std::fs::write(dir.path.join(format!("{key}.response.json")), &response).unwrap();
+
+        let malformed = "not json";
+        std::fs::write(dir.path.join(format!("{key}.session.json")), malformed).unwrap();
+        std::fs::write(
+            dir.path.join(format!("{key}.session.txt")),
+            format!("{} {}", sha256_str(&response), sha256_str(malformed)),
+        )
+        .unwrap();
+        assert_eq!(client.complete(&request).unwrap().session_file, None);
+        std::fs::remove_file(dir.path.join(format!("{key}.session.txt"))).unwrap();
+
+        let session = "{\"run_id\":\"run-1\",\"session_id\":\"hermes-session-1\",\"task_id\":\"task-1\",\"raw_trace_id\":\"trace-1\",\"completed\":true,\"partial\":false,\"messages\":[{\"role\":\"assistant\",\"content\":\"{}\"}]}";
+        std::fs::write(dir.path.join(format!("{key}.session.json")), session).unwrap();
+        assert_eq!(client.complete(&request).unwrap().session_file, None);
+
+        std::fs::write(
+            dir.path.join(format!("{key}.session.txt")),
+            format!("{} {}", sha256_str(&response), sha256_str(session)),
+        )
+        .unwrap();
+        let completion = client.complete(&request).unwrap();
+        assert_eq!(
+            completion.session_file.as_deref(),
+            Some(format!("{key}.session.json").as_str())
+        );
+        assert_eq!(
+            completion.session_sha256.as_deref(),
+            Some(sha256_str(session).as_str())
+        );
+
+        std::fs::write(
+            dir.path.join(format!("{key}.response.json")),
+            format!(
+                "{response}
+"
+            ),
+        )
+        .unwrap();
+        let completion = client.complete(&request).unwrap();
+        assert_eq!(completion.session_file, None);
+        assert_eq!(completion.session_sha256, None);
     }
 
     #[test]

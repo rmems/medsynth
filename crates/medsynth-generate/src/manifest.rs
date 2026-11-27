@@ -160,6 +160,8 @@ pub struct DroppedDraft {
 pub struct ServingMetadata<'a> {
     pub model: Option<&'a str>,
     pub vendor: Option<&'a str>,
+    pub session_file: Option<&'a str>,
+    pub session_sha256: Option<&'a str>,
 }
 
 /// Rights envelope for one teacher draft.
@@ -178,6 +180,10 @@ pub struct RightsEnvelope {
     /// must come from routing metadata; for a direct route it is the pinned
     /// provider.
     pub serving_vendor: String,
+    /// Hermes session-record file backing this draft, when the route uses Hermes.
+    pub session_file: Option<String>,
+    /// SHA-256 of the exact Hermes session-record file text.
+    pub session_sha256: Option<String>,
     pub pin_id: String,
     /// Exact `docs/teachers.md` pin entry the output was generated under.
     pub pin_entry: String,
@@ -187,14 +193,7 @@ pub struct RightsEnvelope {
 }
 
 impl RightsEnvelope {
-    /// Build an envelope, or fail if any piece is missing. A draft whose
-    /// envelope would be incomplete is dropped rather than written.
-    pub fn build(
-        record_id: &str,
-        raw: &str,
-        pin: &TeacherPin,
-        serving: ServingMetadata<'_>,
-    ) -> Result<Self, String> {
+    fn validate_pin(record_id: &str, pin: &TeacherPin) -> Result<(), String> {
         if record_id.trim().is_empty() {
             return Err("rights envelope: blank record id".to_owned());
         }
@@ -210,19 +209,50 @@ impl RightsEnvelope {
         if pin.entry_text.trim().is_empty() || pin.entry_sha256.trim().is_empty() {
             return Err("rights envelope: missing docs/teachers.md pin entry".to_owned());
         }
-        let gateway = pin.uses_merge_gateway();
-        let serving_vendor = if gateway {
-            serving
-                .vendor
-                .filter(|vendor| !vendor.trim().is_empty())
-                .ok_or_else(|| {
-                    "rights envelope: Merge Gateway response lacks routing vendor metadata"
-                        .to_owned()
-                })?
-                .to_owned()
-        } else {
-            pin.provider.clone()
-        };
+        Ok(())
+    }
+
+    fn serving_vendor(pin: &TeacherPin, serving: &ServingMetadata<'_>) -> Result<String, String> {
+        if !pin.uses_merge_gateway() {
+            return Ok(pin.provider.clone());
+        }
+        serving
+            .vendor
+            .filter(|vendor| !vendor.trim().is_empty())
+            .map(str::to_owned)
+            .ok_or_else(|| {
+                "rights envelope: Merge Gateway response lacks routing vendor metadata".to_owned()
+            })
+    }
+
+    fn validate_hermes_session(
+        pin: &TeacherPin,
+        serving: &ServingMetadata<'_>,
+    ) -> Result<(), String> {
+        if !pin.route.to_ascii_lowercase().contains("hermes") {
+            return Ok(());
+        }
+        for value in [serving.session_file, serving.session_sha256] {
+            if value.is_none_or(|value| value.trim().is_empty()) {
+                return Err(
+                    "rights envelope: Hermes response lacks session-record provenance".to_owned(),
+                );
+            }
+        }
+        Ok(())
+    }
+
+    /// Build an envelope, or fail if any piece is missing. A draft whose
+    /// envelope would be incomplete is dropped rather than written.
+    pub fn build(
+        record_id: &str,
+        raw: &str,
+        pin: &TeacherPin,
+        serving: ServingMetadata<'_>,
+    ) -> Result<Self, String> {
+        Self::validate_pin(record_id, pin)?;
+        let serving_vendor = Self::serving_vendor(pin, &serving)?;
+        Self::validate_hermes_session(pin, &serving)?;
         Ok(Self {
             record_id: record_id.to_owned(),
             teacher_variant: pin.variant.clone(),
@@ -230,6 +260,8 @@ impl RightsEnvelope {
             served_model: serving.model.map(str::to_owned),
             route: pin.route.clone(),
             serving_vendor,
+            session_file: serving.session_file.map(str::to_owned),
+            session_sha256: serving.session_sha256.map(str::to_owned),
             pin_id: pin.pin_id.clone(),
             pin_entry: pin.entry_text.clone(),
             pin_entry_sha256: pin.entry_sha256.clone(),
