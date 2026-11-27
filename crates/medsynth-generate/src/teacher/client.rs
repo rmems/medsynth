@@ -40,6 +40,9 @@ pub struct TeacherRequest {
     /// Ask a gateway route to include machine-readable vendor routing
     /// metadata in its response body.
     pub include_routing_metadata: bool,
+    /// Whether this pin executes through Hermes and therefore uses session
+    /// provenance. Direct routes ignore session sidecars entirely.
+    pub requires_session_record: bool,
 }
 
 /// The teacher's raw text output.
@@ -178,12 +181,14 @@ impl TeacherClient for RecordedTeacherClient {
         let mut completion = parse_chat_completion(&value)?;
         let response_sha256 = sha256_str(&text);
         apply_vendor_sidecar(&mut completion, &vendor_path, &response_sha256)?;
-        apply_session_sidecar(
-            &mut completion,
-            &session_path,
-            &session_binding_path,
-            &response_sha256,
-        )?;
+        if request.requires_session_record {
+            apply_session_sidecar(
+                &mut completion,
+                &session_path,
+                &session_binding_path,
+                &response_sha256,
+            )?;
+        }
         Ok(completion)
     }
 }
@@ -252,17 +257,28 @@ fn valid_session_record(session: &str) -> bool {
     let Ok(value) = serde_json::from_str::<Value>(session) else {
         return false;
     };
-    let has_id = value
-        .get("session_id")
-        .and_then(Value::as_str)
-        .is_some_and(|id| !id.trim().is_empty());
-    if !has_id {
+    for key in ["run_id", "session_id", "task_id", "raw_trace_id"] {
+        if value[key].as_str().is_none_or(|id| id.trim().is_empty()) {
+            return false;
+        }
+    }
+    for key in ["completed", "partial"] {
+        if !value[key].is_boolean() {
+            return false;
+        }
+    }
+    let Some(messages) = value["messages"].as_array() else {
+        return false;
+    };
+    if messages.is_empty() {
         return false;
     }
-    value
-        .get("messages")
-        .and_then(Value::as_array)
-        .is_some_and(|messages| !messages.is_empty())
+    messages.iter().all(|message| {
+        message["role"]
+            .as_str()
+            .is_some_and(|role| !role.trim().is_empty())
+            && message["content"].is_string()
+    })
 }
 
 fn apply_vendor_sidecar(
@@ -376,6 +392,7 @@ mod tests {
             pin_id: "deepseek-v4.1-flash".to_owned(),
             pin_variant: "DeepSeek-V4.1-Flash-1017".to_owned(),
             include_routing_metadata: false,
+            requires_session_record: false,
         }
     }
 
@@ -520,7 +537,8 @@ mod tests {
     fn session_records_must_be_valid_and_bound_to_the_response() {
         let dir = FulfillmentDir::new("session-binding");
         let client = RecordedTeacherClient::new(dir.path.clone()).unwrap();
-        let request = request();
+        let mut request = request();
+        request.requires_session_record = true;
         let _ = client.complete(&request);
         let key = fulfillment_key(&request);
         let response = json!({
@@ -532,7 +550,7 @@ mod tests {
         std::fs::write(dir.path.join(format!("{key}.session.json")), "not json").unwrap();
         assert_eq!(client.complete(&request).unwrap().session_file, None);
 
-        let session = "{\"session_id\":\"hermes-session-1\",\"messages\":[{\"role\":\"assistant\",\"content\":\"{}\"}]}";
+        let session = "{\"run_id\":\"run-1\",\"session_id\":\"hermes-session-1\",\"task_id\":\"task-1\",\"raw_trace_id\":\"trace-1\",\"completed\":true,\"partial\":false,\"messages\":[{\"role\":\"assistant\",\"content\":\"{}\"}]}";
         std::fs::write(dir.path.join(format!("{key}.session.json")), session).unwrap();
         assert_eq!(client.complete(&request).unwrap().session_file, None);
 

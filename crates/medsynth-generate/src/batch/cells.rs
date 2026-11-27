@@ -331,6 +331,7 @@ fn request_completion(
         pin_id: pin.pin_id.clone(),
         pin_variant: pin.variant.clone(),
         include_routing_metadata: pin.uses_merge_gateway(),
+        requires_session_record: pin.route.to_ascii_lowercase().contains("hermes"),
     };
     let completion = ctx.teacher.client.complete(&request).map_err(|e| {
         let stage = if matches!(e, TeacherError::Transport(_)) {

@@ -132,8 +132,11 @@ gate rather than written.
 
 For a Hermes route the harness must always export the session record as
 `<key>.session.json`, regardless of how vendor metadata was supplied. The
-record is a JSON object with a non-empty `session_id` and `messages`, and the
+record is the Hermes raw-trace JSON object: non-empty `run_id`, `session_id`,
+`task_id`, and `raw_trace_id`; boolean `completed` and `partial`; and at least
+one message object with non-empty string `role` plus string `content`. The
 harness writes `<sha256(response-json)> <sha256(session-json)>` to
 `<key>.session.txt`. That binding prevents a replacement response from reusing
 a stale session. A missing, malformed, or unbound session record is treated as
-absent and fails closed at the rights-envelope gate.
+absent and fails closed at the rights-envelope gate. Direct (non-Hermes)
+teacher routes ignore these sidecars entirely.
