@@ -155,6 +155,13 @@ pub struct DroppedDraft {
     pub reasons: Vec<String>,
 }
 
+/// Model/vendor identity reported by the serving endpoint for one completion.
+#[derive(Debug, Clone, Copy)]
+pub struct ServingMetadata<'a> {
+    pub model: Option<&'a str>,
+    pub vendor: Option<&'a str>,
+}
+
 /// Rights envelope for one teacher draft.
 #[derive(Debug, Clone, Serialize)]
 pub struct RightsEnvelope {
@@ -186,8 +193,7 @@ impl RightsEnvelope {
         record_id: &str,
         raw: &str,
         pin: &TeacherPin,
-        served_model: Option<&str>,
-        served_vendor: Option<&str>,
+        serving: ServingMetadata<'_>,
     ) -> Result<Self, String> {
         if record_id.trim().is_empty() {
             return Err("rights envelope: blank record id".to_owned());
@@ -206,7 +212,8 @@ impl RightsEnvelope {
         }
         let gateway = pin.endpoint.contains("api-gateway.merge.dev");
         let serving_vendor = if gateway {
-            served_vendor
+            serving
+                .vendor
                 .filter(|vendor| !vendor.trim().is_empty())
                 .ok_or_else(|| {
                     "rights envelope: Merge Gateway response lacks routing vendor metadata"
@@ -214,13 +221,13 @@ impl RightsEnvelope {
                 })?
                 .to_owned()
         } else {
-            served_vendor.unwrap_or(&pin.provider).to_owned()
+            serving.vendor.unwrap_or(&pin.provider).to_owned()
         };
         Ok(Self {
             record_id: record_id.to_owned(),
             teacher_variant: pin.variant.clone(),
             model_id: pin.model_id.clone(),
-            served_model: served_model.map(str::to_owned),
+            served_model: serving.model.map(str::to_owned),
             route: pin.route.clone(),
             serving_vendor,
             pin_id: pin.pin_id.clone(),

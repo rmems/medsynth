@@ -7,7 +7,7 @@ use common::{TempDir, plan_paths, read_json, workspace_root, write_config};
 use medsynth_generate::batch::{ExecuteOptions, LaneFilter, execute};
 use medsynth_generate::format::Format;
 use medsynth_generate::hash::sha256_str;
-use medsynth_generate::manifest::RightsEnvelope;
+use medsynth_generate::manifest::{RightsEnvelope, ServingMetadata};
 use medsynth_generate::teacher::{
     AnchorPoint, PreparedTeacher, RecordStamp, TeacherClient, TeacherCompletion, TeacherError,
     TeacherPinRegistry, TeacherRequest, build_prompt, build_record, parse_chat_completion,
@@ -401,8 +401,16 @@ fn rights_envelope_requires_every_piece() {
     let pins = docs_pins();
     let mut pin = pins.ensure_teacher("deepseek-v4.1-flash").unwrap().clone();
     let raw = "{\"id\":\"draft-test-000\"}";
-    let envelope =
-        RightsEnvelope::build("draft-test-000", raw, &pin, None, Some("openrouter")).unwrap();
+    let envelope = RightsEnvelope::build(
+        "draft-test-000",
+        raw,
+        &pin,
+        ServingMetadata {
+            model: None,
+            vendor: Some("openrouter"),
+        },
+    )
+    .unwrap();
     assert_eq!(
         (&envelope.content_sha256, &envelope.pin_entry_sha256),
         (&sha256_str(raw), &pin.entry_sha256)
@@ -412,14 +420,47 @@ fn rights_envelope_requires_every_piece() {
         (envelope.route.as_str(), envelope.serving_vendor.as_str(),),
         ("Merge Gateway", "openrouter")
     );
-    assert!(RightsEnvelope::build("draft-test-000", raw, &pin, None, None).is_err());
+    assert!(
+        RightsEnvelope::build(
+            "draft-test-000",
+            raw,
+            &pin,
+            ServingMetadata {
+                model: None,
+                vendor: None,
+            },
+        )
+        .is_err()
+    );
 
     pin.variant.clear();
-    assert!(RightsEnvelope::build("draft-test-000", raw, &pin, None, None).is_err());
+    assert!(
+        RightsEnvelope::build(
+            "draft-test-000",
+            raw,
+            &pin,
+            ServingMetadata {
+                model: None,
+                vendor: None,
+            },
+        )
+        .is_err()
+    );
 
     let mut pin = pins.ensure_teacher("deepseek-v4.1-flash").unwrap().clone();
     pin.entry_text.clear();
-    assert!(RightsEnvelope::build("draft-test-000", raw, &pin, None, None).is_err());
+    assert!(
+        RightsEnvelope::build(
+            "draft-test-000",
+            raw,
+            &pin,
+            ServingMetadata {
+                model: None,
+                vendor: None,
+            },
+        )
+        .is_err()
+    );
 }
 
 #[test]

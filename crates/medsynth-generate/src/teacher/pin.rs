@@ -8,7 +8,11 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use crate::hash::{sha256_str, text_file_sha256};
+use medsynth_schema::teacher_pin::{
+    TeacherPinEntry, ensure_unique_pin_ids, parse_teacher_pin_entries,
+};
+
+use crate::hash::{normalize_newlines, sha256_str, text_file_sha256};
 use crate::teacher::TeacherError;
 
 /// How a pin may be used.
@@ -66,8 +70,7 @@ impl TeacherPin {
     /// Fields that are empty or absent. An entry with any missing field is
     /// incomplete and the lane refuses to start.
     pub fn missing_fields(&self) -> Vec<&'static str> {
-        let mut missing = Vec::new();
-        for (name, value) in [
+        let mut missing = missing_text_fields([
             ("pin_id", self.pin_id.as_str()),
             ("provider", self.provider.as_str()),
             ("route", self.route.as_str()),
@@ -82,39 +85,32 @@ impl TeacherPin {
             ("terms_url", self.terms_url.as_str()),
             ("terms_clause", self.terms_clause.as_str()),
             ("snapshot_date", self.snapshot_date.as_str()),
-        ] {
-            if value.trim().is_empty() {
-                missing.push(name);
-            }
-        }
+        ]);
         if endpoint_is_merge_gateway(&self.endpoint) {
-            for (name, value) in [
+            missing.extend(missing_text_fields([
                 ("route_terms_document", self.route_terms_document.as_str()),
                 ("route_terms_version", self.route_terms_version.as_str()),
                 ("route_terms_date", self.route_terms_date.as_str()),
                 ("route_terms_url", self.route_terms_url.as_str()),
                 ("route_terms_clause", self.route_terms_clause.as_str()),
-            ] {
-                if value.trim().is_empty() {
-                    missing.push(name);
-                }
-            }
+            ]));
         }
-        if self.lane.is_none() {
-            missing.push("lane");
-        }
-        if self.permits_distillation.is_none() {
-            missing.push("permits_distillation");
-        }
-        if self.permits_synthetic_data.is_none() {
-            missing.push("permits_synthetic_data");
-        }
+        missing.extend((self.lane.is_none()).then_some("lane"));
+        missing.extend((self.permits_distillation.is_none()).then_some("permits_distillation"));
+        missing.extend((self.permits_synthetic_data.is_none()).then_some("permits_synthetic_data"));
         missing
     }
 
     pub fn is_complete(&self) -> bool {
         self.missing_fields().is_empty()
     }
+}
+
+fn missing_text_fields<const N: usize>(fields: [(&'static str, &str); N]) -> Vec<&'static str> {
+    fields
+        .into_iter()
+        .filter_map(|(name, value)| value.trim().is_empty().then_some(name))
+        .collect()
 }
 
 /// All pins parsed from the pin file.
@@ -130,22 +126,15 @@ impl TeacherPinRegistry {
     pub fn load(path: &Path) -> Result<Self, TeacherError> {
         let text = std::fs::read_to_string(path)
             .map_err(|e| TeacherError::PinParse(format!("cannot read {}: {e}", path.display())))?;
+        let entries = parse_teacher_pin_entries(&text);
+        ensure_unique_pin_ids(&entries)
+            .map_err(|e| TeacherError::PinParse(format!("{}: {e}", path.display())))?;
         let mut pins = BTreeMap::new();
-        for entry_text in pin_blocks(&text) {
-            let pin = parse_pin(&entry_text)?;
-            if pin.pin_id.trim().is_empty() {
-                return Err(TeacherError::PinParse(
-                    "a Pin block has a blank pin_id".to_owned(),
-                ));
-            }
-            if pins.insert(pin.pin_id.clone(), pin).is_some() {
-                return Err(TeacherError::PinParse(
-                    "duplicate pin_id in docs/teachers.md".to_owned(),
-                ));
-            }
+        for entry in entries {
+            let pin = parse_pin(&entry);
+            pins.insert(pin.pin_id.clone(), pin);
         }
-        let file_sha256 = text_file_sha256(path)
-            .map_err(|e| TeacherError::PinParse(format!("cannot hash {}: {e}", path.display())))?;
+        let file_sha256 = sha256_str(&normalize_newlines(&text));
         Ok(Self {
             path: path.to_path_buf(),
             file_sha256,
@@ -251,23 +240,19 @@ const TRUSTED_ENDPOINT_HOSTS: &[&str] = &[
 ];
 
 fn endpoint_is_merge_gateway(endpoint: &str) -> bool {
-    endpoint_host_matches(endpoint, "api-gateway.merge.dev")
+    endpoint_host(endpoint).is_some_and(|host| host.eq_ignore_ascii_case("api-gateway.merge.dev"))
 }
 
-fn endpoint_host_matches(endpoint: &str, host: &str) -> bool {
-    let endpoint = endpoint.to_ascii_lowercase();
-    endpoint.starts_with("https://")
-        && endpoint[8..].starts_with(host)
-        && endpoint[8 + host.len()..].starts_with('/')
+fn endpoint_host(endpoint: &str) -> Option<&str> {
+    endpoint.strip_prefix("https://")?.split('/').next()
 }
 
 fn require_trusted_endpoint(pin: &TeacherPin) -> Result<(), TeacherError> {
-    let endpoint = pin.endpoint.to_ascii_lowercase();
-    if endpoint.starts_with("https://")
-        && TRUSTED_ENDPOINT_HOSTS.iter().any(|host| {
-            endpoint[8..].starts_with(host) && endpoint[8 + host.len()..].starts_with('/')
-        })
-    {
+    if endpoint_host(&pin.endpoint).is_some_and(|host| {
+        TRUSTED_ENDPOINT_HOSTS
+            .iter()
+            .any(|trusted| host.eq_ignore_ascii_case(trusted))
+    }) {
         return Ok(());
     }
     Err(TeacherError::UntrustedEndpoint {
@@ -301,51 +286,14 @@ fn require_terms(pin: &TeacherPin) -> Result<(), TeacherError> {
     Ok(())
 }
 
-fn pin_blocks(text: &str) -> Vec<String> {
-    let mut blocks = Vec::new();
-    let mut current: Vec<&str> = Vec::new();
-    let mut in_pin = false;
-    for line in text.lines() {
-        if line.starts_with("## ") || line.starts_with("### ") {
-            if in_pin {
-                blocks.push(join_block(&current));
-                current.clear();
-            }
-            in_pin = line.starts_with("### Pin:") || line.starts_with("## Pin:");
-        }
-        if in_pin {
-            current.push(line);
-        }
-    }
-    if in_pin {
-        blocks.push(join_block(&current));
-    }
-    blocks
-}
-
-fn join_block(lines: &[&str]) -> String {
-    lines.join("\n").trim().to_owned()
-}
-
-fn parse_pin(entry_text: &str) -> Result<TeacherPin, TeacherError> {
-    let mut fields = BTreeMap::new();
-    for line in entry_text.lines() {
-        let trimmed = line.trim();
-        let Some(rest) = trimmed.strip_prefix("- **") else {
-            continue;
-        };
-        let Some((key, value)) = rest.split_once(":**") else {
-            continue;
-        };
-        fields.insert(key.trim().to_ascii_lowercase(), clean_value(value));
-    }
-    let get = |key: &str| fields.get(key).cloned().unwrap_or_default();
+fn parse_pin(entry: &TeacherPinEntry) -> TeacherPin {
+    let get = |key: &str| entry.field(key).unwrap_or("").to_owned();
     let lane = match get("lane").to_ascii_lowercase().as_str() {
         "teacher" => Some(PinLane::Teacher),
         "research_only" | "research-only" => Some(PinLane::ResearchOnly),
         _ => None,
     };
-    Ok(TeacherPin {
+    TeacherPin {
         pin_id: get("pin_id"),
         provider: get("provider"),
         route: get("route"),
@@ -365,26 +313,11 @@ fn parse_pin(entry_text: &str) -> Result<TeacherPin, TeacherError> {
         route_terms_date: get("route_terms_date"),
         route_terms_url: get("route_terms_url"),
         route_terms_clause: get("route_terms_clause"),
-        permits_distillation: parse_bool(&get("permits_distillation")),
-        permits_synthetic_data: parse_bool(&get("permits_synthetic_data")),
+        permits_distillation: entry.bool_field("permits_distillation"),
+        permits_synthetic_data: entry.bool_field("permits_synthetic_data"),
         snapshot_date: get("snapshot_date"),
         notes: get("notes"),
-        entry_text: entry_text.to_owned(),
-        entry_sha256: sha256_str(entry_text),
-    })
-}
-
-fn clean_value(value: &str) -> String {
-    let value = value.trim();
-    let value = value.strip_prefix('`').unwrap_or(value);
-    let value = value.strip_suffix('`').unwrap_or(value);
-    value.trim().to_owned()
-}
-
-fn parse_bool(value: &str) -> Option<bool> {
-    match value.trim().to_ascii_lowercase().as_str() {
-        "yes" | "true" | "1" => Some(true),
-        "no" | "false" | "0" => Some(false),
-        _ => None,
+        entry_text: entry.entry_text.clone(),
+        entry_sha256: entry.entry_sha256.clone(),
     }
 }

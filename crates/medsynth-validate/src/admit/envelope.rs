@@ -35,7 +35,10 @@ pub(super) fn intake_teacher(ctx: &Ctx, record: &DraftRecord) -> Verdict {
             missing.join(", ")
         ));
     }
-    match envelope_consistent(record, envelope) {
+    if let Some(reason) = envelope_consistent(record, envelope) {
+        return Verdict::reject(reason);
+    }
+    match trusted_pin_consistent(ctx, envelope) {
         Some(reason) => Verdict::reject(reason),
         None => Verdict::Pass,
     }
@@ -57,6 +60,24 @@ fn envelope_consistent(record: &DraftRecord, envelope: &Value) -> Option<String>
     ));
     if entry_sha != envelope["pin_entry_sha256"].as_str().unwrap_or_default() {
         return Some("rights envelope pin_entry does not match pin_entry_sha256".to_owned());
+    }
+    None
+}
+
+/// The envelope's binding to the trusted teacher registry: the pin must be
+/// listed there, and the hash the envelope carries must be the trusted entry's
+/// hash — not merely the hash of the entry embedded in the envelope itself.
+fn trusted_pin_consistent(ctx: &Ctx, envelope: &Value) -> Option<String> {
+    let pin_id = envelope["pin_id"].as_str().unwrap_or_default();
+    let Some(pin) = ctx.teacher_registry.get(pin_id) else {
+        return Some(format!(
+            "rights envelope pin_id `{pin_id}` is not listed in the trusted teachers registry"
+        ));
+    };
+    if envelope["pin_entry_sha256"].as_str().unwrap_or_default() != pin.entry_sha256 {
+        return Some(format!(
+            "rights envelope pin_entry_sha256 does not match the trusted teachers registry entry for `{pin_id}`"
+        ));
     }
     None
 }

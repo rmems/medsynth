@@ -10,7 +10,7 @@ use crate::batch::{
 };
 use crate::config::{Lane, TargetCell, TeacherSelection};
 use crate::error::GenerateError;
-use crate::manifest::{CellReport, RightsEnvelope};
+use crate::manifest::{CellReport, RightsEnvelope, ServingMetadata};
 use crate::procedural;
 use crate::record::record_id_for;
 use crate::rng::SeededRng;
@@ -296,8 +296,10 @@ fn teacher_attempt(ctx: &AttemptCtx<'_>) -> Result<ProducedDraft, FailedAttempt>
         ctx,
         id,
         content,
-        completion.served_model.as_deref(),
-        completion.served_vendor.as_deref(),
+        ServingMetadata {
+            model: completion.served_model.as_deref(),
+            vendor: completion.served_vendor.as_deref(),
+        },
     )
 }
 
@@ -356,8 +358,7 @@ fn finalize_draft(
     ctx: &AttemptCtx<'_>,
     id: medsynth_schema::RecordId,
     content: crate::teacher::TeacherContent,
-    served_model: Option<&str>,
-    served_vendor: Option<&str>,
+    serving: ServingMetadata<'_>,
 ) -> Result<ProducedDraft, FailedAttempt> {
     let cell = ctx.cell_ctx.cell;
     let plan = ctx.cell_ctx.plan;
@@ -381,14 +382,8 @@ fn finalize_draft(
         )
     })?;
     let record_id = record.id().as_str().to_owned();
-    let envelope = RightsEnvelope::build(
-        &record_id,
-        &raw,
-        ctx.teacher.prepared.pin(),
-        served_model,
-        served_vendor,
-    )
-    .map_err(|reason| ctx.fail(Some(record_id.clone()), "rights_envelope", vec![reason]))?;
+    let envelope = RightsEnvelope::build(&record_id, &raw, ctx.teacher.prepared.pin(), serving)
+        .map_err(|reason| ctx.fail(Some(record_id.clone()), "rights_envelope", vec![reason]))?;
     let context = ValidationContext {
         expected: ExpectedProvenance::Teacher {
             pin: ctx.teacher.prepared.pin(),
