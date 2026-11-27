@@ -29,6 +29,8 @@ struct GoldReviewRecord {
 #[derive(Debug, Deserialize)]
 struct GoldAnchorCheck {
     outcome: String,
+    #[serde(default)]
+    evidence: String,
 }
 
 pub(crate) fn load_gold_review(
@@ -44,10 +46,18 @@ pub(crate) fn load_gold_review(
     })?))
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct GoldAdjudication {
+    pub(crate) verdict: Verdict,
+    pub(crate) run_id: String,
+    pub(crate) detail: String,
+    pub(crate) evidence: String,
+}
+
 pub(crate) fn gold_adjudication(
     review: Option<&GoldReviewManifest>,
     record: &RecordFile,
-) -> Option<(Verdict, String, String)> {
+) -> Option<GoldAdjudication> {
     let review = review?;
     let item = review
         .records
@@ -69,7 +79,68 @@ pub(crate) fn gold_adjudication(
     } else {
         "gold reviewer run id equals drafting run id".to_owned()
     };
-    Some((verdict, item.reviewer_run_id.clone(), detail))
+    Some(GoldAdjudication {
+        verdict,
+        run_id: item.reviewer_run_id.clone(),
+        detail,
+        evidence: item.anchor_check.evidence.clone(),
+    })
+}
+
+fn compact_evidence_text(text: &str) -> String {
+    text.replace('\u{2019}', "'")
+        .chars()
+        .flat_map(char::to_lowercase)
+        .filter(|c| !c.is_whitespace())
+        .collect()
+}
+
+fn closes_quote(chars: &[char], end: usize, quote: char) -> bool {
+    if chars[end] != quote {
+        return false;
+    }
+    if quote == '"' {
+        return true;
+    }
+    end + 1 == chars.len() || !chars[end + 1].is_alphanumeric()
+}
+
+fn closing_quote(chars: &[char], start: usize, quote: char) -> Option<usize> {
+    (start + 1..chars.len()).find(|&end| closes_quote(chars, end, quote))
+}
+
+fn quoted_spans_for(chars: &[char], quote: char) -> Vec<String> {
+    let mut spans = Vec::new();
+    let mut start = 0usize;
+    while let Some(open) = (start..chars.len()).find(|&idx| chars[idx] == quote) {
+        let Some(close) = closing_quote(chars, open, quote) else {
+            break;
+        };
+        let span = chars[open + 1..close].iter().collect::<String>();
+        if compact_evidence_text(&span).len() >= 20 {
+            spans.push(span);
+        }
+        start = close + 1;
+    }
+    spans
+}
+
+fn quoted_evidence_spans(evidence: &str) -> Vec<String> {
+    let chars = evidence.chars().collect::<Vec<_>>();
+    ['"', '\'']
+        .into_iter()
+        .flat_map(|quote| quoted_spans_for(&chars, quote))
+        .collect()
+}
+
+/// Whether the gold reviewer's quoted evidence is still present in the
+/// retrieved passage. This prevents a record-level gold review from being
+/// applied to unrelated replacement text when OpenStax content changes.
+pub(crate) fn evidence_matches_passage(evidence: &str, passage: &str) -> bool {
+    let passage = compact_evidence_text(passage);
+    quoted_evidence_spans(evidence)
+        .iter()
+        .any(|span| passage.contains(&compact_evidence_text(span)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -77,8 +148,6 @@ struct AuditResponse {
     request_sha256: String,
     verdict: String,
     run_id: String,
-    #[serde(default)]
-    detail: String,
 }
 
 pub(crate) fn response_verdict(
@@ -128,11 +197,7 @@ pub(crate) fn response_verdict(
     (
         verdict,
         Some(response.run_id),
-        if response.detail.is_empty() {
-            "independent adjudicator response".to_owned()
-        } else {
-            response.detail
-        },
+        "independent adjudicator response".to_owned(),
     )
 }
 
@@ -206,6 +271,34 @@ mod tests {
     }
 
     #[test]
+    fn adjudicator_detail_is_not_copied_into_text_free_report() {
+        let dir = temp_dir("detail");
+        write_response(
+            &dir,
+            r#"{"request_sha256":"req","verdict":"unsupported","run_id":"audit","detail":"quoted passage text that must not be republished"}"#,
+        );
+        let (verdict, _, message) = response_verdict(&dir, "key", "req", Some("draft"));
+        assert_eq!(
+            (verdict, message.as_str()),
+            (Verdict::Unsupported, "independent adjudicator response")
+        );
+    }
+
+    #[test]
+    fn gold_evidence_must_match_the_retrieved_passage() {
+        let evidence =
+            r#"The section says "a gap junction forms an intercellular passageway between cells"."#;
+        assert!(evidence_matches_passage(
+            evidence,
+            "A gap junction forms an intercellular passageway   between cells, the section adds."
+        ));
+        assert!(!evidence_matches_passage(
+            evidence,
+            "Tight junctions block movement between cells."
+        ));
+    }
+
+    #[test]
     fn gold_review_requires_exact_record_hash_and_independence() {
         let raw = r#"{"id":"rec"}"#;
         let record = RecordFile {
@@ -226,12 +319,12 @@ mod tests {
         }))
         .expect("review fixture");
         assert_eq!(
-            gold_adjudication(Some(&review), &record).map(|v| v.0),
+            gold_adjudication(Some(&review), &record).map(|v| v.verdict),
             Some(Verdict::Supported)
         );
         review.drafting_run_id = "audit".to_owned();
         assert_eq!(
-            gold_adjudication(Some(&review), &record).map(|v| v.0),
+            gold_adjudication(Some(&review), &record).map(|v| v.verdict),
             Some(Verdict::Unverifiable)
         );
         review.records[0].record_sha256 = "different".to_owned();

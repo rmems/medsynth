@@ -36,10 +36,13 @@ fn sha256(text: &str) -> String {
 
 fn write_passage_cache(root: &Path) {
     let locator = "sec4.2:epithelial-tissue";
-    let text = "Gap junctions form intercellular passageways for small molecules and ions between adjacent cells. Tight junctions block movement between cells.";
+    let text = "Cell to Cell Junctions. A gap junction forms an intercellular passageway between the membranes of adjacent cells to facilitate the movement of small molecules and ions between the cytoplasm of adjacent cells. These junctions allow electrical and metabolic coupling of adjacent cells. Tight junctions block movement between cells.";
     let cache = serde_json::json!({
+        "cache_version": 2,
         "source_id": "openstax-anatomy-physiology-2e",
         "locator": locator,
+        "retrieval": "openstax-web",
+        "book": "anatomy-and-physiology-2e",
         "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/4-2-epithelial-tissue",
         "text": text,
         "passage_sha256": sha256(text),
@@ -75,7 +78,7 @@ fn write_negative_record(root: &Path) {
     fs::write(root.join("data/gold/mcq.jsonl"), format!("{line}\n")).expect("write record shard");
 }
 
-fn fulfill_all(root: &Path, verdict: &str) {
+fn fulfill_requests(root: &Path, choose_verdict: impl Fn(&str) -> &'static str) {
     let fulfillment = root.join("fulfillment");
     for entry in fs::read_dir(&fulfillment).expect("read fulfillment dir") {
         let path = entry.expect("dir entry").path();
@@ -94,9 +97,10 @@ fn fulfill_all(root: &Path, verdict: &str) {
         let request_sha256 = request["request_sha256"]
             .as_str()
             .expect("request carries its payload hash");
+        let claim_path = request["claim_path"].as_str().expect("request claim path");
         let response = serde_json::json!({
             "request_sha256": request_sha256,
-            "verdict": verdict,
+            "verdict": choose_verdict(claim_path),
             "run_id": "independent-audit-test-run",
             "detail": "seeded test adjudication",
         });
@@ -106,6 +110,67 @@ fn fulfill_all(root: &Path, verdict: &str) {
         )
         .expect("write response");
     }
+}
+
+fn fulfill_all(root: &Path, verdict: &'static str) {
+    fulfill_requests(root, move |_| verdict);
+}
+
+fn fulfill_negative_fixture_mixed(root: &Path) {
+    fulfill_requests(root, |claim_path| {
+        if claim_path == "/rationale/key_explanation" {
+            "unsupported"
+        } else {
+            "supported"
+        }
+    });
+}
+
+type AnchorMultiset = std::collections::BTreeMap<(String, String, String), usize>;
+
+fn add_json_anchors(record_id: &str, value: &Value, anchors: &mut AnchorMultiset) {
+    match value {
+        Value::Object(object) => {
+            if let Some(Value::Array(items)) = object.get("anchors") {
+                for anchor in items {
+                    let key = (
+                        record_id.to_owned(),
+                        anchor["source_id"].as_str().unwrap_or_default().to_owned(),
+                        anchor["locator"].as_str().unwrap_or_default().to_owned(),
+                    );
+                    *anchors.entry(key).or_default() += 1;
+                }
+            }
+            for child in object.values() {
+                add_json_anchors(record_id, child, anchors);
+            }
+        }
+        Value::Array(items) => {
+            for child in items {
+                add_json_anchors(record_id, child, anchors);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn gold_anchor_multiset() -> AnchorMultiset {
+    let mut anchors = AnchorMultiset::new();
+    for entry in fs::read_dir(workspace_root().join("data/gold")).expect("read gold dir") {
+        let path = entry.expect("gold dir entry").path();
+        if path.extension().is_none_or(|ext| ext != "jsonl") {
+            continue;
+        }
+        for line in fs::read_to_string(&path).expect("read gold shard").lines() {
+            let record: Value = serde_json::from_str(line).expect("parse gold record");
+            add_json_anchors(
+                record["id"].as_str().expect("gold record id"),
+                &record,
+                &mut anchors,
+            );
+        }
+    }
+    anchors
 }
 
 #[test]
@@ -136,17 +201,30 @@ fn gold_review_manifest_marks_hash_identical_gold_anchors_supported() {
     )
     .expect("write review");
 
-    let report = run_audit(&options(&root, Some(review_path))).expect("run audit");
-    assert_eq!(report.counts.anchors, 3);
-    assert_eq!(report.counts.supported, 3);
-    assert_eq!(report.counts.unsupported, 0);
-    assert_eq!(report.counts.unverifiable, 0);
+    let report = run_audit(&options(&root, Some(review_path.clone()))).expect("run audit");
+    assert_eq!(
+        (
+            report.counts.anchors,
+            report.counts.supported,
+            report.counts.unsupported,
+            report.counts.unverifiable
+        ),
+        (3, 3, 0, 0)
+    );
     assert!(report.unverifiable_by_design_sources.is_empty());
     assert!(
         report
             .anchors
             .iter()
             .all(|a| a.passage_sha256.is_some() && a.adjudicator_run_id.is_some())
+    );
+
+    fulfill_all(&root, "unsupported");
+    let rebound = run_audit(&options(&root, Some(review_path))).expect("audit reads responses");
+    assert_eq!(
+        (rebound.counts.supported, rebound.counts.unsupported),
+        (0, 3),
+        "a hash-bound response for the current passage must override the gold shortcut"
     );
 }
 
@@ -158,16 +236,28 @@ fn seeded_unsupported_fixture_is_caught_and_carries_passage_hash() {
 
     let first = run_audit(&options(&root, None)).expect("first audit writes requests");
     assert_eq!(first.counts.unverifiable, 3);
-    fulfill_all(&root, "unsupported");
+    fulfill_negative_fixture_mixed(&root);
 
     let report = run_audit(&options(&root, None)).expect("second audit reads responses");
-    assert_eq!(report.counts.anchors, 3);
-    assert_eq!(report.counts.unsupported, 3);
-    assert!(
-        report
-            .anchors
-            .iter()
-            .all(|a| a.verdict == Verdict::Unsupported && a.passage_sha256.is_some())
+    assert_eq!(
+        (
+            report.counts.anchors,
+            report.counts.supported,
+            report.counts.unsupported
+        ),
+        (3, 2, 1)
+    );
+    assert!(report.anchors.iter().all(|a| {
+        let expected = if a.claim_path == "/rationale/key_explanation" {
+            Verdict::Unsupported
+        } else {
+            Verdict::Supported
+        };
+        a.verdict == expected && a.passage_sha256.is_some()
+    }));
+    assert_eq!(
+        report.release_blocking_record_ids,
+        vec!["negative-citation-unsupported-mcq".to_owned()]
     );
 }
 
@@ -200,8 +290,7 @@ fn receipt_level_only_sources_are_named_not_skipped() {
     opts.access = access_path;
 
     let report = run_audit(&opts).expect("run audit");
-    assert_eq!(report.counts.anchors, 3);
-    assert_eq!(report.counts.unverifiable, 3);
+    assert_eq!((report.counts.anchors, report.counts.unverifiable), (3, 3));
     assert_eq!(
         report.unverifiable_by_design_sources,
         vec!["openstax-anatomy-physiology-2e".to_owned()]
@@ -238,8 +327,10 @@ fn access_policy_entries_exist_in_the_source_registry() {
             registry_ids.contains(id),
             "access policy source `{id}` is absent from docs/sources.json"
         );
-        assert_eq!(entry["retrieval"].as_str(), Some("openstax-web"));
-        assert_eq!(entry["license"].as_str(), Some("CC BY 4.0"));
+        assert_eq!(
+            (entry["retrieval"].as_str(), entry["license"].as_str()),
+            (Some("openstax-web"), Some("CC BY-NC-SA 4.0"))
+        );
         assert!(
             entry["license_evidence"]
                 .as_str()
@@ -254,27 +345,25 @@ fn committed_gold_report_is_complete_deterministic_and_text_free() {
     let text = fs::read_to_string(&path).expect("read committed gold report");
     assert!(!text.contains("passage_text"));
     let report: Value = serde_json::from_str(&text).expect("parse committed gold report");
-    assert_eq!(report["counts"]["records"], 24);
-    assert_eq!(report["counts"]["anchors"], 89);
-    assert_eq!(report["counts"]["supported"], 89);
-    assert_eq!(report["counts"]["unsupported"], 0);
-    assert_eq!(report["counts"]["unverifiable"], 0);
     assert_eq!(
+        (
+            report["counts"]["records"].as_u64(),
+            report["counts"]["anchors"].as_u64(),
+            report["counts"]["supported"].as_u64(),
+            report["counts"]["unsupported"].as_u64(),
+            report["counts"]["unverifiable"].as_u64()
+        ),
+        (Some(24), Some(89), Some(89), Some(0), Some(0))
+    );
+    assert!(
         report["release_blocking_record_ids"]
             .as_array()
-            .expect("blocking ids array")
-            .len(),
-        0
-    );
-    assert_eq!(
-        report["unverifiable_by_design_sources"]
-            .as_array()
-            .expect("design sources array")
-            .len(),
-        0
+            .is_some_and(Vec::is_empty)
+            && report["unverifiable_by_design_sources"]
+                .as_array()
+                .is_some_and(Vec::is_empty)
     );
     let anchors = report["anchors"].as_array().expect("anchors array");
-    assert_eq!(anchors.len(), 89);
     assert!(anchors.iter().all(|anchor| {
         anchor["verdict"] == "supported"
             && anchor["passage_sha256"]
@@ -288,11 +377,23 @@ fn committed_gold_report_is_complete_deterministic_and_text_free() {
                 .expect("record path")
                 .contains('\\')
     }));
+    let mut actual = AnchorMultiset::new();
+    for anchor in anchors {
+        let key = (
+            anchor["record_id"].as_str().unwrap_or_default().to_owned(),
+            anchor["source_id"].as_str().unwrap_or_default().to_owned(),
+            anchor["locator"].as_str().unwrap_or_default().to_owned(),
+        );
+        *actual.entry(key).or_default() += 1;
+    }
     let passages = anchors
         .iter()
         .filter_map(|anchor| anchor["passage_sha256"].as_str())
         .collect::<std::collections::BTreeSet<_>>();
-    assert_eq!(passages.len(), 17);
+    assert_eq!(
+        (anchors.len(), passages.len(), actual),
+        (89, 17, gold_anchor_multiset())
+    );
 }
 
 #[test]

@@ -5,8 +5,8 @@
 //! reporting. OpenStax pages are fetched into a working cache outside `data/`;
 //! only passage hashes are reported. Semantic verdicts come from file-based
 //! independent adjudicator responses, or from the existing gold review manifest
-//! for hash-identical gold records. Fetched passage text is never written under
-//! `data/` and never emitted in the report.
+//! when its quoted evidence still matches the retrieved passage. Fetched
+//! passage text is never written under `data/` and never emitted in the report.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -187,64 +187,120 @@ fn load_records(root: &Path, input: &Path) -> anyhow::Result<Vec<RecordFile>> {
 mod adjudication;
 mod passages;
 
-use adjudication::{gold_adjudication, load_gold_review, response_verdict, write_request};
-use passages::retrieve_passage;
+use adjudication::{
+    GoldAdjudication, GoldReviewManifest, evidence_matches_passage, gold_adjudication,
+    load_gold_review, response_verdict, write_request,
+};
+use passages::{Passage, retrieve_passage};
 
-fn audit_anchor(
-    record: &RecordFile,
-    claim: &ClaimBlock,
-    source_id: &str,
-    locator: &str,
-    access: Option<&AccessEntry>,
-    options: &AuditOptions,
-    gold: Option<(Verdict, String, String)>,
-) -> anyhow::Result<AnchorVerdict> {
-    let record_path = record.path.display().to_string().replace('\\', "/");
-    let Some(entry) = access else {
-        return Ok(AnchorVerdict {
-            record_id: record.record_id(),
-            record_path,
-            claim_path: claim.path.clone(),
-            source_id: source_id.to_owned(),
-            locator: locator.to_owned(),
+#[derive(Default)]
+struct AuditState {
+    anchors: Vec<AnchorVerdict>,
+    claim_count: usize,
+    receipt_sources: BTreeSet<String>,
+}
+
+struct RunContext<'a> {
+    options: &'a AuditOptions,
+    access: &'a BTreeMap<String, AccessEntry>,
+    review: Option<&'a GoldReviewManifest>,
+}
+
+struct RecordAudit<'a> {
+    record: &'a RecordFile,
+    options: &'a AuditOptions,
+    access: &'a BTreeMap<String, AccessEntry>,
+    gold: Option<GoldAdjudication>,
+}
+
+struct AnchorInput<'a> {
+    claim: &'a ClaimBlock,
+    source_id: &'a str,
+    locator: &'a str,
+    access: Option<&'a AccessEntry>,
+}
+
+struct PassageEvidence {
+    sha256: String,
+    url: String,
+}
+
+struct AnchorOutcome {
+    verdict: Verdict,
+    passage: Option<PassageEvidence>,
+    run_id: Option<String>,
+    access: String,
+    detail: String,
+}
+
+fn final_verdict(
+    context: &RecordAudit<'_>,
+    input: &AnchorInput<'_>,
+    outcome: AnchorOutcome,
+) -> AnchorVerdict {
+    AnchorVerdict {
+        record_id: context.record.record_id(),
+        record_path: context.record.path.display().to_string().replace('\\', "/"),
+        claim_path: input.claim.path.clone(),
+        source_id: input.source_id.to_owned(),
+        locator: input.locator.to_owned(),
+        verdict: outcome.verdict,
+        passage_sha256: outcome.passage.as_ref().map(|p| p.sha256.clone()),
+        passage_url: outcome.passage.as_ref().map(|p| p.url.clone()),
+        adjudicator_run_id: outcome.run_id,
+        access: outcome.access,
+        detail: outcome.detail,
+    }
+}
+
+fn no_access_verdict(context: &RecordAudit<'_>, input: &AnchorInput<'_>) -> AnchorVerdict {
+    final_verdict(
+        context,
+        input,
+        AnchorOutcome {
             verdict: Verdict::Unverifiable,
-            passage_sha256: None,
-            passage_url: None,
-            adjudicator_run_id: gold.map(|(_, run_id, _)| run_id),
+            passage: None,
+            run_id: context.gold.as_ref().map(|gold| gold.run_id.clone()),
             access: "receipt-level-only".to_owned(),
             detail: "source has no license-compatible text-access policy".to_owned(),
-        });
-    };
+        },
+    )
+}
 
-    let passage = match retrieve_passage(entry, locator, &options.cache_dir, options.offline) {
-        Ok(passage) => passage,
-        Err(error) => {
-            return Ok(AnchorVerdict {
-                record_id: record.record_id(),
-                record_path,
-                claim_path: claim.path.clone(),
-                source_id: source_id.to_owned(),
-                locator: locator.to_owned(),
-                verdict: Verdict::Unverifiable,
-                passage_sha256: None,
-                passage_url: None,
-                adjudicator_run_id: None,
-                access: entry.license.clone(),
-                detail: format!("passage retrieval failed: {error}"),
-            });
-        }
-    };
+fn retrieval_error_verdict(
+    context: &RecordAudit<'_>,
+    input: &AnchorInput<'_>,
+    entry: &AccessEntry,
+    error: anyhow::Error,
+) -> AnchorVerdict {
+    final_verdict(
+        context,
+        input,
+        AnchorOutcome {
+            verdict: Verdict::Unverifiable,
+            passage: None,
+            run_id: None,
+            access: entry.license.clone(),
+            detail: format!("passage retrieval failed: {error}"),
+        },
+    )
+}
 
+fn write_adjudication_request(
+    context: &RecordAudit<'_>,
+    input: &AnchorInput<'_>,
+    passage: &Passage,
+) -> anyhow::Result<(String, String)> {
     let mut request = json!({
         "audit_version": 1,
-        "record_id": record.record_id(),
-        "record_path": record_path,
-        "claim_path": claim.path,
-        "claim_text": claim.text,
-        "source_id": source_id,
-        "locator": locator,
-        "passage_sha256": passage.sha256,
-        "passage_text": passage.text,
+        "record_id": context.record.record_id(),
+        "record_path": context.record.path.display().to_string().replace('\\', "/"),
+        "claim_path": input.claim.path.as_str(),
+        "claim_text": input.claim.text.as_str(),
+        "source_id": input.source_id,
+        "locator": input.locator,
+        "passage_sha256": passage.sha256.as_str(),
+        "passage_text": passage.text.as_str(),
     });
     let request_json = serde_json::to_string(&request)?;
     let request_sha256 = sha256_text(&request_json);
@@ -252,38 +308,121 @@ fn audit_anchor(
     // semantic payload above; the field itself is added only after hashing so
     // the binding cannot be circular.
     request["request_sha256"] = json!(request_sha256);
-    let key = sha256_text(&format!("{}|{request_sha256}", record.record_id()));
-    write_request(&options.fulfillment_dir, &key, &request)?;
-
-    let (verdict, run_id, detail) = if let Some((verdict, run_id, detail)) = gold {
-        (verdict, Some(run_id), detail)
-    } else {
-        response_verdict(
-            &options.fulfillment_dir,
-            &key,
-            &request_sha256,
-            options.drafting_run_id.as_deref(),
-        )
-    };
-
-    Ok(AnchorVerdict {
-        record_id: record.record_id(),
-        record_path,
-        claim_path: claim.path.clone(),
-        source_id: source_id.to_owned(),
-        locator: locator.to_owned(),
-        verdict,
-        passage_sha256: Some(passage.sha256),
-        passage_url: Some(passage.url),
-        adjudicator_run_id: run_id,
-        access: entry.license.clone(),
-        detail,
-    })
+    let key = sha256_text(&format!("{}|{request_sha256}", context.record.record_id()));
+    write_request(&context.options.fulfillment_dir, &key, &request)?;
+    Ok((key, request_sha256))
 }
 
-/// Run the audit and return the report. Writing the report is the caller's
-/// responsibility so tests can inspect the exact structure first.
-pub fn run_audit(options: &AuditOptions) -> anyhow::Result<AuditReport> {
+fn adjudicate(
+    context: &RecordAudit<'_>,
+    key: &str,
+    request_sha256: &str,
+    passage_text: &str,
+) -> (Verdict, Option<String>, String) {
+    let response_path = context
+        .options
+        .fulfillment_dir
+        .join(format!("{key}.audit.response.json"));
+    if response_path.exists() {
+        return response_verdict(
+            &context.options.fulfillment_dir,
+            key,
+            request_sha256,
+            context.options.drafting_run_id.as_deref(),
+        );
+    }
+    let Some(gold) = &context.gold else {
+        return response_verdict(
+            &context.options.fulfillment_dir,
+            key,
+            request_sha256,
+            context.options.drafting_run_id.as_deref(),
+        );
+    };
+    if evidence_matches_passage(&gold.evidence, passage_text) {
+        return (gold.verdict, Some(gold.run_id.clone()), gold.detail.clone());
+    }
+    (
+        Verdict::Unverifiable,
+        Some(gold.run_id.clone()),
+        "gold review evidence does not match the retrieved passage".to_owned(),
+    )
+}
+
+fn audit_anchor(
+    context: &RecordAudit<'_>,
+    input: &AnchorInput<'_>,
+) -> anyhow::Result<AnchorVerdict> {
+    let Some(entry) = input.access else {
+        return Ok(no_access_verdict(context, input));
+    };
+    let passage = match retrieve_passage(
+        entry,
+        input.locator,
+        &context.options.cache_dir,
+        context.options.offline,
+    ) {
+        Ok(passage) => passage,
+        Err(error) => return Ok(retrieval_error_verdict(context, input, entry, error)),
+    };
+    let (key, request_sha256) = write_adjudication_request(context, input, &passage)?;
+    let (verdict, run_id, detail) = adjudicate(context, &key, &request_sha256, &passage.text);
+    Ok(final_verdict(
+        context,
+        input,
+        AnchorOutcome {
+            verdict,
+            passage: Some(PassageEvidence {
+                sha256: passage.sha256,
+                url: passage.url,
+            }),
+            run_id,
+            access: entry.license.clone(),
+            detail,
+        },
+    ))
+}
+
+fn audit_claim(
+    context: &RecordAudit<'_>,
+    claim: &ClaimBlock,
+    state: &mut AuditState,
+) -> anyhow::Result<()> {
+    state.claim_count += 1;
+    for (source_id, locator) in &claim.anchors {
+        let access_entry = context.access.get(source_id);
+        if access_entry.is_none() {
+            state.receipt_sources.insert(source_id.clone());
+        }
+        let input = AnchorInput {
+            claim,
+            source_id,
+            locator,
+            access: access_entry,
+        };
+        state.anchors.push(audit_anchor(context, &input)?);
+    }
+    Ok(())
+}
+
+fn audit_record(
+    run: &RunContext<'_>,
+    record: &RecordFile,
+    state: &mut AuditState,
+) -> anyhow::Result<()> {
+    let context = RecordAudit {
+        record,
+        options: run.options,
+        access: run.access,
+        gold: gold_adjudication(run.review, record),
+    };
+    for claim in claim_blocks_for(record.format, &record.value) {
+        audit_claim(&context, &claim, state)?;
+    }
+    Ok(())
+}
+
+fn validate_working_dirs(options: &AuditOptions) -> anyhow::Result<()> {
     if options.cache_dir.starts_with(options.root.join("data")) {
         bail!("citation-audit cache must be outside data/");
     }
@@ -293,36 +432,16 @@ pub fn run_audit(options: &AuditOptions) -> anyhow::Result<AuditReport> {
     {
         bail!("citation-audit fulfillment files must be outside data/");
     }
-    let access = load_access(&options.access)?;
-    let review = load_gold_review(options.gold_review.as_ref())?;
-    let records = load_records(&options.root, &options.records)?;
-    let mut anchors = Vec::new();
-    let mut claim_count = 0usize;
-    let mut receipt_sources = BTreeSet::new();
+    Ok(())
+}
 
-    for record in &records {
-        let gold = gold_adjudication(review.as_ref(), record);
-        for claim in claim_blocks_for(record.format, &record.value) {
-            claim_count += 1;
-            for (source_id, locator) in &claim.anchors {
-                let access_entry = access.get(source_id);
-                if access_entry.is_none() {
-                    receipt_sources.insert(source_id.clone());
-                }
-                anchors.push(audit_anchor(
-                    record,
-                    &claim,
-                    source_id,
-                    locator,
-                    access_entry,
-                    options,
-                    gold.clone(),
-                )?);
-            }
-        }
-    }
+fn verdict_count(anchors: &[AnchorVerdict], verdict: Verdict) -> usize {
+    anchors.iter().filter(|a| a.verdict == verdict).count()
+}
 
-    let release_blocking_record_ids = anchors
+fn build_report(records: usize, state: AuditState) -> AuditReport {
+    let release_blocking_record_ids = state
+        .anchors
         .iter()
         .filter(|a| a.verdict == Verdict::Unsupported)
         .map(|a| a.record_id.clone())
@@ -330,29 +449,39 @@ pub fn run_audit(options: &AuditOptions) -> anyhow::Result<AuditReport> {
         .into_iter()
         .collect();
     let counts = AuditCounts {
-        records: records.len(),
-        claim_blocks: claim_count,
-        anchors: anchors.len(),
-        supported: anchors
-            .iter()
-            .filter(|a| a.verdict == Verdict::Supported)
-            .count(),
-        unsupported: anchors
-            .iter()
-            .filter(|a| a.verdict == Verdict::Unsupported)
-            .count(),
-        unverifiable: anchors
-            .iter()
-            .filter(|a| a.verdict == Verdict::Unverifiable)
-            .count(),
+        records,
+        claim_blocks: state.claim_count,
+        anchors: state.anchors.len(),
+        supported: verdict_count(&state.anchors, Verdict::Supported),
+        unsupported: verdict_count(&state.anchors, Verdict::Unsupported),
+        unverifiable: verdict_count(&state.anchors, Verdict::Unverifiable),
     };
-    Ok(AuditReport {
+    AuditReport {
         audit_version: 1,
         counts,
         release_blocking_record_ids,
-        unverifiable_by_design_sources: receipt_sources.into_iter().collect(),
-        anchors,
-    })
+        unverifiable_by_design_sources: state.receipt_sources.into_iter().collect(),
+        anchors: state.anchors,
+    }
+}
+
+/// Run the audit and return the report. Writing the report is the caller's
+/// responsibility so tests can inspect the exact structure first.
+pub fn run_audit(options: &AuditOptions) -> anyhow::Result<AuditReport> {
+    validate_working_dirs(options)?;
+    let access = load_access(&options.access)?;
+    let review = load_gold_review(options.gold_review.as_ref())?;
+    let records = load_records(&options.root, &options.records)?;
+    let run = RunContext {
+        options,
+        access: &access,
+        review: review.as_ref(),
+    };
+    let mut state = AuditState::default();
+    for record in &records {
+        audit_record(&run, record, &mut state)?;
+    }
+    Ok(build_report(records.len(), state))
 }
 
 /// Serialize one report without passage text.
