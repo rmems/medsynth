@@ -520,6 +520,7 @@ fn build_manifest(plan: &BatchPlan, lane: &TeacherLane, parts: ManifestParts<'_>
                 .map(|pins| pins.pins().map(pin_summary).collect())
                 .unwrap_or_default(),
         },
+        template_version: TEMPLATE_VERSION.to_owned(),
         gold: DocumentRef {
             path: display_path(&plan.paths.gold),
             version: crate::CONTRACT_VERSION.to_owned(),

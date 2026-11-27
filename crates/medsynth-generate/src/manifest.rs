@@ -294,6 +294,9 @@ pub struct BatchManifest {
     /// The gold corpus used for anchor harvesting and few-shot exemplars, so
     /// a batch is reproducible against the exact exemplar inputs.
     pub gold: DocumentRef,
+    /// Procedural template version mixed into the batch id, recorded so the
+    /// id can be recomputed even when a run has no procedural records.
+    pub template_version: String,
     pub teachers: TeachersRef,
     pub teacher_pin: Option<TeacherPinRef>,
     pub teacher_lane: TeacherLaneReport,
