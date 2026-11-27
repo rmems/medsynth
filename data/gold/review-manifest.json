@@ -606,7 +606,7 @@
     {
       "record_id": "gold-tut-preclinical-0002",
       "reviewer_run_id": "devin-review-rm2522-session-59eb4828",
-      "record_sha256": "a7542b1aa41abd236b99ba61481b95ae831209b7a165208f314424a45974a5b8",
+      "record_sha256": "8079974d01d506856e454a6406f74a5107bb167f3ba728c9d6223e4aae25a102",
       "anchor_check": {
         "outcome": "pass",
         "evidence": "boundless-anatomy-physiology-2018 sec18.4A:introduction-to-blood-flow-pressure-and-resistance: \"With increasing length, increasing viscosity, and decreasing radius, resistance is increased\". These passage spans support the anchored claim set for this record."
@@ -618,11 +618,11 @@
       },
       "rationale_check": {
         "outcome": "pass",
-        "evidence": "The rewritten response is supported at the level claimed: the cited physiology passage names vessel length, radius, and viscosity as major determinants of resistance and states that decreasing radius increases resistance. The response therefore makes only a directional prediction and correctly refuses an exact twofold numerical ratio rather than importing the pipe-only fourth-power equation into a physiological claim."
+        "evidence": "The rewritten response is supported at the level claimed: the cited physiology passage names vessel length, radius, and viscosity as major determinants of resistance and states that decreasing radius increases resistance. It correctly treats pressure difference as a driver of flow rather than a resistance determinant, makes only a directional prediction, and refuses an unsupported exact twofold numerical ratio."
       },
       "distractor_check": {
         "outcome": "not_applicable",
-        "evidence": "No answer options. The wrong turn analyzed is the learner's unjustified exact linear scaling claim; the correction distinguishes directional physiology from an unsupported numerical ratio."
+        "evidence": "No answer options. The wrong turn analyzed is the learner's unjustified exact linear scaling claim; the correction distinguishes directional physiology from an unsupported numerical ratio and correctly separates pressure-driven flow from resistance determinants."
       },
       "tier_check": {
         "outcome": "pass",
@@ -646,7 +646,7 @@
       "record_sha256": "76ffd8eb3f1f2328a46cbb5e026ec2f68e0ff055553365935f9fd4298cd0e4e8",
       "planted_defect_check": {
         "outcome": "pass",
-        "evidence": "Planted defect confirmed at stage 2 (key re-derivation), path /key. The stem asks which measure best reflects wealth rather than income. The replacement wealth passage defines wealth through net worth, assets, and liabilities, so accumulated home equity minus mortgage debt is correct (C); the record key is A even though its explanation argues for C. No second defect found: wages and dividends are income measures, one possession is only a single asset, anchors are present, and psb/socioeconomic foundation is consistent."
+        "evidence": "Planted defect confirmed at stage 2 (key re-derivation), path /key. The stem asks which term describes a society-wide ranking system based on resources and social standing. The replacement stratification passage supports social stratification as that system, so option C is correct; the record key is A even though its explanation argues for C. No second defect found: wages and dividends are income measures, one possession is only a single asset, anchors are present, and psb/socioeconomic foundation is consistent."
       }
     },
     {

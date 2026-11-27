@@ -245,6 +245,12 @@ pub(crate) fn build_fact_record(
     )
     .map_err(|e| format!("template `{}`: {e}", fact.id))?;
 
+    let key_anchor_count = if fact.id == "fact.ethnocentrism" {
+        1
+    } else {
+        fact.anchors.len()
+    };
+    let key_anchors = to_anchors(&fact.anchors[..key_anchor_count])?;
     let anchors = to_anchors(fact.anchors)?;
     let record = McqRecord {
         schema_version: SchemaVersion,
@@ -254,7 +260,7 @@ pub(crate) fn build_fact_record(
         tier: cell.tier,
         stem: AnchoredText {
             text: fact.stem.to_owned(),
-            anchors: anchors.clone(),
+            anchors: key_anchors.clone(),
         },
         options,
         key,
@@ -264,7 +270,7 @@ pub(crate) fn build_fact_record(
                     "Option {key} ({}) is the best answer. {}",
                     fact.correct, fact.key_explanation
                 ),
-                anchors: anchors.clone(),
+                anchors: key_anchors,
             },
             strongest_distractor: AnchoredClaim {
                 text: format!(

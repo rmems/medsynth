@@ -1,6 +1,6 @@
 {
   "manifest_version": 1,
-  "batch_id": "batch-0ae53f7602c8efe0",
+  "batch_id": "batch-b13cc56816398a35",
   "seed": 2523,
   "config_sha256": "6633548d0b7f6c5e33aaf1ae07c0ff8f0c793d218ce69c1850b005e6524172da",
   "config": {
@@ -88,7 +88,7 @@
   "gold": {
     "path": "data/gold",
     "version": "0.1",
-    "sha256": "92b2e095a59524daa602f4962b9f435bca4c2fe0e1652c883ba9780711a6bed0"
+    "sha256": "742b6272d555e2e74f655c608ebbf98c20ed34330c67f850fbe67553dcb7f142"
   },
   "teachers": {
     "path": "docs/teachers.md",
@@ -238,7 +238,7 @@
       "tier": "foundation",
       "lane": "procedural",
       "generator": "template:fact.alveolar_epithelium",
-      "sha256": "0b82bd8f72f10e883c66189c9f59bfcdf1224c21cebc69c1f4d03539d885ec97",
+      "sha256": "42c6dae856ebfc311e20ba94e415f2a6df13503cc433e2f507e27227317d09ba",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -250,7 +250,7 @@
       "tier": "foundation",
       "lane": "procedural",
       "generator": "template:fact.si_unit_force",
-      "sha256": "681631d9b8d001dfd91daa760e40e73daf4eb82512c7e9be3c655cd8884effbf",
+      "sha256": "3dfb683bd6d2d6c2d086122ac526aa6e461360281f2a41aded65bb1f5ec4dd6e",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -262,7 +262,7 @@
       "tier": "application",
       "lane": "procedural",
       "generator": "template:calc.newtons_second_law",
-      "sha256": "7698ab34e781324c2c44649ee1572847642742b751ddd565a564f52d9c0a8c9b",
+      "sha256": "3376aaf57e690c5de52058074385f7eb3179b47b97ddddc7289dde2952d3fcef",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -274,7 +274,7 @@
       "tier": "application",
       "lane": "procedural",
       "generator": "template:calc.newtons_second_law",
-      "sha256": "ec7057eb6da90a6813ef3db07737a2f8a8535249a0759efb2661e610e14f4932",
+      "sha256": "5b2c6d29d58e3de17cbfebecb2a3163b3afefa8216d52f17182766be6c9f2552",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -286,7 +286,7 @@
       "tier": "foundation",
       "lane": "procedural",
       "generator": "template:fact.ethnocentrism",
-      "sha256": "4cee2f00cc47a3a5aa59e932e37c270d39bb26c0e18025ab3a827589237c59d0",
+      "sha256": "8165492b2bef01e17a2f6dd14f06cd704a239b119b44e93b14f681b27b110ea8",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -298,7 +298,7 @@
       "tier": "foundation",
       "lane": "procedural",
       "generator": "template:fact.diaphragm",
-      "sha256": "346c82a013d048c08c3a746d8bc14ebd51bf4d436264836f34e6d75770b83972",
+      "sha256": "dd5de0f89fdc74688a0b66715f9b32233746211d4334298ae2c65a4340580b79",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -310,7 +310,7 @@
       "tier": "application",
       "lane": "procedural",
       "generator": "template:calc.half_life",
-      "sha256": "bf7f0b049761626bea92909245f0b1c066e29f713e6de19b24d3e4d0bd08aac2",
+      "sha256": "e05083d7b0b07374517cea9c6c4ee67a46b4adc31c22e94b9fc7259105d0a00e",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -322,7 +322,7 @@
       "tier": "application",
       "lane": "procedural",
       "generator": "template:calc.half_life",
-      "sha256": "04c9db0661dd32ed81b6ad369b023bc24466d92c4cc35efe734f4c573b7baa9b",
+      "sha256": "ed2f8c0950f7290a868125198b5e120f7ccf2e1473853f26dc43faccb4d2b876",
       "jsonl_file": "mcq.jsonl"
     }
   ],
@@ -377,7 +377,7 @@
       "locator": "sec10.4D:assimilation",
       "registry_entry_sha256": "b811d2d1fb23fba3de4a2a0b11606fc2bd22a75168549339965b0ba55fd37564",
       "registry_version": "0.1",
-      "occurrences": 3
+      "occurrences": 1
     },
     {
       "record_id": "draft-psb-mcq-foundation-c56b05eb-000",
@@ -385,7 +385,7 @@
       "locator": "sec3.1C:cultural-universals",
       "registry_entry_sha256": "b811d2d1fb23fba3de4a2a0b11606fc2bd22a75168549339965b0ba55fd37564",
       "registry_version": "0.1",
-      "occurrences": 3
+      "occurrences": 1
     },
     {
       "record_id": "draft-psb-mcq-foundation-c56b05eb-000",

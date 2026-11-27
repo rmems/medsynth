@@ -12,7 +12,7 @@ use crate::rng::SeededRng;
 
 /// Version stamped into `provenance.template_version`. Bump it when a
 /// template's text or logic changes.
-pub const TEMPLATE_VERSION: &str = "1";
+pub const TEMPLATE_VERSION: &str = "2";
 
 /// Build one procedural draft.
 pub fn build(
