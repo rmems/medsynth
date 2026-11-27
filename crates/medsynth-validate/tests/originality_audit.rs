@@ -471,3 +471,30 @@ fn changed_reference_evidence_invalidates_stale_disposition() {
         (0, 1, 1)
     );
 }
+
+#[test]
+fn json_key_reordering_does_not_change_record_hash() {
+    let root = temp_root("canonical-json-hash");
+    let stem = "A force of 12 N acts on a 3 kg cart. What is its acceleration?";
+    write_records(&root, &[mcq("rec-canonical", stem, "sec5.2:force")]);
+    let references = write_references(&root, &["An unrelated public exercise about pressure."]);
+    let first = run_audit(&options(&root, references.clone())).expect("first audit");
+
+    let reordered = concat!(
+        r#"{"stem":{"text":"A force of 12 N acts on a 3 kg cart. What is its acceleration?","#,
+        r#""anchors":[{"source_id":"ostp-introductory-physics-2019","locator":"sec5.2:force"}]},"#,
+        r#""answer_key":"A","tier":"application","domain":"cpf","id":"rec-canonical"}"#,
+        "\n"
+    );
+    fs::write(root.join("corpus/mcq.jsonl"), reordered).expect("write reordered record");
+    let second = run_audit(&options(&root, references)).expect("second audit");
+
+    assert_eq!(
+        first.records[0].record_text_sha256,
+        second.records[0].record_text_sha256
+    );
+    assert_eq!(
+        first.inputs.record_corpus_sha256,
+        second.inputs.record_corpus_sha256
+    );
+}

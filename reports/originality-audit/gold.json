@@ -3,7 +3,7 @@
   "inputs": {
     "records": 24,
     "reference_items": 4,
-    "record_corpus_sha256": "d58288951b3c6524dfcd38ee09935e42269979cc1a982af9d077e7fa2eecc7e5",
+    "record_corpus_sha256": "d7f674b18b357a17c0c8eef73f36eb2026a8912966cf14b05e998e539dd401a3",
     "reference_corpus_sha256": "b4f46695f108afd5e7dfda60fe202e6bc2ed24d1f46f2ef15fa46625369e800b",
     "splits_sha256": null,
     "dispositions_sha256": null
@@ -34,7 +34,7 @@
       "tier": "foundation",
       "coverage_cell": "bbf:case_vignette:foundation",
       "prompt_sha256": "bf8a7b94054dcf586e1e73ecec9d4c465b3265e03d9b619d463981e1161dd20e",
-      "record_text_sha256": "59d92086289c7df3887a055af5094df5701d73327a77c88cab7bbf9df188ba27",
+      "record_text_sha256": "3039291a6ff0abd0a049db6659a57528c7651a682179fc75e74c71946f0b51d0",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec4.2B:types-of-epithelial-tissue"
       ]
@@ -48,7 +48,7 @@
       "tier": "reasoning",
       "coverage_cell": "bbf:case_vignette:reasoning",
       "prompt_sha256": "b2bafad64ac58260082d9f8ecec20f1eb4c8d791caa1fa7f4ed8434c6627d936",
-      "record_text_sha256": "7272e5c0aa960150dd5ce57ebe922c41b3868c10a9d5867d942bf88b45deccf2",
+      "record_text_sha256": "82c8389c6946801fd40ff7f3d6c847d0675a1d839addb7b4304d06de0ebf7353",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec15.7D:the-posterior-pituitary",
         "boundless-anatomy-physiology-2018::sec25.1A:regulation-of-water-intake",
@@ -64,7 +64,7 @@
       "tier": "application",
       "coverage_cell": "cpf:case_vignette:application",
       "prompt_sha256": "3a104f42deced08e05c6bed2164a8090106689f438da9ed77f57985c529a59b1",
-      "record_text_sha256": "86b6e9975815d86f45b3739b5e43fd0f79fb9dbe7d220805d30cf63681dadc64",
+      "record_text_sha256": "065c5336202d803e337b64a982d12bb262a1e16dafab1bb252318c9b4ec18b12",
       "anchor_passages": [
         "ostp-introductory-physics-2019::sec5.1:newtons-three-laws",
         "ostp-introductory-physics-2019::sec5.5:applying-newtons-laws"
@@ -79,7 +79,7 @@
       "tier": "foundation",
       "coverage_cell": "cpf:case_vignette:foundation",
       "prompt_sha256": "f261afb3601ad8d9573ca80f4c322c689006c4f5bb89d12f5eb5283a41bd2c8a",
-      "record_text_sha256": "4ceae024cc8046b419b45d9d4acc45800a4a4c5f5ad7c4061a964cedb8f24eff",
+      "record_text_sha256": "df6b9a1f80b638d4625644fb371b674fb52de3b5ec802a9409490771b3b4a3e8",
       "anchor_passages": [
         "ostp-introductory-physics-2019::sec15.1:pressure"
       ]
@@ -93,7 +93,7 @@
       "tier": "application",
       "coverage_cell": "psb:case_vignette:application",
       "prompt_sha256": "52d920574be43ad24174c792fa81dec04f796dee9b8e92c9c1b8f5d1450b14e9",
-      "record_text_sha256": "cd920f11dc0f0b2c85ef845f12235d8a566f11c9116452787fda624d836ad2dd",
+      "record_text_sha256": "6006e38e70e4a2e2b63f6f80bf9614a7660a26e6931c1eaa771c2673cfc58832",
       "anchor_passages": [
         "boundless-sociology-2018::sec3.2A:the-symbolic-nature-of-culture"
       ]
@@ -107,7 +107,7 @@
       "tier": "reasoning",
       "coverage_cell": "psb:case_vignette:reasoning",
       "prompt_sha256": "4125e87eb5604a7965a429494afae806dec28b00e2a3d9c13cb4ddf3fc64e46a",
-      "record_text_sha256": "0f99b42de90eb2dfa7fcb0090390263f611604f49d97bcc110882b0b4d9c5d9c",
+      "record_text_sha256": "2f27f95732e8046ce9fc58911ae8636546f73a1725c38c8f4129ce5054cf257a",
       "anchor_passages": [
         "boundless-sociology-2018::sec19.1D:social-class-and-health",
         "boundless-sociology-2018::sec8.1A:stratification",
@@ -124,7 +124,7 @@
       "tier": "foundation",
       "coverage_cell": "pre_clinical:case_vignette:foundation",
       "prompt_sha256": "0fbeea6429af9660cbdf0dc20159c2c099a21db969951293b88c171b800a4fa2",
-      "record_text_sha256": "026c4f518f3421e9dc28e55056efbb0fb96b17bb9aaf0964541e38b9353350d4",
+      "record_text_sha256": "58b4ff32a4aaf14116757ab291adfa97d3ea3d61d2bbb842eb46291e85c1a75f",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec22.13B:absorption-of-lipids",
         "boundless-anatomy-physiology-2018::sec22.7F:bile"
@@ -139,7 +139,7 @@
       "tier": "reasoning",
       "coverage_cell": "pre_clinical:case_vignette:reasoning",
       "prompt_sha256": "f5451baff05c89be3f61596868c1b68f857b0eeafd2b177e227ac67c892f901e",
-      "record_text_sha256": "7bd698db17ebc1fbfef46f31f339b4485fdbf313a7d82810e8a6254917e72ac8",
+      "record_text_sha256": "2fb197446399b0a0b80c6de2085f19f39737066ce24a03886e08ca3c76fe3e80",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec21.1A:external-respiration",
         "boundless-anatomy-physiology-2018::sec21.9C:oxygen-transport"
@@ -154,7 +154,7 @@
       "tier": "foundation",
       "coverage_cell": "bbf:mcq:foundation",
       "prompt_sha256": "e558b8494218790467958e029a5e760e6d83acc7f9396af045ecc81c88660627",
-      "record_text_sha256": "d328e8147db46ab7ab41ffc273f7eda2fe19f17880d6f41a32bff5b77fd5120e",
+      "record_text_sha256": "9863cdd620642ccaef1967ad065066e83b43269126aa45f19d63a9b933ba7010",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec3.8B:intercellular-junctions"
       ]
@@ -168,7 +168,7 @@
       "tier": "application",
       "coverage_cell": "bbf:mcq:application",
       "prompt_sha256": "077f6d4d1413026eaf78954b3362e0ca753976e621c9aa52ac7a7a046e28e40d",
-      "record_text_sha256": "e9f758125167a883602cb720b21a325860d5773eb8753507bcfb8f07123e318c",
+      "record_text_sha256": "4e63044d13d9bbc70109d42f94d74c56cdae0dcfa0ecdf616dd532265f26f004",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec25.1A:regulation-of-water-intake",
         "boundless-anatomy-physiology-2018::sec25.1B:regulation-of-water-output"
@@ -183,7 +183,7 @@
       "tier": "application",
       "coverage_cell": "cpf:mcq:application",
       "prompt_sha256": "3d0bcafad6bb8f7d37e152f508d97f66f86f652a98771208002c53bde156a84f",
-      "record_text_sha256": "bd82d1c1b350fa4cb1dd500e30c2fb08364dd3dba83c73ce9ca989a472b8eea2",
+      "record_text_sha256": "67a97a94bb687ed9f3059f76f6df507adaa1ee859972017e8371029af40cf005",
       "anchor_passages": [
         "ostp-introductory-physics-2019::sec5.1:newtons-three-laws",
         "ostp-introductory-physics-2019::sec5.5:applying-newtons-laws"
@@ -198,7 +198,7 @@
       "tier": "reasoning",
       "coverage_cell": "cpf:mcq:reasoning",
       "prompt_sha256": "94d0b45ecfc6fb20bfeb6553bee8d79b01d118a845f512fce61cd8e54abafe5c",
-      "record_text_sha256": "c4a49270d986578f33c94a85b0270eddd33746171085303bb8614760a41fb990",
+      "record_text_sha256": "1c52fa4fd95529b18d7dbdd59a5eaf222559c267d968e4b1d747314457577d69",
       "anchor_passages": [
         "ostp-introductory-physics-2019::sec14.2:mathematical-description-of-a-wave",
         "ostp-introductory-physics-2019::sec14.4:the-speed-of-a-wave"
@@ -213,7 +213,7 @@
       "tier": "foundation",
       "coverage_cell": "psb:mcq:foundation",
       "prompt_sha256": "8cb660bd64bfd59a9677643b29b4e8983baaabc1bc3de607dd37dd126338548a",
-      "record_text_sha256": "cf21258a5e3f845b1e55ce4ecc079c1f3eabd8acc3db9f18350a11c890273438",
+      "record_text_sha256": "25e4c2bc859fd3a7836fb70f331d3bdb17f71ae345c5ec52f640627a3ad17b40",
       "anchor_passages": [
         "boundless-sociology-2018::sec3.2A:the-symbolic-nature-of-culture",
         "boundless-sociology-2018::sec3.2G:values",
@@ -229,7 +229,7 @@
       "tier": "application",
       "coverage_cell": "psb:mcq:application",
       "prompt_sha256": "a099d3dbe8f142cda37dfcc8ed331b76bcf1003d8d946a66f3971d85b798b7f6",
-      "record_text_sha256": "33298ac0633c422de02b9c8a7671b2ccd28dc1f924753c0cf0ddd95f50368103",
+      "record_text_sha256": "b788d6338d0eba7f7a8840af9bdb15e1764f6fb75f45087e4cd1e4b725576434",
       "anchor_passages": [
         "boundless-sociology-2018::sec9.2C:wealth"
       ]
@@ -243,7 +243,7 @@
       "tier": "application",
       "coverage_cell": "pre_clinical:mcq:application",
       "prompt_sha256": "b8e9175c197a9060eab46c6c13943e82a0e3dd581e48e0b4040cc568f884cabe",
-      "record_text_sha256": "7e162fb9f4c54e31ab0369f4227d77c0ab5bdbb4829ec5c2b8f75f8b380727c3",
+      "record_text_sha256": "bed7dd01f6819e84d255d8c3d77c0a6aea43142281d0a973fc7a73ec9ed8f76f",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec21.1A:external-respiration"
       ]
@@ -257,7 +257,7 @@
       "tier": "reasoning",
       "coverage_cell": "pre_clinical:mcq:reasoning",
       "prompt_sha256": "338f2dbc39c8d65367060ec5a21c93f027a950a29126fce871ce8fc355973036",
-      "record_text_sha256": "716bf93cfc42cb0531b3a68c80c878b73e13f01af9dacd1adf386d5874ab4ac5",
+      "record_text_sha256": "1a300cb136739f5f34a395bc42e41b4b7b3153c3c2a10cf52e57925ddeeba071",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec25.1B:regulation-of-water-output"
       ]
@@ -271,7 +271,7 @@
       "tier": "foundation",
       "coverage_cell": "bbf:tutoring_example:foundation",
       "prompt_sha256": "4ca104af897f2bd2a6b4a86d7836e34bd457cec4c455fcbd8c0b775eab3fc9c7",
-      "record_text_sha256": "bceaa8d2f403a1040ffea3e8ee590fe713999226a5a2c6c5098830de3a88afe9",
+      "record_text_sha256": "b5a787dac5cbad62d26feb021e88704fbd39af1134d90a372059e4d541dd421e",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec4.2A:characteristics-of-epithelial-tissue"
       ]
@@ -285,7 +285,7 @@
       "tier": "application",
       "coverage_cell": "bbf:tutoring_example:application",
       "prompt_sha256": "39480cb0d4edf67cc8611a8a7493ce29d965ce22809232435710e1fb5f6f30c7",
-      "record_text_sha256": "1074e5f2f3fd107a5113ffe21f25fefc93dbcc05aa80789b3a4f433965ede5f1",
+      "record_text_sha256": "b0146cafacd1e5aec63d4fb8f5eba3dcdd83289fc7d79dec9d9bce6d2f1889d7",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec15.7D:the-posterior-pituitary",
         "boundless-anatomy-physiology-2018::sec25.1B:regulation-of-water-output"
@@ -300,7 +300,7 @@
       "tier": "application",
       "coverage_cell": "cpf:tutoring_example:application",
       "prompt_sha256": "8541b4fbd9174f097f2daf7803abbbcdac6bbcbbe76ac32ee3d3ba38f87ddc7c",
-      "record_text_sha256": "e16ea9a6843b42e9a8032cc0ad31b2ca741a39ecfe63160780349d3b7b53a78f",
+      "record_text_sha256": "ba83d28b19cd3a799573326a4bd44704f144bae07e5dfb14c154ae6bce0298bd",
       "anchor_passages": [
         "ostp-introductory-physics-2019::sec15.1:pressure"
       ]
@@ -314,7 +314,7 @@
       "tier": "reasoning",
       "coverage_cell": "cpf:tutoring_example:reasoning",
       "prompt_sha256": "6ffc62cec87e1ca73135edf800630a35ac266f72fc7c68c51b4562adc2a568bf",
-      "record_text_sha256": "06e5c61b0274a9908e59c68822d96d02f500ef8bdde2119efa44ef4b12671bc2",
+      "record_text_sha256": "51f1f5bee45f188d493ec387f8b27a3835cb7a48319cc8ce44d47a2cf417d9d5",
       "anchor_passages": [
         "ostp-introductory-physics-2019::sec14.2:mathematical-description-of-a-wave",
         "ostp-introductory-physics-2019::sec14.4:the-speed-of-a-wave"
@@ -329,7 +329,7 @@
       "tier": "foundation",
       "coverage_cell": "psb:tutoring_example:foundation",
       "prompt_sha256": "50899fb8d0ae893711e4598ed677011cd8e819614aef6d38d731fd80ef8e2aca",
-      "record_text_sha256": "e73c00a3349629ef92a6269f668f631dcfbd92847494779eb36f8474ccf89407",
+      "record_text_sha256": "dec0722d07958e1232596333c8691e0ba794b14af04c419ad8f38552cc766588",
       "anchor_passages": [
         "boundless-sociology-2018::sec3.2G:values",
         "boundless-sociology-2018::sec3.2H:norms"
@@ -344,7 +344,7 @@
       "tier": "reasoning",
       "coverage_cell": "psb:tutoring_example:reasoning",
       "prompt_sha256": "cc63ebcf39566ba9d473334736b117cbf7466d3e9636c82edab6c1d7a362a56e",
-      "record_text_sha256": "db44b249522310e8daaa6454701cfa6002210cef2b781322bf579189a9022750",
+      "record_text_sha256": "defa739a22e14ab47629e203a6055342522f323f00760b93da73df176c446c04",
       "anchor_passages": [
         "boundless-sociology-2018::sec8.1A:stratification",
         "boundless-sociology-2018::sec9.1A:social-class",
@@ -360,7 +360,7 @@
       "tier": "foundation",
       "coverage_cell": "pre_clinical:tutoring_example:foundation",
       "prompt_sha256": "350c2c77648136c058f8fb91584de5f3f2a4feaabd18e21a8f5675ccc696f4c9",
-      "record_text_sha256": "d441833534d223480c9c4ac180f116a2867dcc7650353b630e1ccefc7cdcce4c",
+      "record_text_sha256": "8dbb9767fe017ecfe665a9305fa76a77e01d45be7fd074cb10401c17956afb84",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec15.7D:the-posterior-pituitary",
         "boundless-anatomy-physiology-2018::sec25.1B:regulation-of-water-output"
@@ -375,7 +375,7 @@
       "tier": "reasoning",
       "coverage_cell": "pre_clinical:tutoring_example:reasoning",
       "prompt_sha256": "1a52deec9c5842dc8a839c48f841f5776bce093e2d8d41e868addf7592706e70",
-      "record_text_sha256": "8079974d01d506856e454a6406f74a5107bb167f3ba728c9d6223e4aae25a102",
+      "record_text_sha256": "bf1b53b260ddd3e8e31d3ff49b949de61f6e05bf8328bf2352ed2d33698d90cb",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec18.4A:introduction-to-blood-flow-pressure-and-resistance"
       ]

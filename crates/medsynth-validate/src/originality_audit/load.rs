@@ -128,7 +128,8 @@ fn audit_record(record: RecordFile) -> anyhow::Result<AuditRecord> {
     }
     let mut anchors = BTreeSet::new();
     collect_anchors(&record.value, &mut anchors);
-    let full_sha256 = sha256_text(&record.raw);
+    let canonical = serde_json::to_string(&record.value).expect("parsed JSON reserializes");
+    let full_sha256 = sha256_text(&canonical);
     Ok(AuditRecord {
         prompt_shingles: shingles(&prompt),
         prompt_sha256: sha256_text(&prompt),

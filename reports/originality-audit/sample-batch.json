@@ -3,7 +3,7 @@
   "inputs": {
     "records": 8,
     "reference_items": 4,
-    "record_corpus_sha256": "d52bf1d88dbc5bd7107316a81b407630f73087b435a5854b79c0aa3ceeb33420",
+    "record_corpus_sha256": "06d81bd8774f4b3bf344581f275d6eeaf2f27c0f98082722cc4d9d6fe6c09821",
     "reference_corpus_sha256": "b4f46695f108afd5e7dfda60fe202e6bc2ed24d1f46f2ef15fa46625369e800b",
     "splits_sha256": null,
     "dispositions_sha256": null
@@ -34,7 +34,7 @@
       "tier": "foundation",
       "coverage_cell": "bbf:mcq:foundation",
       "prompt_sha256": "47e617d8e7e39c394be8540d8c883dc10aa1c353e187a2fc8c35e77ae85d08d3",
-      "record_text_sha256": "42c6dae856ebfc311e20ba94e415f2a6df13503cc433e2f507e27227317d09ba",
+      "record_text_sha256": "877ade7a000ab5045faef6b834a4350a8c8499ecdd7acc2eb3e280ff963c29a1",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec21.4A:lungs",
         "boundless-anatomy-physiology-2018::sec4.2B:types-of-epithelial-tissue"
@@ -49,7 +49,7 @@
       "tier": "foundation",
       "coverage_cell": "cpf:mcq:foundation",
       "prompt_sha256": "a467c1f6020c512f6a1cf976a2a9a9bca6a1afb734d71f16f8d6c96ba703cb40",
-      "record_text_sha256": "3dfb683bd6d2d6c2d086122ac526aa6e461360281f2a41aded65bb1f5ec4dd6e",
+      "record_text_sha256": "8f9e6c85a540a09d3624f6b5b25769394bddac6f468836c53dd3468fd8c41190",
       "anchor_passages": [
         "ostp-introductory-physics-2019::sec2.2:units-and-dimensions"
       ]
@@ -63,7 +63,7 @@
       "tier": "application",
       "coverage_cell": "cpf:mcq:application",
       "prompt_sha256": "d0c16b174d0e53044c3229403567a1d5a8bad96b43fe19f28301913a9f2be27c",
-      "record_text_sha256": "3376aaf57e690c5de52058074385f7eb3179b47b97ddddc7289dde2952d3fcef",
+      "record_text_sha256": "06016d39ec6de2c72f226fbc1f3c84536b177e1522f254d9645ff705daa0146c",
       "anchor_passages": [
         "ostp-introductory-physics-2019::sec5.5:applying-newtons-laws"
       ]
@@ -77,7 +77,7 @@
       "tier": "application",
       "coverage_cell": "cpf:mcq:application",
       "prompt_sha256": "092b03deef1d3bfc8561fb98d9d50660c1b67d6dab5b8af80426ced9feee95d4",
-      "record_text_sha256": "5b2c6d29d58e3de17cbfebecb2a3163b3afefa8216d52f17182766be6c9f2552",
+      "record_text_sha256": "39edc95f8ffb4f6708d9e9b5f9694eb83f700934194ed3fb7aec1229cfe53328",
       "anchor_passages": [
         "ostp-introductory-physics-2019::sec5.5:applying-newtons-laws"
       ]
@@ -91,7 +91,7 @@
       "tier": "foundation",
       "coverage_cell": "psb:mcq:foundation",
       "prompt_sha256": "765ccdbae2bc75a87a4edf33b369c8c7fded5791c5aa3db8df441c86a70c34d7",
-      "record_text_sha256": "8165492b2bef01e17a2f6dd14f06cd704a239b119b44e93b14f681b27b110ea8",
+      "record_text_sha256": "852abc60605c5f3bf63fddaa70a574edc3b31ccdd6ece1f1f1b3673c6e762eb0",
       "anchor_passages": [
         "boundless-sociology-2018::sec10.4D:assimilation",
         "boundless-sociology-2018::sec3.1C:cultural-universals",
@@ -107,7 +107,7 @@
       "tier": "foundation",
       "coverage_cell": "pre_clinical:mcq:foundation",
       "prompt_sha256": "b5a83b2a4f6c870ae89e6891a4647a2e9b9f3a99f84a5f54c9c2e8b36fc39fc2",
-      "record_text_sha256": "dd5de0f89fdc74688a0b66715f9b32233746211d4334298ae2c65a4340580b79",
+      "record_text_sha256": "c7201cd311d9b231497d032251cd1699bd1760a58169a2619dcc260679994941",
       "anchor_passages": [
         "boundless-anatomy-physiology-2018::sec21.5B:inspiration"
       ]
@@ -121,7 +121,7 @@
       "tier": "application",
       "coverage_cell": "pre_clinical:mcq:application",
       "prompt_sha256": "7d924ddced50146869f803d91f940ea12049b163d7940a6a6a9a78a92a32b835",
-      "record_text_sha256": "e05083d7b0b07374517cea9c6c4ee67a46b4adc31c22e94b9fc7259105d0a00e",
+      "record_text_sha256": "e12378cd65ae93e71187ca458aa17d01c11914abb7acb87bc79b64e65e22b071",
       "anchor_passages": [
         "katzung-basic-clinical-pharmacology-16e::ch2:pharmacokinetics"
       ]
@@ -135,7 +135,7 @@
       "tier": "application",
       "coverage_cell": "pre_clinical:mcq:application",
       "prompt_sha256": "f3cf066c912197a6148b2c3ea27a1365e34f136d86d018c9b512cf6b3ed7c3c6",
-      "record_text_sha256": "ed2f8c0950f7290a868125198b5e120f7ccf2e1473853f26dc43faccb4d2b876",
+      "record_text_sha256": "e025473242c9dbdbbe450aaa6d19650aadef4459fce30b265584e57844807b45",
       "anchor_passages": [
         "katzung-basic-clinical-pharmacology-16e::ch2:pharmacokinetics"
       ]
@@ -181,7 +181,7 @@
   ],
   "flags": [
     {
-      "flag_id": "flag-094c6f7393be8bc4",
+      "flag_id": "flag-e1e87c67d9bf7dbf",
       "kind": "internal-dedup",
       "record_ids": [
         "draft-cpf-mcq-application-c56b05eb-000",
@@ -200,7 +200,7 @@
       "release_blocking": true
     },
     {
-      "flag_id": "flag-ad8e9b307791d6c7",
+      "flag_id": "flag-7e4d68e2cee8fd8d",
       "kind": "internal-dedup",
       "record_ids": [
         "draft-pre-clinical-mcq-application-c56b05eb-000",
@@ -243,8 +243,8 @@
         }
       ],
       "record_text_sha256": {
-        "draft-pre-clinical-mcq-application-c56b05eb-000": "e05083d7b0b07374517cea9c6c4ee67a46b4adc31c22e94b9fc7259105d0a00e",
-        "draft-pre-clinical-mcq-application-c56b05eb-001": "ed2f8c0950f7290a868125198b5e120f7ccf2e1473853f26dc43faccb4d2b876"
+        "draft-pre-clinical-mcq-application-c56b05eb-000": "e12378cd65ae93e71187ca458aa17d01c11914abb7acb87bc79b64e65e22b071",
+        "draft-pre-clinical-mcq-application-c56b05eb-001": "e025473242c9dbdbbe450aaa6d19650aadef4459fce30b265584e57844807b45"
       },
       "max_containment": 0.6552,
       "split_assignments": {}
@@ -272,8 +272,8 @@
         }
       ],
       "record_text_sha256": {
-        "draft-cpf-mcq-application-c56b05eb-000": "3376aaf57e690c5de52058074385f7eb3179b47b97ddddc7289dde2952d3fcef",
-        "draft-cpf-mcq-application-c56b05eb-001": "5b2c6d29d58e3de17cbfebecb2a3163b3afefa8216d52f17182766be6c9f2552"
+        "draft-cpf-mcq-application-c56b05eb-000": "06016d39ec6de2c72f226fbc1f3c84536b177e1522f254d9645ff705daa0146c",
+        "draft-cpf-mcq-application-c56b05eb-001": "39edc95f8ffb4f6708d9e9b5f9694eb83f700934194ed3fb7aec1229cfe53328"
       },
       "max_containment": 0.5,
       "split_assignments": {}
