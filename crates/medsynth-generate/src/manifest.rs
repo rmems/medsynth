@@ -232,14 +232,14 @@ impl RightsEnvelope {
         if !pin.route.to_ascii_lowercase().contains("hermes") {
             return Ok(());
         }
-        let complete = [serving.session_file, serving.session_sha256]
-            .into_iter()
-            .flatten()
-            .all(|value| !value.trim().is_empty());
-        if complete {
-            return Ok(());
+        for value in [serving.session_file, serving.session_sha256] {
+            if value.is_none_or(|value| value.trim().is_empty()) {
+                return Err(
+                    "rights envelope: Hermes response lacks session-record provenance".to_owned(),
+                );
+            }
         }
-        Err("rights envelope: Hermes response lacks session-record provenance".to_owned())
+        Ok(())
     }
 
     /// Build an envelope, or fail if any piece is missing. A draft whose

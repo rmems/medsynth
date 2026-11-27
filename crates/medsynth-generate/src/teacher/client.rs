@@ -220,7 +220,14 @@ fn read_optional_text(
 ) -> Result<Option<String>, TeacherError> {
     match std::fs::read_to_string(path) {
         Ok(text) => Ok(Some(text)),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e)
+            if matches!(
+                e.kind(),
+                std::io::ErrorKind::NotFound | std::io::ErrorKind::InvalidData
+            ) =>
+        {
+            Ok(None)
+        }
         Err(e) => Err(TeacherError::Transport(format!(
             "cannot read {description} {}: {e}",
             path.display()
