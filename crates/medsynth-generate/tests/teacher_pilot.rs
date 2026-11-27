@@ -3,7 +3,7 @@ mod common;
 use std::collections::BTreeSet;
 use std::path::Path;
 
-use common::{TempDir, plan_paths, read_json, workspace_root, write_config};
+use common::{TempDir, plan_paths, read_json, workspace_root};
 use medsynth_generate::Lane;
 use medsynth_generate::batch::{ExecuteOptions, LaneFilter, execute, load_plan};
 use medsynth_generate::format::Format;
@@ -11,36 +11,7 @@ use medsynth_generate::hash::sha256_str;
 use medsynth_generate::teacher::{
     PreparedTeacher, RecordedTeacherClient, TeacherClient, TeacherError,
 };
-use serde_json::{Value, json};
-
-fn pilot_cells(count: u32) -> Value {
-    json!([
-        {
-            "domain": "bbf",
-            "format": "mcq",
-            "tier": "foundation",
-            "count": count,
-            "lane": "teacher",
-            "subdomain": "animal_structure"
-        },
-        {
-            "domain": "pre_clinical",
-            "format": "case_vignette",
-            "tier": "application",
-            "count": count,
-            "lane": "teacher",
-            "subdomain": "endocrine"
-        },
-        {
-            "domain": "bbf",
-            "format": "tutoring_example",
-            "tier": "foundation",
-            "count": count,
-            "lane": "teacher",
-            "subdomain": "animal_structure"
-        }
-    ])
-}
+use serde_json::json;
 
 fn fixture_path(name: &str) -> std::path::PathBuf {
     workspace_root()
@@ -104,15 +75,7 @@ fn fulfill_requests(dir: &Path) {
 
 #[test]
 fn recorded_teacher_replay_produces_schema_valid_drafts_across_all_formats() {
-    let dir = TempDir::new("teacher-pilot-replay");
-    let config_path = write_config(
-        &dir,
-        &json!({
-            "seed": 11u64,
-            "cells": pilot_cells(1),
-            "teacher": {"pin_id": "deepseek-v4.1-flash"}
-        }),
-    );
+    let config_path = workspace_root().join("drafts/deepseek-pilot/config.json");
     let plan = load_plan(&plan_paths(&config_path), None).unwrap();
     let fulfillment = TempDir::new("teacher-pilot-fulfillment");
     let fulfillment_path = fulfillment.path().to_path_buf();
@@ -139,13 +102,13 @@ fn recorded_teacher_replay_produces_schema_valid_drafts_across_all_formats() {
                 .ends_with(".request.json")
         })
         .count();
-    assert_eq!(request_count, 3);
+    assert_eq!(request_count, 6);
 
     fulfill_requests(fulfillment.path());
     let output = execute(&plan, &options).unwrap();
     assert!(output.lane_error.is_none());
-    assert_eq!(output.records.len(), 3);
-    assert_eq!(output.manifest.rights_envelopes.len(), 3);
+    assert_eq!(output.records.len(), 6);
+    assert_eq!(output.manifest.rights_envelopes.len(), 6);
     assert_eq!(output.manifest.dropped_by_self_validation, 0);
     assert_eq!(output.manifest.dropped_by_generation, 0);
     let formats: BTreeSet<_> = output
