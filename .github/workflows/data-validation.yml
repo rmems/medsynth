@@ -37,5 +37,11 @@ jobs:
       - name: Run the validator over the corpus
         run: cargo run --locked -p medsynth-validate -- .
 
+      - name: Originality audit over the gold corpus
+        run: |
+          test -f reports/originality-audit/gold.json
+          cargo run --locked -p medsynth-validate --bin medsynth-originality-audit -- --root . --records data/gold --references docs/contamination-reference.jsonl --report reports/originality-audit/gold.json
+          git diff --exit-code -- reports/originality-audit/gold.json
+
       - name: Fixture-behavior tests (gold passes / near-miss fails)
         run: cargo test --locked -p medsynth-validate --test fixtures_behavior

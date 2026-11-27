@@ -16,7 +16,7 @@ use crate::teacher::AnchorPoint;
 ///
 /// Order is deterministic: fact-catalog entries for the cell's subdomain,
 /// then per-block anchors from same-subdomain gold records of that format,
-/// then one registry locator example per current source covering the
+/// then registry locator examples per current source covering the
 /// subdomain.
 pub(crate) fn anchor_pack(plan: &BatchPlan, cell: &TargetCell) -> Vec<AnchorPoint> {
     let mut points = Vec::new();
@@ -54,7 +54,7 @@ fn gold_points(points: &mut Vec<AnchorPoint>, plan: &BatchPlan, cell: &TargetCel
 
 fn registry_points(points: &mut Vec<AnchorPoint>, plan: &BatchPlan, cell: &TargetCell) {
     for source in plan.registry.current_covering(cell.subdomain_slug()) {
-        if let Some(example) = source.locator_convention.examples.first() {
+        for example in &source.locator_convention.examples {
             push_point(points, &source.source_id, example, "");
         }
     }

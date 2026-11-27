@@ -63,7 +63,8 @@ fn fnv1a(token: &[u8], seed: u64) -> u64 {
     })
 }
 
-fn shingles(text: &str) -> HashSet<u64> {
+/// Stable word-shingle set for audit comparisons.
+pub fn shingles(text: &str) -> HashSet<u64> {
     let tokens: Vec<String> = text
         .split(|c: char| !c.is_alphanumeric())
         .filter(|w| !w.is_empty())
@@ -73,6 +74,15 @@ fn shingles(text: &str) -> HashSet<u64> {
         .windows(NGRAM)
         .map(|w| fnv1a(w.join("\x1f").as_bytes(), 0xcbf2_9ce4_8422_2325))
         .collect()
+}
+
+/// Maximum containment of either shingle set in the other.
+pub fn containment(a: &HashSet<u64>, b: &HashSet<u64>) -> f64 {
+    if a.is_empty() || b.is_empty() {
+        return 0.0;
+    }
+    let shared = a.intersection(b).count();
+    shared as f64 / a.len().min(b.len()) as f64
 }
 
 /// Flag record pairs whose shingle containment — |shared| / |smaller
@@ -90,9 +100,7 @@ pub fn screen(records: &[RecordFile], findings: &mut Vec<Finding>) {
             if a.is_empty() || b.is_empty() {
                 continue;
             }
-            let shared = a.intersection(b).count();
-            let smaller = a.len().min(b.len()) as f64;
-            if shared as f64 / smaller >= THRESHOLD {
+            if containment(a, b) >= THRESHOLD {
                 flagged.entry(i).or_insert(j);
                 flagged.entry(j).or_insert(i);
             }

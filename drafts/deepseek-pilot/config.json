@@ -1,0 +1,37 @@
+{
+  "seed": 2524,
+  "cells": [
+    {
+      "domain": "bbf",
+      "format": "mcq",
+      "tier": "foundation",
+      "count": 2,
+      "lane": "teacher",
+      "subdomain": "animal_structure"
+    },
+    {
+      "domain": "pre_clinical",
+      "format": "case_vignette",
+      "tier": "application",
+      "count": 2,
+      "lane": "teacher",
+      "subdomain": "endocrine"
+    },
+    {
+      "domain": "bbf",
+      "format": "tutoring_example",
+      "tier": "foundation",
+      "count": 2,
+      "lane": "teacher",
+      "subdomain": "animal_structure"
+    }
+  ],
+  "teacher": {
+    "pin_id": "deepseek-v4.1-flash",
+    "prompt_version": "teacher-draft-v1",
+    "max_prompt_tokens": 6000,
+    "max_output_tokens": 1200,
+    "exemplars_per_prompt": 1,
+    "temperature": 0.2
+  }
+}

@@ -102,3 +102,51 @@ access policy: 24 records, 103 claim blocks, 108 anchor occurrences, all
 supported, across 24 distinct retrieved passages. The policy records license
 provenance and exact allowlisted retrieval URLs; passage text stays out of the
 committed report.
+
+## Originality & contamination audit (#11)
+
+`medsynth-originality-audit` is the release-candidate audit behind the smoke
+screen above. It compares item prompts — MCQ stems, vignette presentations,
+and tutoring learner prompts — against a rights-documented public reference
+corpus, detects same-cell internal duplication, and groups same-anchor-passage
+near-duplicates so dataset assembly can keep them split-aware.
+
+```sh
+cargo run -p medsynth-validate --bin medsynth-originality-audit -- \
+  --root . \
+  --records data/gold \
+  --records drafts/sample-batch/mcq.jsonl \
+  --references docs/contamination-reference.jsonl \
+  --report reports/originality-audit/candidate.json
+```
+
+The audit is deterministic and writes JSON containing record ids, coverage
+cells, prompt hashes, per-record canonical-content hashes, anchor-passage keys,
+pair counts, containment scores, deterministic evidence-bound flag ids,
+contamination groups with linking-pair evidence, split-check status,
+dispositions, and the release-blocking record-id exclusion list. It never
+copies external reference text into the report.
+
+Three comparisons are distinct:
+
+- **External overlap:** prompt 5-gram containment against every entry in the
+  reference corpus; the default review threshold is 0.6.
+- **Internal dedup:** same domain/format/tier cell plus overlapping anchor
+  passages plus prompt containment at the default 0.35 threshold.
+- **Contamination hygiene:** same-anchor-passage near-duplicates are unioned
+  into groups. When `--splits` is supplied, one group assigned to multiple
+  splits is a release-blocking cross-split violation.
+
+Any flag starts as `needs-review` and blocks release. A `--dispositions` JSON
+file binds human review to the deterministic evidence-bound `flag_id` with
+a decision of `rewrite`, `replace`, or `not-a-duplicate`, plus an independent
+`reviewer_run_id` and rationale. Changing the compared record or reference
+evidence changes the flag id, so stale reviews cannot clear new text.
+`rewrite`/`replace` remain release-blocking until the candidate data changes;
+`not-a-duplicate` clears only a reviewed false positive for the exact evidence
+reviewed. Unused disposition ids are reported, never silently ignored.
+
+`docs/contamination-reference.md` documents the JSONL reference-entry schema
+and provenance requirements. The seed corpus is intentionally small and
+rights-documented; release sign-off requires expanding it across the public
+sample-item landscape before the 300-record v0.1 audit can be called complete.

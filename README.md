@@ -64,7 +64,8 @@ schemas/           Generated JSON Schemas (do not hand-edit; see schemas/README.
 fixtures/          Valid/invalid fixture records for data-validation CI
 data/              Dataset records, one directory per format
 drafts/            Generated candidate batches; only the reviewed sample batch is committed
-docs/              contract.md (binding), taxonomy.md, sources.json, teachers.md
+docs/              contract.md (binding), taxonomy.md, sources.json, teachers.md,
+                   contamination-reference.md/.jsonl
 scripts/           Generation + verification entry points (planned)
 ```
 
@@ -95,6 +96,11 @@ cargo run -p medsynth-generate -- run \
   --config drafts/sample-batch/config.json --out drafts/sample-batch
 ```
 
+`drafts/deepseek-pilot/config.json` is the target list for the first real
+DeepSeek/Hermes teacher pilot. It intentionally ships without teacher output
+until the external fulfillment harness supplies recorded responses and session
+provenance.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) — the content contract is binding on
 every contribution.
 
@@ -102,4 +108,6 @@ every contribution.
 
 Dual-licensed under **Apache-2.0 OR MIT** — use whichever you prefer. See
 [LICENSE-APACHE](LICENSE-APACHE) and [LICENSE-MIT](LICENSE-MIT). Anyone may
-contribute or use the dataset.
+contribute or use the dataset. Exception: third-party exercise excerpts in
+`docs/contamination-reference.jsonl` remain under the per-entry licenses and
+attribution recorded in that file (currently CC BY-SA 4.0).
