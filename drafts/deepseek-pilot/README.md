@@ -25,6 +25,13 @@ as `<key>.response.json`. For the Hermes route it must also preserve
 metadata must be present in the response body or in `<key>.vendor.txt` as
 `<sha256(response-json)> <vendor>`.
 
+The first run is expected to exit nonzero when the fulfillment directory is
+empty: its purpose is to emit the request files. After the harness has written
+the responses and sidecars, rerun the same command. The replay writes the same
+deterministic request bodies, finds the matching `<key>.response.json` files,
+validates the response/session bindings, and writes the draft shards and
+manifest.
+
 Do not copy test fixture responses into the fulfillment directory for a real
 pilot. Records admitted into the batch must carry truthful teacher, route,
 vendor, response, and session provenance.
