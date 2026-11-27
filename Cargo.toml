@@ -24,12 +24,13 @@ rand_pcg = "0.3"
 # needs RngCore/SeedableRng in scope to drive the seeded PCG stream; this is
 # the matching trait crate, not a second RNG.
 rand_core = "0.6"
-reqwest = "0.12"
+reqwest = "0.13"
 tokio = "1"
 rayon = "1"
 clap = { version = "4", features = ["derive"] }
 anyhow = "1"
 sha2 = "0.10"
+scraper = "0.24"
 parquet = "57"
 hf-hub = "0.4"
 tiktoken-rs = "0.9"

@@ -61,14 +61,18 @@ fn claim(path: impl Into<String>, block: &Value) -> Option<ClaimBlock> {
     })
 }
 
-/// Every claim-bearing block in the record, in record order.
-pub fn claim_blocks(record: &DraftRecord) -> Vec<ClaimBlock> {
-    let v = &record.value;
-    match record.format {
-        Format::Mcq => mcq_claims(v),
-        Format::CaseVignette => case_vignette_claims(v),
-        Format::TutoringExample => tutoring_example_claims(v),
+/// Every claim-bearing block in a record, in record order.
+pub fn claim_blocks_for(format: Format, value: &Value) -> Vec<ClaimBlock> {
+    match format {
+        Format::Mcq => mcq_claims(value),
+        Format::CaseVignette => case_vignette_claims(value),
+        Format::TutoringExample => tutoring_example_claims(value),
     }
+}
+
+/// Every claim-bearing block in the draft record, in record order.
+pub fn claim_blocks(record: &DraftRecord) -> Vec<ClaimBlock> {
+    claim_blocks_for(record.format, &record.value)
 }
 
 fn mcq_claims(v: &Value) -> Vec<ClaimBlock> {

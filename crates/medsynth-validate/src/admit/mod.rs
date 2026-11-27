@@ -33,7 +33,7 @@
 
 mod anchor;
 mod batch;
-mod claims;
+pub(crate) mod claims;
 mod config;
 mod envelope;
 mod eval;
