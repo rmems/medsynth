@@ -43,8 +43,9 @@ dispatches them to the pinned endpoint (it owns the API key), and writes the
 raw responses back as `<key>.response.json`. For a Merge-routed pin, preserve
 routing metadata too: either the body contains `routing.vendor_used` (or an
 equivalent vendor field), or the harness copies a header-only `x-merge-vendor`
-into `<key>.vendor.txt` as `<sha256(response-json)> <vendor>`, and exports the
-Hermes session record as `<key>.session.json`:
+into `<key>.vendor.txt` as `<sha256(response-json)> <vendor>`. A Hermes route
+also needs `<key>.session.json` plus its hash-binding `<key>.session.txt` as
+`<sha256(response-json)> <sha256(session-json)>`:
 
 ```sh
 cargo run -p medsynth-generate -- run \

@@ -124,10 +124,16 @@ For a Merge Gateway pin the generated request sets
 `include_routing_metadata: true`. The harness must preserve the response body.
 If Merge returns vendor identity only in the `x-merge-vendor` header, the
 harness writes `<sha256(response-json)> <vendor>` to `<key>.vendor.txt` beside
-the raw response file and exports the Hermes session record as
-`<key>.session.json`. The hash binds the vendor attribution to that exact
+the raw response file. The hash binds the vendor attribution to that exact
 response body, so replacing a response without refreshing the sidecar cannot
 reuse stale routing metadata. When neither the body nor a matching sidecar
 supplies vendor metadata the generated draft is dropped at the rights-envelope
-gate rather than written. A missing or unreadable Hermes session record is
-likewise fail-closed.
+gate rather than written.
+
+For a Hermes route the harness must always export the session record as
+`<key>.session.json`, regardless of how vendor metadata was supplied. The
+record is a JSON object with a non-empty `session_id` and `messages`, and the
+harness writes `<sha256(response-json)> <sha256(session-json)>` to
+`<key>.session.txt`. That binding prevents a replacement response from reusing
+a stale session. A missing, malformed, or unbound session record is treated as
+absent and fails closed at the rights-envelope gate.

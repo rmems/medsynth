@@ -4,6 +4,8 @@
 //! the fulfillment directory as `<key>.request.json` — an OpenAI-compatible
 //! chat-completion body an external harness can dispatch however it likes —
 //! and the harness drops the teacher's raw response at `<key>.response.json`.
+//! Hermes routes also use `<key>.session.json` plus a hash-binding
+//! `<key>.session.txt`, so replacement responses cannot reuse stale sessions.
 //! The key is a hash of the exact request-file bytes, so responses cannot be
 //! mixed up across cells, attempts, pins, or runs.
 
@@ -122,20 +124,22 @@ impl RecordedTeacherClient {
         Ok(Self { dir })
     }
 
-    fn paths(&self, request: &TeacherRequest) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
+    fn paths(&self, request: &TeacherRequest) -> (PathBuf, PathBuf, PathBuf, PathBuf, PathBuf) {
         let key = fulfillment_key(request);
         (
             self.dir.join(format!("{key}.request.json")),
             self.dir.join(format!("{key}.response.json")),
             self.dir.join(format!("{key}.vendor.txt")),
             self.dir.join(format!("{key}.session.json")),
+            self.dir.join(format!("{key}.session.txt")),
         )
     }
 }
 
 impl TeacherClient for RecordedTeacherClient {
     fn complete(&self, request: &TeacherRequest) -> Result<TeacherCompletion, TeacherError> {
-        let (request_path, response_path, vendor_path, session_path) = self.paths(request);
+        let (request_path, response_path, vendor_path, session_path, session_binding_path) =
+            self.paths(request);
         // Stage then rename: a pre-existing symlink at the request path is
         // replaced by the rename, never followed to truncate its target.
         // Per-process staging name: overlapping reruns never share a tmp file.
@@ -172,15 +176,86 @@ impl TeacherClient for RecordedTeacherClient {
             ))
         })?;
         let mut completion = parse_chat_completion(&value)?;
-        apply_vendor_sidecar(&mut completion, &vendor_path, &sha256_str(&text))?;
-        if let Ok(session) = std::fs::read_to_string(&session_path) {
-            completion.session_file = session_path
-                .file_name()
-                .map(|name| name.to_string_lossy().into_owned());
-            completion.session_sha256 = Some(sha256_str(&session));
-        }
+        let response_sha256 = sha256_str(&text);
+        apply_vendor_sidecar(&mut completion, &vendor_path, &response_sha256)?;
+        apply_session_sidecar(
+            &mut completion,
+            &session_path,
+            &session_binding_path,
+            &response_sha256,
+        )?;
         Ok(completion)
     }
+}
+
+fn apply_session_sidecar(
+    completion: &mut TeacherCompletion,
+    session_path: &std::path::Path,
+    binding_path: &std::path::Path,
+    response_sha256: &str,
+) -> Result<(), TeacherError> {
+    let Some(session) = read_optional_text(session_path, "Hermes session file")? else {
+        return Ok(());
+    };
+    if !valid_session_record(&session) {
+        return Ok(());
+    }
+    let Some(binding) = read_optional_text(binding_path, "Hermes session binding file")? else {
+        return Ok(());
+    };
+    let session_sha256 = sha256_str(&session);
+    if !session_binding_matches(&binding, response_sha256, &session_sha256) {
+        return Ok(());
+    }
+    completion.session_file = session_path
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned());
+    completion.session_sha256 = Some(session_sha256);
+    Ok(())
+}
+
+fn read_optional_text(
+    path: &std::path::Path,
+    description: &str,
+) -> Result<Option<String>, TeacherError> {
+    match std::fs::read_to_string(path) {
+        Ok(text) => Ok(Some(text)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(TeacherError::Transport(format!(
+            "cannot read {description} {}: {e}",
+            path.display()
+        ))),
+    }
+}
+
+fn session_binding_matches(binding: &str, response_sha256: &str, session_sha256: &str) -> bool {
+    let mut parts = binding.split_whitespace();
+    let (Some(bound_response), Some(bound_session), None) =
+        (parts.next(), parts.next(), parts.next())
+    else {
+        return false;
+    };
+    if !bound_response.eq_ignore_ascii_case(response_sha256) {
+        return false;
+    }
+    bound_session.eq_ignore_ascii_case(session_sha256)
+}
+
+fn valid_session_record(session: &str) -> bool {
+    let Ok(value) = serde_json::from_str::<Value>(session) else {
+        return false;
+    };
+    let has_id = value
+        .get("session_id")
+        .and_then(Value::as_str)
+        .is_some_and(|id| !id.trim().is_empty());
+    if !has_id {
+        return false;
+    }
+    value
+        .get("messages")
+        .and_then(Value::as_array)
+        .is_some_and(|messages| !messages.is_empty())
 }
 
 fn apply_vendor_sidecar(
@@ -422,8 +497,43 @@ mod tests {
         let completion = client.complete(&request).unwrap();
         assert_eq!(completion.served_vendor.as_deref(), Some("openrouter"));
 
-        let session = "{\"session_id\":\"hermes-session-1\",\"events\":[]}";
+        std::fs::write(
+            dir.path.join(format!("{key}.response.json")),
+            format!(
+                "{response}
+"
+            ),
+        )
+        .unwrap();
+        let completion = client.complete(&request).unwrap();
+        assert_eq!(completion.served_vendor, None);
+    }
+
+    #[test]
+    fn session_records_must_be_valid_and_bound_to_the_response() {
+        let dir = FulfillmentDir::new("session-binding");
+        let client = RecordedTeacherClient::new(dir.path.clone()).unwrap();
+        let request = request();
+        let _ = client.complete(&request);
+        let key = fulfillment_key(&request);
+        let response = json!({
+            "choices": [{"message": {"content": "{\"ok\":true}"}}]
+        })
+        .to_string();
+        std::fs::write(dir.path.join(format!("{key}.response.json")), &response).unwrap();
+
+        std::fs::write(dir.path.join(format!("{key}.session.json")), "not json").unwrap();
+        assert_eq!(client.complete(&request).unwrap().session_file, None);
+
+        let session = "{\"session_id\":\"hermes-session-1\",\"messages\":[{\"role\":\"assistant\",\"content\":\"{}\"}]}";
         std::fs::write(dir.path.join(format!("{key}.session.json")), session).unwrap();
+        assert_eq!(client.complete(&request).unwrap().session_file, None);
+
+        std::fs::write(
+            dir.path.join(format!("{key}.session.txt")),
+            format!("{} {}", sha256_str(&response), sha256_str(session)),
+        )
+        .unwrap();
         let completion = client.complete(&request).unwrap();
         assert_eq!(
             completion.session_file.as_deref(),
@@ -436,11 +546,15 @@ mod tests {
 
         std::fs::write(
             dir.path.join(format!("{key}.response.json")),
-            format!("{response}\n"),
+            format!(
+                "{response}
+"
+            ),
         )
         .unwrap();
         let completion = client.complete(&request).unwrap();
-        assert_eq!(completion.served_vendor, None);
+        assert_eq!(completion.session_file, None);
+        assert_eq!(completion.session_sha256, None);
     }
 
     #[test]
