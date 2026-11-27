@@ -29,6 +29,9 @@ pub enum PinLane {
 pub struct TeacherPin {
     pub pin_id: String,
     pub provider: String,
+    /// The dispatch route the external harness uses (for example Merge
+    /// Gateway or a provider-direct API).
+    pub route: String,
     pub family: String,
     pub variant: String,
     pub model_id: String,
@@ -45,6 +48,14 @@ pub struct TeacherPin {
     pub terms_date: String,
     pub terms_url: String,
     pub terms_clause: String,
+    /// Route terms are separate when a gateway rather than the model
+    /// provider serves the API call. Direct-provider pins may leave these
+    /// blank; Merge Gateway pins may not.
+    pub route_terms_document: String,
+    pub route_terms_version: String,
+    pub route_terms_date: String,
+    pub route_terms_url: String,
+    pub route_terms_clause: String,
     pub permits_distillation: Option<bool>,
     pub permits_synthetic_data: Option<bool>,
     pub snapshot_date: String,
@@ -59,10 +70,10 @@ impl TeacherPin {
     /// Fields that are empty or absent. An entry with any missing field is
     /// incomplete and the lane refuses to start.
     pub fn missing_fields(&self) -> Vec<&'static str> {
-        let mut missing = Vec::new();
-        for (name, value) in [
+        let mut missing = missing_text_fields([
             ("pin_id", self.pin_id.as_str()),
             ("provider", self.provider.as_str()),
+            ("route", self.route.as_str()),
             ("family", self.family.as_str()),
             ("variant", self.variant.as_str()),
             ("model_id", self.model_id.as_str()),
@@ -74,26 +85,38 @@ impl TeacherPin {
             ("terms_url", self.terms_url.as_str()),
             ("terms_clause", self.terms_clause.as_str()),
             ("snapshot_date", self.snapshot_date.as_str()),
-        ] {
-            if value.trim().is_empty() {
-                missing.push(name);
-            }
+        ]);
+        if endpoint_is_merge_gateway(&self.endpoint) {
+            missing.extend(missing_text_fields([
+                ("route_terms_document", self.route_terms_document.as_str()),
+                ("route_terms_version", self.route_terms_version.as_str()),
+                ("route_terms_date", self.route_terms_date.as_str()),
+                ("route_terms_url", self.route_terms_url.as_str()),
+                ("route_terms_clause", self.route_terms_clause.as_str()),
+            ]));
         }
-        if self.lane.is_none() {
-            missing.push("lane");
-        }
-        if self.permits_distillation.is_none() {
-            missing.push("permits_distillation");
-        }
-        if self.permits_synthetic_data.is_none() {
-            missing.push("permits_synthetic_data");
-        }
+        missing.extend((self.lane.is_none()).then_some("lane"));
+        missing.extend((self.permits_distillation.is_none()).then_some("permits_distillation"));
+        missing.extend((self.permits_synthetic_data.is_none()).then_some("permits_synthetic_data"));
         missing
     }
 
     pub fn is_complete(&self) -> bool {
         self.missing_fields().is_empty()
     }
+
+    /// True when the pin routes through Merge Gateway, regardless of URL
+    /// scheme/host casing.
+    pub fn uses_merge_gateway(&self) -> bool {
+        endpoint_is_merge_gateway(&self.endpoint)
+    }
+}
+
+fn missing_text_fields<const N: usize>(fields: [(&'static str, &str); N]) -> Vec<&'static str> {
+    fields
+        .into_iter()
+        .filter_map(|(name, value)| value.trim().is_empty().then_some(name))
+        .collect()
 }
 
 /// All pins parsed from the pin file.
@@ -216,15 +239,29 @@ fn require_approved_family(pin: &TeacherPin) -> Result<(), TeacherError> {
 /// Endpoint hosts the external harness may dispatch to. The pin document is
 /// what the harness follows, so a pin pointing anywhere else is refused —
 /// the credential the harness holds must never be aimed at an untrusted host.
-const TRUSTED_ENDPOINT_HOSTS: &[&str] = &["api.deepseek.com", "integrate.api.nvidia.com"];
+const TRUSTED_ENDPOINT_HOSTS: &[&str] = &[
+    "api.deepseek.com",
+    "integrate.api.nvidia.com",
+    "api-gateway.merge.dev",
+];
+
+fn endpoint_is_merge_gateway(endpoint: &str) -> bool {
+    endpoint_host(endpoint).is_some_and(|host| host.eq_ignore_ascii_case("api-gateway.merge.dev"))
+}
+
+fn endpoint_host(endpoint: &str) -> Option<&str> {
+    let scheme = endpoint.get(..8)?;
+    scheme
+        .eq_ignore_ascii_case("https://")
+        .then(|| endpoint[8..].split('/').next())?
+}
 
 fn require_trusted_endpoint(pin: &TeacherPin) -> Result<(), TeacherError> {
-    let endpoint = pin.endpoint.to_ascii_lowercase();
-    if endpoint.starts_with("https://")
-        && TRUSTED_ENDPOINT_HOSTS.iter().any(|host| {
-            endpoint[8..].starts_with(host) && endpoint[8 + host.len()..].starts_with('/')
-        })
-    {
+    if endpoint_host(&pin.endpoint).is_some_and(|host| {
+        TRUSTED_ENDPOINT_HOSTS
+            .iter()
+            .any(|trusted| host.eq_ignore_ascii_case(trusted))
+    }) {
         return Ok(());
     }
     Err(TeacherError::UntrustedEndpoint {
@@ -268,6 +305,7 @@ fn parse_pin(entry: &TeacherPinEntry) -> TeacherPin {
     TeacherPin {
         pin_id: get("pin_id"),
         provider: get("provider"),
+        route: get("route"),
         family: get("family"),
         variant: get("variant"),
         model_id: get("model_id"),
@@ -279,6 +317,11 @@ fn parse_pin(entry: &TeacherPinEntry) -> TeacherPin {
         terms_date: get("terms_date"),
         terms_url: get("terms_url"),
         terms_clause: get("terms_clause"),
+        route_terms_document: get("route_terms_document"),
+        route_terms_version: get("route_terms_version"),
+        route_terms_date: get("route_terms_date"),
+        route_terms_url: get("route_terms_url"),
+        route_terms_clause: get("route_terms_clause"),
         permits_distillation: entry.bool_field("permits_distillation"),
         permits_synthetic_data: entry.bool_field("permits_synthetic_data"),
         snapshot_date: get("snapshot_date"),

@@ -7,7 +7,7 @@ use common::{TempDir, plan_paths, read_json, workspace_root, write_config};
 use medsynth_generate::batch::{ExecuteOptions, LaneFilter, execute};
 use medsynth_generate::format::Format;
 use medsynth_generate::hash::sha256_str;
-use medsynth_generate::manifest::RightsEnvelope;
+use medsynth_generate::manifest::{RightsEnvelope, ServingMetadata};
 use medsynth_generate::teacher::{
     AnchorPoint, PreparedTeacher, RecordStamp, TeacherClient, TeacherCompletion, TeacherError,
     TeacherPinRegistry, TeacherRequest, build_prompt, build_record, parse_chat_completion,
@@ -52,6 +52,7 @@ fn pin_markdown(pin_id: &str, family: &str, lane: &str, permits_distillation: &s
         "### Pin: `{pin_id}`\n\n\
 - **pin_id:** `{pin_id}`\n\
 - **provider:** `Test Provider`\n\
+- **route:** `Test Direct Route`\n\
 - **family:** `{family}`\n\
 - **variant:** `Test-Variant-1`\n\
 - **model_id:** `test-model`\n\
@@ -106,7 +107,7 @@ fn allowlist(pairs: &[(&str, &str)]) -> BTreeSet<(String, String)> {
 }
 
 #[test]
-fn pin_registry_parses_both_teachers() {
+fn pin_registry_parses_all_teacher_pins() {
     let pins = docs_pins();
     let deepseek = pins.ensure_teacher("deepseek-v4.1-flash").unwrap();
     assert_eq!(
@@ -117,14 +118,19 @@ fn pin_registry_parses_both_teachers() {
         ),
         (
             "DeepSeek-V4.1-Flash-1017",
-            "deepseek-flash",
-            "DEEPSEEK_API_KEY",
+            "deepseek/deepseek-v4.1-flash-1017",
+            "MERGE_GATEWAY_API_KEY",
         )
     );
     assert!(
         deepseek.terms_clause.contains("model distillation")
             && deepseek.entry_text.starts_with("### Pin:")
     );
+
+    assert!(matches!(
+        pins.ensure_teacher("mimo-v2.6-flash"),
+        Err(TeacherError::Unpinned(_))
+    ));
 
     let nemotron = pins.ensure_teacher("nemotron-3-ultra").unwrap();
     assert_eq!(nemotron.variant, "NVIDIA-Nemotron-3-Ultra-550B-A55B-NVFP4");
@@ -155,6 +161,23 @@ fn teacher_lane_refuses_an_incomplete_pin() {
     match error {
         TeacherError::IncompletePin { missing, .. } => {
             assert!(missing.contains(&"terms_clause"));
+        }
+        other => panic!("expected IncompletePin, got {other}"),
+    }
+}
+
+#[test]
+fn teacher_lane_refuses_a_merge_pin_without_route_terms() {
+    let text = pin_markdown("merge-incomplete", "deepseek", "teacher", "yes").replace(
+        "https://api.deepseek.com/chat/completions",
+        "https://api-gateway.merge.dev/v1/chat/completions",
+    );
+    let pins = load_pin_text(&text);
+    let error = pins.ensure_teacher("merge-incomplete").unwrap_err();
+    match error {
+        TeacherError::IncompletePin { missing, .. } => {
+            assert!(missing.contains(&"route_terms_document"));
+            assert!(missing.contains(&"route_terms_clause"));
         }
         other => panic!("expected IncompletePin, got {other}"),
     }
@@ -197,6 +220,11 @@ fn teacher_lane_refuses_untrusted_endpoints_and_foreign_env_names() {
     let pins = load_pin_text(&text);
     let error = pins.ensure_teacher("bad-env").unwrap_err();
     assert!(matches!(error, TeacherError::InvalidCredentialEnv { .. }));
+
+    let text = pin_markdown("uppercase-endpoint", "deepseek", "teacher", "yes")
+        .replace("https://api.deepseek.com", "HTTPS://API.DEEPSEEK.COM");
+    let pins = load_pin_text(&text);
+    assert!(pins.ensure_teacher("uppercase-endpoint").is_ok());
 }
 
 #[test]
@@ -367,19 +395,83 @@ fn rights_envelope_requires_every_piece() {
     let pins = docs_pins();
     let mut pin = pins.ensure_teacher("deepseek-v4.1-flash").unwrap().clone();
     let raw = "{\"id\":\"draft-test-000\"}";
-    let envelope = RightsEnvelope::build("draft-test-000", raw, &pin, None).unwrap();
+    let envelope = RightsEnvelope::build(
+        "draft-test-000",
+        raw,
+        &pin,
+        ServingMetadata {
+            model: None,
+            vendor: Some("openrouter"),
+        },
+    )
+    .unwrap();
     assert_eq!(
         (&envelope.content_sha256, &envelope.pin_entry_sha256),
         (&sha256_str(raw), &pin.entry_sha256)
     );
     assert!(envelope.pin_entry.starts_with("### Pin:"));
+    assert_eq!(
+        (envelope.route.as_str(), envelope.serving_vendor.as_str(),),
+        ("Merge Gateway", "openrouter")
+    );
+    assert!(
+        RightsEnvelope::build(
+            "draft-test-000",
+            raw,
+            &pin,
+            ServingMetadata {
+                model: None,
+                vendor: None,
+            },
+        )
+        .is_err()
+    );
 
     pin.variant.clear();
-    assert!(RightsEnvelope::build("draft-test-000", raw, &pin, None).is_err());
+    assert!(
+        RightsEnvelope::build(
+            "draft-test-000",
+            raw,
+            &pin,
+            ServingMetadata {
+                model: None,
+                vendor: None,
+            },
+        )
+        .is_err()
+    );
 
     let mut pin = pins.ensure_teacher("deepseek-v4.1-flash").unwrap().clone();
     pin.entry_text.clear();
-    assert!(RightsEnvelope::build("draft-test-000", raw, &pin, None).is_err());
+    assert!(
+        RightsEnvelope::build(
+            "draft-test-000",
+            raw,
+            &pin,
+            ServingMetadata {
+                model: None,
+                vendor: None,
+            },
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn direct_route_envelope_uses_the_pinned_provider_not_response_metadata() {
+    let pins = load_pin_text(&pin_markdown("direct-pin", "deepseek", "teacher", "yes"));
+    let pin = pins.ensure_teacher("direct-pin").unwrap();
+    let envelope = RightsEnvelope::build(
+        "draft-test-000",
+        "{\"id\":\"draft-test-000\"}",
+        pin,
+        ServingMetadata {
+            model: None,
+            vendor: Some("unrelated-vendor"),
+        },
+    )
+    .unwrap();
+    assert_eq!(envelope.serving_vendor, "Test Provider");
 }
 
 #[test]
@@ -425,6 +517,7 @@ impl TeacherClient for FakeTeacher {
         Ok(TeacherCompletion {
             content: self.content.clone(),
             served_model: Some("deepseek-flash".to_owned()),
+            served_vendor: Some("openrouter".to_owned()),
         })
     }
 }

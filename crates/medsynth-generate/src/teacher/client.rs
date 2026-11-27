@@ -35,6 +35,9 @@ pub struct TeacherRequest {
     pub pin_id: String,
     /// The pinned variant, for the same reason.
     pub pin_variant: String,
+    /// Ask a gateway route to include machine-readable vendor routing
+    /// metadata in its response body.
+    pub include_routing_metadata: bool,
 }
 
 /// The teacher's raw text output.
@@ -45,6 +48,9 @@ pub struct TeacherCompletion {
     /// carry dated names while providers answer with an alias; capturing it
     /// keeps the draft's rights envelope honest about what served the draft.
     pub served_model: Option<String>,
+    /// The execution vendor reported by a gateway (`routing.vendor_used` or
+    /// an equivalent top-level vendor field), when present.
+    pub served_vendor: Option<String>,
 }
 
 /// A teacher fulfillment source. Production uses [`RecordedTeacherClient`];
@@ -56,7 +62,7 @@ pub trait TeacherClient {
 /// Serialize `request` as the OpenAI-compatible chat-completion body that
 /// identifies the fulfillment.
 fn request_body(request: &TeacherRequest) -> Value {
-    json!({
+    let mut body = json!({
         "model": request.model,
         "messages": [
             {"role": "system", "content": request.system},
@@ -71,7 +77,11 @@ fn request_body(request: &TeacherRequest) -> Value {
             "batch_seed": request.batch_seed
         },
         "response_format": {"type": "json_object"}
-    })
+    });
+    if request.include_routing_metadata {
+        body["include_routing_metadata"] = json!(true);
+    }
+    body
 }
 
 /// The exact bytes written to `<key>.request.json`.
@@ -108,18 +118,19 @@ impl RecordedTeacherClient {
         Ok(Self { dir })
     }
 
-    fn paths(&self, request: &TeacherRequest) -> (PathBuf, PathBuf) {
+    fn paths(&self, request: &TeacherRequest) -> (PathBuf, PathBuf, PathBuf) {
         let key = fulfillment_key(request);
         (
             self.dir.join(format!("{key}.request.json")),
             self.dir.join(format!("{key}.response.json")),
+            self.dir.join(format!("{key}.vendor.txt")),
         )
     }
 }
 
 impl TeacherClient for RecordedTeacherClient {
     fn complete(&self, request: &TeacherRequest) -> Result<TeacherCompletion, TeacherError> {
-        let (request_path, response_path) = self.paths(request);
+        let (request_path, response_path, vendor_path) = self.paths(request);
         // Stage then rename: a pre-existing symlink at the request path is
         // replaced by the rename, never followed to truncate its target.
         // Per-process staging name: overlapping reruns never share a tmp file.
@@ -155,8 +166,41 @@ impl TeacherClient for RecordedTeacherClient {
                 response_path.display()
             ))
         })?;
-        parse_chat_completion(&value)
+        let mut completion = parse_chat_completion(&value)?;
+        apply_vendor_sidecar(&mut completion, &vendor_path, &sha256_str(&text))?;
+        Ok(completion)
     }
+}
+
+fn apply_vendor_sidecar(
+    completion: &mut TeacherCompletion,
+    vendor_path: &std::path::Path,
+    response_sha256: &str,
+) -> Result<(), TeacherError> {
+    if completion
+        .served_vendor
+        .as_deref()
+        .is_some_and(|vendor| !vendor.trim().is_empty())
+    {
+        return Ok(());
+    }
+    let vendor = match std::fs::read_to_string(vendor_path) {
+        Ok(vendor) => vendor,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => {
+            return Err(TeacherError::Transport(format!(
+                "cannot read vendor file {}: {e}",
+                vendor_path.display()
+            )));
+        }
+    };
+    let mut parts = vendor.split_whitespace();
+    if let (Some(hash), Some(vendor), None) = (parts.next(), parts.next(), parts.next())
+        && hash.eq_ignore_ascii_case(response_sha256)
+    {
+        completion.served_vendor = Some(vendor.to_owned());
+    }
+    Ok(())
 }
 
 /// Extract `choices[0].message.content` from an OpenAI-compatible response.
@@ -173,9 +217,24 @@ pub fn parse_chat_completion(value: &Value) -> Result<TeacherCompletion, Teacher
         .get("model")
         .and_then(Value::as_str)
         .map(str::to_owned);
+    let routing = value.get("routing");
+    let served_vendor = [
+        routing
+            .and_then(|routing| routing.get("vendor_used"))
+            .and_then(Value::as_str),
+        routing
+            .and_then(|routing| routing.get("vendor"))
+            .and_then(Value::as_str),
+        value.get("vendor").and_then(Value::as_str),
+    ]
+    .into_iter()
+    .flatten()
+    .find(|vendor| !vendor.trim().is_empty())
+    .map(str::to_owned);
     Ok(TeacherCompletion {
         content: content.to_owned(),
         served_model,
+        served_vendor,
     })
 }
 
@@ -221,6 +280,7 @@ mod tests {
             batch_seed: 0,
             pin_id: "deepseek-v4.1-flash".to_owned(),
             pin_variant: "DeepSeek-V4.1-Flash-1017".to_owned(),
+            include_routing_metadata: false,
         }
     }
 
@@ -239,6 +299,7 @@ mod tests {
             serde_json::from_str(&std::fs::read_to_string(&request_path).unwrap()).unwrap();
         assert_eq!(body["model"], "deepseek-flash");
         assert_eq!(body["response_format"]["type"], "json_object");
+        assert!(body.get("include_routing_metadata").is_none());
         // The key a harness derives by hashing the request file itself.
         assert_eq!(
             fulfillment_key(&request()),
@@ -300,6 +361,79 @@ mod tests {
             fulfillment_key(&other),
             "a revised pin cannot reuse the old response"
         );
+    }
+
+    #[test]
+    fn merge_requests_ask_for_and_parse_routing_vendor_metadata() {
+        let dir = FulfillmentDir::new("routing");
+        let client = RecordedTeacherClient::new(dir.path.clone()).unwrap();
+        let mut request = request();
+        request.include_routing_metadata = true;
+        let _ = client.complete(&request);
+        let key = fulfillment_key(&request);
+        let body: Value = serde_json::from_str(
+            &std::fs::read_to_string(dir.path.join(format!("{key}.request.json"))).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(body["include_routing_metadata"], true);
+
+        std::fs::write(
+            dir.path.join(format!("{key}.response.json")),
+            json!({
+                "model": "deepseek/deepseek-v4.1-flash-1017",
+                "routing": {"vendor_used": "deepseek"},
+                "choices": [{"message": {"content": "{\"ok\":true}"}}]
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let completion = client.complete(&request).unwrap();
+        assert_eq!(completion.served_vendor.as_deref(), Some("deepseek"));
+
+        let response = json!({
+            "model": "deepseek/deepseek-v4.1-flash-1017",
+            "routing": {"vendor_used": null, "vendor": "  "},
+            "choices": [{"message": {"content": "{\"ok\":true}"}}]
+        })
+        .to_string();
+        std::fs::write(dir.path.join(format!("{key}.response.json")), &response).unwrap();
+        std::fs::write(
+            dir.path.join(format!("{key}.vendor.txt")),
+            format!(
+                "{} openrouter
+",
+                sha256_str(&response)
+            ),
+        )
+        .unwrap();
+        let completion = client.complete(&request).unwrap();
+        assert_eq!(completion.served_vendor.as_deref(), Some("openrouter"));
+
+        std::fs::write(
+            dir.path.join(format!("{key}.response.json")),
+            format!("{response}\n"),
+        )
+        .unwrap();
+        let completion = client.complete(&request).unwrap();
+        assert_eq!(completion.served_vendor, None);
+    }
+
+    #[test]
+    fn blank_vendor_fields_fall_through_to_the_next_vendor_field() {
+        let completion = parse_chat_completion(&json!({
+            "routing": {"vendor_used": null, "vendor": "openrouter"},
+            "choices": [{"message": {"content": "{\"ok\":true}"}}]
+        }))
+        .unwrap();
+        assert_eq!(completion.served_vendor.as_deref(), Some("openrouter"));
+
+        let completion = parse_chat_completion(&json!({
+            "routing": {"vendor_used": " ", "vendor": " "},
+            "vendor": "deepseek",
+            "choices": [{"message": {"content": "{\"ok\":true}"}}]
+        }))
+        .unwrap();
+        assert_eq!(completion.served_vendor.as_deref(), Some("deepseek"));
     }
 
     #[test]

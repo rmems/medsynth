@@ -46,6 +46,7 @@ pub struct TeacherPinRef {
     pub pin_id: String,
     pub variant: String,
     pub model_id: String,
+    pub route: String,
     pub pin_entry_sha256: String,
     pub terms_document: String,
     pub terms_version: String,
@@ -62,6 +63,7 @@ impl TeacherPinRef {
             pin_id: pin.pin_id.clone(),
             variant: pin.variant.clone(),
             model_id: pin.model_id.clone(),
+            route: pin.route.clone(),
             pin_entry_sha256: pin.entry_sha256.clone(),
             terms_document: pin.terms_document.clone(),
             terms_version: pin.terms_version.clone(),
@@ -153,6 +155,13 @@ pub struct DroppedDraft {
     pub reasons: Vec<String>,
 }
 
+/// Model/vendor identity reported by the serving endpoint for one completion.
+#[derive(Debug, Clone, Copy)]
+pub struct ServingMetadata<'a> {
+    pub model: Option<&'a str>,
+    pub vendor: Option<&'a str>,
+}
+
 /// Rights envelope for one teacher draft.
 #[derive(Debug, Clone, Serialize)]
 pub struct RightsEnvelope {
@@ -163,6 +172,12 @@ pub struct RightsEnvelope {
     /// one. Pinned variants use dated names while providers answer with an
     /// alias; recording it keeps the two linked.
     pub served_model: Option<String>,
+    /// Dispatch route named by the pin (for example Merge Gateway).
+    pub route: String,
+    /// Execution vendor that served the completion. For a gateway route this
+    /// must come from routing metadata; for a direct route it is the pinned
+    /// provider.
+    pub serving_vendor: String,
     pub pin_id: String,
     /// Exact `docs/teachers.md` pin entry the output was generated under.
     pub pin_entry: String,
@@ -178,7 +193,7 @@ impl RightsEnvelope {
         record_id: &str,
         raw: &str,
         pin: &TeacherPin,
-        served_model: Option<&str>,
+        serving: ServingMetadata<'_>,
     ) -> Result<Self, String> {
         if record_id.trim().is_empty() {
             return Err("rights envelope: blank record id".to_owned());
@@ -189,14 +204,32 @@ impl RightsEnvelope {
         if pin.pin_id.trim().is_empty() {
             return Err("rights envelope: blank pin id".to_owned());
         }
+        if pin.route.trim().is_empty() {
+            return Err("rights envelope: blank teacher route".to_owned());
+        }
         if pin.entry_text.trim().is_empty() || pin.entry_sha256.trim().is_empty() {
             return Err("rights envelope: missing docs/teachers.md pin entry".to_owned());
         }
+        let gateway = pin.uses_merge_gateway();
+        let serving_vendor = if gateway {
+            serving
+                .vendor
+                .filter(|vendor| !vendor.trim().is_empty())
+                .ok_or_else(|| {
+                    "rights envelope: Merge Gateway response lacks routing vendor metadata"
+                        .to_owned()
+                })?
+                .to_owned()
+        } else {
+            pin.provider.clone()
+        };
         Ok(Self {
             record_id: record_id.to_owned(),
             teacher_variant: pin.variant.clone(),
             model_id: pin.model_id.clone(),
-            served_model: served_model.map(str::to_owned),
+            served_model: serving.model.map(str::to_owned),
+            route: pin.route.clone(),
+            serving_vendor,
             pin_id: pin.pin_id.clone(),
             pin_entry: pin.entry_text.clone(),
             pin_entry_sha256: pin.entry_sha256.clone(),

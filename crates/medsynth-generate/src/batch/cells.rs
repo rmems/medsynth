@@ -10,7 +10,7 @@ use crate::batch::{
 };
 use crate::config::{Lane, TargetCell, TeacherSelection};
 use crate::error::GenerateError;
-use crate::manifest::{CellReport, RightsEnvelope};
+use crate::manifest::{CellReport, RightsEnvelope, ServingMetadata};
 use crate::procedural;
 use crate::record::record_id_for;
 use crate::rng::SeededRng;
@@ -292,7 +292,15 @@ fn teacher_attempt(ctx: &AttemptCtx<'_>) -> Result<ProducedDraft, FailedAttempt>
             vec![e.to_string()],
         )
     })?;
-    finalize_draft(ctx, id, content, completion.served_model.as_deref())
+    finalize_draft(
+        ctx,
+        id,
+        content,
+        ServingMetadata {
+            model: completion.served_model.as_deref(),
+            vendor: completion.served_vendor.as_deref(),
+        },
+    )
 }
 
 /// Dispatch the request. Transport failures (network/HTTP) stay distinct from
@@ -320,6 +328,7 @@ fn request_completion(
         batch_seed: ctx.cell_ctx.plan.config.seed,
         pin_id: pin.pin_id.clone(),
         pin_variant: pin.variant.clone(),
+        include_routing_metadata: pin.uses_merge_gateway(),
     };
     let completion = ctx.teacher.client.complete(&request).map_err(|e| {
         let stage = if matches!(e, TeacherError::Transport(_)) {
@@ -349,7 +358,7 @@ fn finalize_draft(
     ctx: &AttemptCtx<'_>,
     id: medsynth_schema::RecordId,
     content: crate::teacher::TeacherContent,
-    served_model: Option<&str>,
+    serving: ServingMetadata<'_>,
 ) -> Result<ProducedDraft, FailedAttempt> {
     let cell = ctx.cell_ctx.cell;
     let plan = ctx.cell_ctx.plan;
@@ -373,9 +382,8 @@ fn finalize_draft(
         )
     })?;
     let record_id = record.id().as_str().to_owned();
-    let envelope =
-        RightsEnvelope::build(&record_id, &raw, ctx.teacher.prepared.pin(), served_model)
-            .map_err(|reason| ctx.fail(Some(record_id.clone()), "rights_envelope", vec![reason]))?;
+    let envelope = RightsEnvelope::build(&record_id, &raw, ctx.teacher.prepared.pin(), serving)
+        .map_err(|reason| ctx.fail(Some(record_id.clone()), "rights_envelope", vec![reason]))?;
     let context = ValidationContext {
         expected: ExpectedProvenance::Teacher {
             pin: ctx.teacher.prepared.pin(),

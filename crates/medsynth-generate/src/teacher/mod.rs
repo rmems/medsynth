@@ -39,7 +39,7 @@ pub enum TeacherError {
     )]
     TermsDoNotPermit { pin_id: String },
     #[error(
-        "teacher lane refused: pin endpoint `{endpoint}` is not an approved provider host (api.deepseek.com or integrate.api.nvidia.com)"
+        "teacher lane refused: pin endpoint `{endpoint}` is not an approved provider host (api.deepseek.com, integrate.api.nvidia.com, or api-gateway.merge.dev)"
     )]
     UntrustedEndpoint { endpoint: String },
     #[error(
