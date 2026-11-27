@@ -93,6 +93,13 @@ fn trusted_pin_consistent(ctx: &Ctx, envelope: &Value) -> Option<String> {
             "rights envelope pin_entry_sha256 does not match the trusted teachers registry entry for `{pin_id}`"
         ));
     }
+    if let Some(route) = pin.route.as_deref()
+        && envelope["route"].as_str() != Some(route)
+    {
+        return Some(format!(
+            "rights envelope route does not match the trusted teachers registry entry for `{pin_id}`"
+        ));
+    }
     None
 }
 
