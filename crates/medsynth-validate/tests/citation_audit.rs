@@ -231,6 +231,35 @@ fn gold_review_manifest_marks_hash_identical_gold_anchors_supported() {
 }
 
 #[test]
+fn gold_manifest_drafting_id_does_not_apply_to_unreviewed_records() {
+    let root = temp_root("unreviewed-record");
+    write_passage_cache(&root);
+    write_negative_record(&root);
+    let review_path = root.join("review-manifest.json");
+    fs::write(
+        &review_path,
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "drafting_run_id": "gold-drafting-run",
+            "records": []
+        }))
+        .expect("serialize empty review"),
+    )
+    .expect("write empty review");
+    let mut audit_options = options(&root, Some(review_path));
+    audit_options.drafting_run_id = None;
+
+    let first = run_audit(&audit_options).expect("write adjudication requests");
+    assert_eq!(first.counts.unverifiable, 3);
+    fulfill_all(&root, "supported");
+    let second = run_audit(&audit_options).expect("audit responses");
+    assert_eq!(
+        (second.counts.supported, second.counts.unverifiable),
+        (0, 3),
+        "an unrelated gold manifest must not establish adjudicator independence"
+    );
+}
+
+#[test]
 fn seeded_unsupported_fixture_is_caught_and_carries_passage_hash() {
     let root = temp_root("negative");
     write_passage_cache(&root);

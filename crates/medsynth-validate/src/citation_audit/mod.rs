@@ -411,16 +411,17 @@ fn audit_record(
     record: &RecordFile,
     state: &mut AuditState,
 ) -> anyhow::Result<()> {
+    let gold = gold_adjudication(run.review, record);
+    let drafting_run_id = run.options.drafting_run_id.clone().or_else(|| {
+        gold.as_ref()?;
+        run.review.map(|review| review.drafting_run_id().to_owned())
+    });
     let context = RecordAudit {
         record,
         options: run.options,
         access: run.access,
-        gold: gold_adjudication(run.review, record),
-        drafting_run_id: run
-            .options
-            .drafting_run_id
-            .clone()
-            .or_else(|| run.review.map(|review| review.drafting_run_id().to_owned())),
+        gold,
+        drafting_run_id,
     };
     for claim in claim_blocks_for(record.format, &record.value) {
         audit_claim(&context, &claim, state)?;

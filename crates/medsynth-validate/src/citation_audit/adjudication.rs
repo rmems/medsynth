@@ -141,7 +141,7 @@ fn quoted_evidence_spans(evidence: &str) -> Vec<String> {
 
 fn looks_like_section_title(span: &str) -> bool {
     let words = span.split_whitespace().collect::<Vec<_>>();
-    if words.len() > 8 || span.chars().any(|c| matches!(c, '.' | '!' | '?' | ';')) {
+    if words.len() > 8 || span.chars().any(|c| matches!(c, '!' | '?' | ';')) {
         return false;
     }
     words.iter().all(|word| {
@@ -337,14 +337,14 @@ mod tests {
 
     #[test]
     fn surviving_section_title_alone_does_not_validate_multi_quote_evidence() {
-        let evidence = r#"Review cites 'A Mathematical Approach to Factors Affecting Blood Flow' and 'small changes in the radius will greatly affect flow'."#;
+        let evidence = r#"Review cites '20.2 Blood Flow, Blood Pressure, and Resistance' and 'small changes in the radius will greatly affect flow'."#;
         assert!(!evidence_matches_passage(
             evidence,
-            "A Mathematical Approach to Factors Affecting Blood Flow. The replacement text no longer discusses radius."
+            "20.2 Blood Flow, Blood Pressure, and Resistance. The replacement text no longer discusses radius."
         ));
         assert!(evidence_matches_passage(
             evidence,
-            "A Mathematical Approach to Factors Affecting Blood Flow. Small changes in the radius will greatly affect flow."
+            "20.2 Blood Flow, Blood Pressure, and Resistance. Small changes in the radius will greatly affect flow."
         ));
     }
 
