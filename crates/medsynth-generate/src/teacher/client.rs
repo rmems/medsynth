@@ -253,32 +253,36 @@ fn session_binding_matches(binding: &str, response_sha256: &str, session_sha256:
     bound_session.eq_ignore_ascii_case(session_sha256)
 }
 
+fn required_id_fields(value: &Value) -> bool {
+    ["run_id", "session_id", "task_id", "raw_trace_id"]
+        .iter()
+        .all(|key| value[key].as_str().is_some_and(|id| !id.trim().is_empty()))
+}
+
+fn required_boolean_fields(value: &Value) -> bool {
+    ["completed", "partial"]
+        .iter()
+        .all(|key| value[key].is_boolean())
+}
+
+fn valid_message(message: &Value) -> bool {
+    message["role"]
+        .as_str()
+        .is_some_and(|role| !role.trim().is_empty())
+        && message["content"].is_string()
+}
+
+fn valid_messages(value: &Value) -> bool {
+    value["messages"]
+        .as_array()
+        .is_some_and(|messages| !messages.is_empty() && messages.iter().all(valid_message))
+}
+
 fn valid_session_record(session: &str) -> bool {
     let Ok(value) = serde_json::from_str::<Value>(session) else {
         return false;
     };
-    for key in ["run_id", "session_id", "task_id", "raw_trace_id"] {
-        if value[key].as_str().is_none_or(|id| id.trim().is_empty()) {
-            return false;
-        }
-    }
-    for key in ["completed", "partial"] {
-        if !value[key].is_boolean() {
-            return false;
-        }
-    }
-    let Some(messages) = value["messages"].as_array() else {
-        return false;
-    };
-    if messages.is_empty() {
-        return false;
-    }
-    messages.iter().all(|message| {
-        message["role"]
-            .as_str()
-            .is_some_and(|role| !role.trim().is_empty())
-            && message["content"].is_string()
-    })
+    required_id_fields(&value) && required_boolean_fields(&value) && valid_messages(&value)
 }
 
 fn apply_vendor_sidecar(
