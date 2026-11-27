@@ -2,7 +2,7 @@
 //! independent adjudicator says each passage supports the claim citing it.
 //!
 //! The audit separates deterministic retrieval, semantic adjudication, and
-//! reporting. OpenStax pages are fetched into a working cache outside `data/`;
+//! reporting. LibreTexts pages are fetched into a working cache outside `data/`;
 //! only passage hashes are reported. Semantic verdicts come from file-based
 //! independent adjudicator responses, or from the existing gold review manifest
 //! when its quoted evidence still matches the retrieved passage. Fetched
@@ -26,7 +26,10 @@ pub struct AccessEntry {
     pub source_id: String,
     pub license: String,
     pub retrieval: String,
-    pub book: String,
+    /// Canonical book/course root URL that every allowlisted passage URL must stay under.
+    pub base_url: String,
+    /// Exact citation locators approved for text retrieval, mapped to canonical pages.
+    pub locator_urls: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Deserialize)]

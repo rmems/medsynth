@@ -17,7 +17,7 @@ directions.
 `valid-*.json` corpus fixtures because their planted defect is semantic rather
 than structural: `negative-unsupported-mcq.json` has a well-formed registry
 citation whose key explanation asserts the wrong junction type, so the cited
-OpenStax passage does not support it. The citation-audit integration test
+replacement LibreTexts passage does not support it. The citation-audit integration test
 fulfills it as `unsupported` through the independent-adjudicator exchange and
 checks that the verdict carries the passage hash.
 

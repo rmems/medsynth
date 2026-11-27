@@ -9,23 +9,50 @@
     "anchors": []
   },
   "options": [
-    {"label": "A", "text": "A resident's private conviction about kindness"},
-    {"label": "B", "text": "A written laboratory rule requiring visitors to sign in"},
-    {"label": "C", "text": "A community's ideal of fairness"},
-    {"label": "D", "text": "An unwritten custom of waving to neighbors"}
+    {
+      "label": "A",
+      "text": "A resident's private conviction about kindness"
+    },
+    {
+      "label": "B",
+      "text": "A written laboratory rule requiring visitors to sign in"
+    },
+    {
+      "label": "C",
+      "text": "A community's ideal of fairness"
+    },
+    {
+      "label": "D",
+      "text": "An unwritten custom of waving to neighbors"
+    }
   ],
   "key": "B",
   "rationale": {
     "key_explanation": {
       "text": "Option B is a written laboratory rule requiring visitors to sign in. It is an explicit written expectation for behavior, the defining feature of a formal norm.",
-      "anchors": [{"source_id": "openstax-introduction-sociology-3e", "locator": "ch3:elements-of-culture"}]
+      "anchors": [
+        {
+          "source_id": "boundless-sociology-2018",
+          "locator": "sec3.2H:norms"
+        }
+      ]
     },
     "strongest_distractor": {
       "text": "D describes an unwritten custom, an informal rather than formal norm. A is a belief or conviction, while C is a value or ideal; neither is an explicit written behavioral rule.",
-      "anchors": [{"source_id": "openstax-introduction-sociology-3e", "locator": "ch3:elements-of-culture"}]
+      "anchors": [
+        {
+          "source_id": "boundless-sociology-2018",
+          "locator": "sec3.2H:norms"
+        }
+      ]
     }
   },
-  "provenance": {"generator": "factory-droid-draft-rm2522-v1; checklist=gold-review-v1", "model": null, "prompt_version": null, "template_version": null},
+  "provenance": {
+    "generator": "factory-droid-draft-rm2522-v1; checklist=gold-review-v1",
+    "model": null,
+    "prompt_version": null,
+    "template_version": null
+  },
   "verification_status": "unverified",
   "labels": [],
   "taxonomy_version": "0.1",

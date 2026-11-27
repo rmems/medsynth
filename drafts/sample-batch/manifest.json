@@ -1,6 +1,6 @@
 {
   "manifest_version": 1,
-  "batch_id": "batch-a5e4ee8e3540c9f6",
+  "batch_id": "batch-ad52797fd2ac3ed6",
   "seed": 2523,
   "config_sha256": "6633548d0b7f6c5e33aaf1ae07c0ff8f0c793d218ce69c1850b005e6524172da",
   "config": {
@@ -83,13 +83,14 @@
   "sources": {
     "path": "docs/sources.json",
     "version": "0.1",
-    "sha256": "39e51fcb22bbbf9affbea513e192cba1b589c046fa7283507148f1c1f34bef7f"
+    "sha256": "31bd17143cd30fe597570c579fc585c6b2c4c9343c69ca8ec87ab39c6c2424ae"
   },
   "gold": {
     "path": "data/gold",
     "version": "0.1",
-    "sha256": "e9390f77ad90648f0322b5f3a26392cecb59c8c1fdd0bd825c352c7e20569ef9"
+    "sha256": "742b6272d555e2e74f655c608ebbf98c20ed34330c67f850fbe67553dcb7f142"
   },
+  "template_version": "2",
   "teachers": {
     "path": "docs/teachers.md",
     "sha256": "14096cbf38b05af35f6f89ec561036baba2f25bb147751e9ebe3781c28b17d83",
@@ -238,7 +239,7 @@
       "tier": "foundation",
       "lane": "procedural",
       "generator": "template:fact.alveolar_epithelium",
-      "sha256": "98a9006de3f70b3b4d9d082c70f95d545c8771f2b4e2682602b998d16ad7c254",
+      "sha256": "42c6dae856ebfc311e20ba94e415f2a6df13503cc433e2f507e27227317d09ba",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -250,7 +251,7 @@
       "tier": "foundation",
       "lane": "procedural",
       "generator": "template:fact.si_unit_force",
-      "sha256": "006e5a05dfe63b21dd5db8b485fafa3a1f133a5feff02b57c83be22f4737fd74",
+      "sha256": "3dfb683bd6d2d6c2d086122ac526aa6e461360281f2a41aded65bb1f5ec4dd6e",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -262,7 +263,7 @@
       "tier": "application",
       "lane": "procedural",
       "generator": "template:calc.newtons_second_law",
-      "sha256": "9d4ed921483fd5a1580d8584ce015aec40ae068f690a96be12c892f3cbdf59af",
+      "sha256": "3376aaf57e690c5de52058074385f7eb3179b47b97ddddc7289dde2952d3fcef",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -274,7 +275,7 @@
       "tier": "application",
       "lane": "procedural",
       "generator": "template:calc.newtons_second_law",
-      "sha256": "ba360fc1881aa535388822b93a5564a9425dd821fa5936b2cb29b1ef14a79ab9",
+      "sha256": "5b2c6d29d58e3de17cbfebecb2a3163b3afefa8216d52f17182766be6c9f2552",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -286,7 +287,7 @@
       "tier": "foundation",
       "lane": "procedural",
       "generator": "template:fact.ethnocentrism",
-      "sha256": "73881d6512cd4e28fac2db592a6352d09cbe11e11933c9ca0bffcb28a8e54b1b",
+      "sha256": "8165492b2bef01e17a2f6dd14f06cd704a239b119b44e93b14f681b27b110ea8",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -298,7 +299,7 @@
       "tier": "foundation",
       "lane": "procedural",
       "generator": "template:fact.diaphragm",
-      "sha256": "553841dca4eda8243fa2b560c6d258890c16f1ac8c23b8b299583a6ebec3536f",
+      "sha256": "dd5de0f89fdc74688a0b66715f9b32233746211d4334298ae2c65a4340580b79",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -310,7 +311,7 @@
       "tier": "application",
       "lane": "procedural",
       "generator": "template:calc.half_life",
-      "sha256": "bf7f0b049761626bea92909245f0b1c066e29f713e6de19b24d3e4d0bd08aac2",
+      "sha256": "e05083d7b0b07374517cea9c6c4ee67a46b4adc31c22e94b9fc7259105d0a00e",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -322,7 +323,7 @@
       "tier": "application",
       "lane": "procedural",
       "generator": "template:calc.half_life",
-      "sha256": "04c9db0661dd32ed81b6ad369b023bc24466d92c4cc35efe734f4c573b7baa9b",
+      "sha256": "ed2f8c0950f7290a868125198b5e120f7ccf2e1473853f26dc43faccb4d2b876",
       "jsonl_file": "mcq.jsonl"
     }
   ],
@@ -333,57 +334,73 @@
   "anchor_receipts": [
     {
       "record_id": "draft-bbf-mcq-foundation-c56b05eb-000",
-      "source_id": "openstax-anatomy-physiology-2e",
-      "locator": "sec22.2:the-lungs",
-      "registry_entry_sha256": "3e299644b95a7da88b36a97f8cbb44941fa2eb62a73d720736c8a7e47da3c26a",
+      "source_id": "boundless-anatomy-physiology-2018",
+      "locator": "sec21.4A:lungs",
+      "registry_entry_sha256": "dd0b5bac1a62e6b4140d182634126b38094ab405cf0de13cf28a08baa7f7be84",
       "registry_version": "0.1",
       "occurrences": 3
     },
     {
       "record_id": "draft-bbf-mcq-foundation-c56b05eb-000",
-      "source_id": "openstax-anatomy-physiology-2e",
-      "locator": "sec4.2:epithelial-tissue",
-      "registry_entry_sha256": "3e299644b95a7da88b36a97f8cbb44941fa2eb62a73d720736c8a7e47da3c26a",
+      "source_id": "boundless-anatomy-physiology-2018",
+      "locator": "sec4.2B:types-of-epithelial-tissue",
+      "registry_entry_sha256": "dd0b5bac1a62e6b4140d182634126b38094ab405cf0de13cf28a08baa7f7be84",
       "registry_version": "0.1",
       "occurrences": 3
     },
     {
       "record_id": "draft-cpf-mcq-foundation-c56b05eb-000",
-      "source_id": "openstax-university-physics-2016",
-      "locator": "vol1:ch5:newtons-laws",
-      "registry_entry_sha256": "da175aa9d563d2778f0d953671a0c2a74873c52767c55f5b82f9b00f39e9ec3f",
+      "source_id": "ostp-introductory-physics-2019",
+      "locator": "sec2.2:units-and-dimensions",
+      "registry_entry_sha256": "3c2d9965570d47890e0ef7960854f9e7a1ad50f15cc8ea4b4c91b5d63273956c",
       "registry_version": "0.1",
       "occurrences": 3
     },
     {
       "record_id": "draft-cpf-mcq-application-c56b05eb-000",
-      "source_id": "openstax-university-physics-2016",
-      "locator": "vol1:ch5:newtons-second-law",
-      "registry_entry_sha256": "da175aa9d563d2778f0d953671a0c2a74873c52767c55f5b82f9b00f39e9ec3f",
+      "source_id": "ostp-introductory-physics-2019",
+      "locator": "sec5.5:applying-newtons-laws",
+      "registry_entry_sha256": "3c2d9965570d47890e0ef7960854f9e7a1ad50f15cc8ea4b4c91b5d63273956c",
       "registry_version": "0.1",
       "occurrences": 3
     },
     {
       "record_id": "draft-cpf-mcq-application-c56b05eb-001",
-      "source_id": "openstax-university-physics-2016",
-      "locator": "vol1:ch5:newtons-second-law",
-      "registry_entry_sha256": "da175aa9d563d2778f0d953671a0c2a74873c52767c55f5b82f9b00f39e9ec3f",
+      "source_id": "ostp-introductory-physics-2019",
+      "locator": "sec5.5:applying-newtons-laws",
+      "registry_entry_sha256": "3c2d9965570d47890e0ef7960854f9e7a1ad50f15cc8ea4b4c91b5d63273956c",
       "registry_version": "0.1",
       "occurrences": 3
     },
     {
       "record_id": "draft-psb-mcq-foundation-c56b05eb-000",
-      "source_id": "openstax-introduction-sociology-3e",
-      "locator": "ch3:elements-of-culture",
-      "registry_entry_sha256": "5e16ff95c37ca33a3e58e8b385352bfaf40768729f2476694b7e7975bffc5261",
+      "source_id": "boundless-sociology-2018",
+      "locator": "sec10.4D:assimilation",
+      "registry_entry_sha256": "b811d2d1fb23fba3de4a2a0b11606fc2bd22a75168549339965b0ba55fd37564",
+      "registry_version": "0.1",
+      "occurrences": 1
+    },
+    {
+      "record_id": "draft-psb-mcq-foundation-c56b05eb-000",
+      "source_id": "boundless-sociology-2018",
+      "locator": "sec3.1C:cultural-universals",
+      "registry_entry_sha256": "b811d2d1fb23fba3de4a2a0b11606fc2bd22a75168549339965b0ba55fd37564",
+      "registry_version": "0.1",
+      "occurrences": 1
+    },
+    {
+      "record_id": "draft-psb-mcq-foundation-c56b05eb-000",
+      "source_id": "boundless-sociology-2018",
+      "locator": "sec3.1E:ethnocentrism-and-cultural-relativism",
+      "registry_entry_sha256": "b811d2d1fb23fba3de4a2a0b11606fc2bd22a75168549339965b0ba55fd37564",
       "registry_version": "0.1",
       "occurrences": 3
     },
     {
       "record_id": "draft-pre-clinical-mcq-foundation-c56b05eb-000",
-      "source_id": "openstax-anatomy-physiology-2e",
-      "locator": "sec22.3:the-process-of-breathing",
-      "registry_entry_sha256": "3e299644b95a7da88b36a97f8cbb44941fa2eb62a73d720736c8a7e47da3c26a",
+      "source_id": "boundless-anatomy-physiology-2018",
+      "locator": "sec21.5B:inspiration",
+      "registry_entry_sha256": "dd0b5bac1a62e6b4140d182634126b38094ab405cf0de13cf28a08baa7f7be84",
       "registry_version": "0.1",
       "occurrences": 3
     },
@@ -391,7 +408,7 @@
       "record_id": "draft-pre-clinical-mcq-application-c56b05eb-000",
       "source_id": "katzung-basic-clinical-pharmacology-16e",
       "locator": "ch2:pharmacokinetics",
-      "registry_entry_sha256": "8a138e5abeacaf978d1ae5c3a1d97c2937f1f86f1174b872abf5def0927e6530",
+      "registry_entry_sha256": "26fb7792932e8f1f212d2d5b727e5b9b3881aa346365015f11d6dba69346cf3a",
       "registry_version": "0.1",
       "occurrences": 3
     },
@@ -399,7 +416,7 @@
       "record_id": "draft-pre-clinical-mcq-application-c56b05eb-001",
       "source_id": "katzung-basic-clinical-pharmacology-16e",
       "locator": "ch2:pharmacokinetics",
-      "registry_entry_sha256": "8a138e5abeacaf978d1ae5c3a1d97c2937f1f86f1174b872abf5def0927e6530",
+      "registry_entry_sha256": "26fb7792932e8f1f212d2d5b727e5b9b3881aa346365015f11d6dba69346cf3a",
       "registry_version": "0.1",
       "occurrences": 3
     }

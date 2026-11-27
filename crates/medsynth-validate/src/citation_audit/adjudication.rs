@@ -169,7 +169,7 @@ fn looks_like_section_title(span: &str) -> bool {
 
 /// Whether the gold reviewer's quoted evidence is still present in the
 /// retrieved passage. This prevents a record-level gold review from being
-/// applied to unrelated replacement text when OpenStax content changes.
+/// applied to unrelated replacement text when source passage content changes.
 /// Title-shaped quotations are ignored: a surviving heading is provenance
 /// context, not support for the claim.
 pub(crate) fn evidence_matches_passage(evidence: &str, passage: &str) -> bool {

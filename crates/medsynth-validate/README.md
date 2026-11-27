@@ -97,8 +97,8 @@ the current passage takes precedence when present. Future batches use the
 request/response exchange.
 
 The committed gold report is `reports/citation-audit/gold.json`. It was
-generated from the three OpenStax CC BY-NC-SA 4.0 sources in the access
-policy: 24 records, 104 claim blocks, 89 anchor occurrences, all supported,
-across 17 distinct retrieved passages. The access policy also carries the
-OpenStax AI-ingestion terms note; it records provenance, not a downstream
-rights determination.
+generated from the three independent CC BY-SA 4.0 LibreTexts sources in the
+access policy: 24 records, 103 claim blocks, 108 anchor occurrences, all
+supported, across 24 distinct retrieved passages. The policy records license
+provenance and exact allowlisted retrieval URLs; passage text stays out of the
+committed report.

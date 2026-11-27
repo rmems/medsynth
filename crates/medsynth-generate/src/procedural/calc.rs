@@ -105,8 +105,8 @@ fn newtons_second_law(rng: &mut SeededRng) -> CalcInstance {
             "Doubling the acceleration, adding force and mass ({force} + {mass}), or adding one to the acceleration does not follow Newton's second law; acceleration is net force divided by mass."
         ),
         anchors: &[(
-            "openstax-university-physics-2016",
-            "vol1:ch5:newtons-second-law",
+            "ostp-introductory-physics-2019",
+            "sec5.5:applying-newtons-laws",
         )],
         params: vec![
             ("mass_kg", u64::from(mass)),

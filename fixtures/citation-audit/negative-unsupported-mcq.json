@@ -8,8 +8,8 @@
     "text": "Which epithelial junction provides a passage for small molecules and ions between the cytoplasm of adjacent cells?",
     "anchors": [
       {
-        "source_id": "openstax-anatomy-physiology-2e",
-        "locator": "sec4.2:epithelial-tissue"
+        "source_id": "boundless-anatomy-physiology-2018",
+        "locator": "sec3.8B:intercellular-junctions"
       }
     ]
   },
@@ -28,7 +28,7 @@
     },
     {
       "label": "D",
-      "text": "Hemidesmosome"
+      "text": "Plasmodesma"
     }
   ],
   "key": "A",
@@ -37,17 +37,17 @@
       "text": "Option A, a tight junction, provides intercellular channels for small molecules and ions, allowing neighboring cells to communicate directly.",
       "anchors": [
         {
-          "source_id": "openstax-anatomy-physiology-2e",
-          "locator": "sec4.2:epithelial-tissue"
+          "source_id": "boundless-anatomy-physiology-2018",
+          "locator": "sec3.8B:intercellular-junctions"
         }
       ]
     },
     "strongest_distractor": {
-      "text": "B is the strongest distractor: a tight junction restricts movement between cells rather than connecting their cytoplasm. C, a desmosome, mechanically links neighboring cells; D, a hemidesmosome, attaches a cell to the basal lamina. Neither is a cytoplasmic channel.",
+      "text": "B is the strongest distractor: a tight junction restricts movement between cells rather than connecting their cytoplasm. C, a desmosome, mechanically links neighboring cells; D, a plasmodesma, is a plant-cell channel rather than an epithelial junction in animal tissue. None of these is the animal-cell gap-junction channel described in the stem.",
       "anchors": [
         {
-          "source_id": "openstax-anatomy-physiology-2e",
-          "locator": "sec4.2:epithelial-tissue"
+          "source_id": "boundless-anatomy-physiology-2018",
+          "locator": "sec3.8B:intercellular-junctions"
         }
       ]
     }

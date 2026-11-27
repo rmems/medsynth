@@ -72,8 +72,11 @@ pub const FACTS: &[Fact] = &[
         "Simple squamous epithelium is a single layer of flattened cells; its thinness supports rapid diffusion across the alveolar wall.",
         "Simple cuboidal and columnar epithelia are thicker and specialized for secretion or absorption, and stratified squamous epithelium is multilayered and protective rather than optimized for diffusion.",
         [
-            ("openstax-anatomy-physiology-2e", "sec22.2:the-lungs"),
-            ("openstax-anatomy-physiology-2e", "sec4.2:epithelial-tissue"),
+            ("boundless-anatomy-physiology-2018", "sec21.4A:lungs"),
+            (
+                "boundless-anatomy-physiology-2018",
+                "sec4.2B:types-of-epithelial-tissue"
+            ),
         ]
     ),
     fact!(
@@ -83,13 +86,17 @@ pub const FACTS: &[Fact] = &[
         Tier::Foundation,
         "A researcher evaluates a community's healing practices by the standards of the researcher's own culture and labels them inferior. This judgment best illustrates:",
         "Ethnocentrism",
-        ["Cultural relativism", "Xenocentrism", "Assimilation"],
+        ["Cultural relativism", "Cultural universal", "Assimilation"],
         "Ethnocentrism is the practice of judging another culture by the standards of one's own culture.",
-        "Cultural relativism instead evaluates a culture by its own standards, xenocentrism favors another culture over one's own, and assimilation describes adoption of a dominant culture's practices.",
-        [(
-            "openstax-introduction-sociology-3e",
-            "ch3:elements-of-culture",
-        )]
+        "Cultural relativism instead evaluates a culture in its own terms, a cultural universal is a trait common across cultures, and assimilation describes minority integration into a dominant culture.",
+        [
+            (
+                "boundless-sociology-2018",
+                "sec3.1E:ethnocentrism-and-cultural-relativism",
+            ),
+            ("boundless-sociology-2018", "sec3.1C:cultural-universals",),
+            ("boundless-sociology-2018", "sec10.4D:assimilation"),
+        ]
     ),
     fact!(
         "fact.diaphragm",
@@ -105,10 +112,7 @@ pub const FACTS: &[Fact] = &[
         ],
         "The diaphragm contracts during quiet inspiration, flattening and descending to increase thoracic volume and lower intrathoracic pressure.",
         "External intercostals assist by elevating the ribs, while the rectus abdominis and sternocleidomastoid are accessory or expiratory muscles rather than the principal driver of quiet inspiration.",
-        [(
-            "openstax-anatomy-physiology-2e",
-            "sec22.3:the-process-of-breathing",
-        )]
+        [("boundless-anatomy-physiology-2018", "sec21.5B:inspiration",)]
     ),
     fact!(
         "fact.pulmonary_artery",
@@ -122,10 +126,13 @@ pub const FACTS: &[Fact] = &[
         "The pulmonary vein returns oxygenated blood to the left atrium, the aorta carries oxygenated blood from the left ventricle, and the superior vena cava returns deoxygenated blood to the right atrium.",
         [
             (
-                "openstax-anatomy-physiology-2e",
-                "sec20.1:structure-and-function-of-blood-vessels",
+                "boundless-anatomy-physiology-2018",
+                "sec21.4C:blood-supply-to-the-lungs",
             ),
-            ("openstax-anatomy-physiology-2e", "sec19.1:heart-anatomy"),
+            (
+                "boundless-anatomy-physiology-2018",
+                "sec17.1E:great-vessels-of-the-heart"
+            ),
         ]
     ),
     fact!(
@@ -138,7 +145,10 @@ pub const FACTS: &[Fact] = &[
         ["Osteoblast", "Osteocyte", "Chondrocyte"],
         "Osteoclasts are multinucleated cells that resorb bone matrix during remodeling.",
         "Osteoblasts form new bone matrix, osteocytes maintain bone tissue, and chondrocytes produce cartilage.",
-        [("openstax-anatomy-physiology-2e", "sec6.3:bone-structure")]
+        [(
+            "boundless-anatomy-physiology-2018",
+            "sec6.4C:bone-remodeling"
+        )]
     ),
     fact!(
         "fact.posterior_pituitary",
@@ -155,8 +165,8 @@ pub const FACTS: &[Fact] = &[
         "The posterior pituitary releases antidiuretic hormone and oxytocin, which are produced in the hypothalamus.",
         "Thyroid-stimulating hormone, prolactin, and adrenocorticotropic hormone are released from the anterior pituitary.",
         [(
-            "openstax-anatomy-physiology-2e",
-            "sec17.3:the-pituitary-gland-and-hypothalamus",
+            "boundless-anatomy-physiology-2018",
+            "sec15.7D:the-posterior-pituitary",
         )]
     ),
     fact!(
@@ -181,10 +191,13 @@ pub const FACTS: &[Fact] = &[
         Tier::Foundation,
         "What is the SI unit of force?",
         "Newton",
-        ["Joule", "Pascal", "Watt"],
+        ["Joule", "Coulomb", "Watt"],
         "The newton is the SI unit of force, defined as one kilogram-meter per second squared.",
-        "The joule is the SI unit of energy, the pascal is the unit of pressure, and the watt is the unit of power.",
-        [("openstax-university-physics-2016", "vol1:ch5:newtons-laws")]
+        "The joule is the SI unit of energy, the coulomb is the unit of electric charge, and the watt is the unit of power.",
+        [(
+            "ostp-introductory-physics-2019",
+            "sec2.2:units-and-dimensions"
+        )]
     ),
     fact!(
         "fact.fundamental_attribution",
@@ -232,6 +245,12 @@ pub(crate) fn build_fact_record(
     )
     .map_err(|e| format!("template `{}`: {e}", fact.id))?;
 
+    let key_anchor_count = if fact.id == "fact.ethnocentrism" {
+        1
+    } else {
+        fact.anchors.len()
+    };
+    let key_anchors = to_anchors(&fact.anchors[..key_anchor_count])?;
     let anchors = to_anchors(fact.anchors)?;
     let record = McqRecord {
         schema_version: SchemaVersion,
@@ -241,7 +260,7 @@ pub(crate) fn build_fact_record(
         tier: cell.tier,
         stem: AnchoredText {
             text: fact.stem.to_owned(),
-            anchors: anchors.clone(),
+            anchors: key_anchors.clone(),
         },
         options,
         key,
@@ -251,7 +270,7 @@ pub(crate) fn build_fact_record(
                     "Option {key} ({}) is the best answer. {}",
                     fact.correct, fact.key_explanation
                 ),
-                anchors: anchors.clone(),
+                anchors: key_anchors,
             },
             strongest_distractor: AnchoredClaim {
                 text: format!(

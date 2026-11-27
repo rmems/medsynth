@@ -1,28 +1,71 @@
 {
-  "version": 1,
+  "version": 2,
   "purpose": "Citation-audit passage access policy. Sources absent here remain receipt-level-only and must be named unverifiable-by-design in citation-audit reports.",
-  "usage_note": "OpenStax book pages currently identify CC BY-NC-SA 4.0 and additional OpenStax terms restricting ingestion into large language models or generative AI offerings without written permission. This policy records text-access provenance only; it does not decide whether any particular adjudicator/model or downstream dataset use is permitted. That rights decision must be explicit before production reliance.",
+  "usage_note": "Replacement sources are independent open textbooks hosted by LibreTexts. Their pages declare CC BY-SA 4.0, which permits machine retrieval, adaptation, and commercial use with attribution and share-alike obligations. Unlike the removed OpenStax web pages, no noncommercial restriction or generative-AI ingestion prohibition is stated. Passage text remains a working cache only; committed reports carry hashes and URLs rather than passages. The exact locator_urls mapping is an allowlist so retrieval is limited to reviewed pages.",
   "sources": [
     {
-      "source_id": "openstax-anatomy-physiology-2e",
-      "license": "CC BY-NC-SA 4.0",
-      "retrieval": "openstax-web",
-      "book": "anatomy-and-physiology-2e",
-      "license_evidence": "https://openstax.org/details/books/anatomy-and-physiology-2e"
+      "source_id": "boundless-anatomy-physiology-2018",
+      "license": "CC BY-SA 4.0",
+      "retrieval": "libretexts-web",
+      "base_url": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)",
+      "license_evidence": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/4%3A_Organization_at_the_Tissue_Level/4.2%3A_Epithelial_Tissue/4.2A%3A_Characteristics_of_Epithelial_Tissue",
+      "locator_urls": {
+        "sec3.8B:intercellular-junctions": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/3%3A_Organization_at_the_Cellular_Level/3.8%3A_External_Cellular_Components/3.8B%3A_Intercellular_Junctions",
+        "sec4.2A:characteristics-of-epithelial-tissue": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/4%3A_Organization_at_the_Tissue_Level/4.2%3A_Epithelial_Tissue/4.2A%3A_Characteristics_of_Epithelial_Tissue",
+        "sec4.2B:types-of-epithelial-tissue": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/4%3A_Organization_at_the_Tissue_Level/4.2%3A_Epithelial_Tissue/4.2B%3A_Types_of_Epithelial_Tissue",
+        "sec15.7D:the-posterior-pituitary": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/15%3A_Endocrine_System/15.7%3A_The_Pituitary_Gland/15.7D%3A_The_Posterior_Pituitary",
+        "sec18.4A:introduction-to-blood-flow-pressure-and-resistance": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/18%3A_Cardiovascular_System%3A_Blood_Vessels/18.4%3A_Physiology_of_Circulation/18.4A%3A_Introduction_to_Blood_Flow_Pressure_and_Resistance",
+        "sec21.1A:external-respiration": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/21%3A_Respiratory_System/21.9%3A_Gas_Exchange/21.1A%3A_External_Respiration",
+        "sec21.9C:oxygen-transport": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/21%3A_Respiratory_System/21.9%3A_Gas_Exchange/21.9C%3A_Oxygen_Transport",
+        "sec22.7F:bile": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/22%3A_Digestive_System/22.07%3A_The_Liver/22.7F%3A_Bile",
+        "sec22.13B:absorption-of-lipids": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/22%3A_Digestive_System/22.13%3A_Absorption/22.13B%3A_Absorption_of_Monosaccharides_Amino_Acids_Dipeptides_Tripeptides_Lipids_Electrolytes_Vitamins_and_Water",
+        "sec25.1A:regulation-of-water-intake": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/25%3A_Body_Fluids_and_Acid-Base_Balance/25.1%3A_Water_Balance/25.1A%3A_Regulation_of_Water_Intake",
+        "sec25.1B:regulation-of-water-output": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/25%3A_Body_Fluids_and_Acid-Base_Balance/25.1%3A_Water_Balance/25.1B%3A_Regulation_of_Water_Output",
+        "sec6.4C:bone-remodeling": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/6%3A_Skeletal_System/6.4%3A_Bone_Formation/6.4C%3A_Bone_Remodeling",
+        "sec21.4A:lungs": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/21%3A_Respiratory_System/21.4%3A_The_Lungs_and_Pleurae/21.4A%3A_Lungs",
+        "sec21.4C:blood-supply-to-the-lungs": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/21%3A_Respiratory_System/21.4%3A_The_Lungs_and_Pleurae/21.4C%3A_Blood_Supply_to_the_Lungs",
+        "sec21.5B:inspiration": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/21%3A_Respiratory_System/21.5%3A_Mechanics_of_Breathing/21.5B%3A_Inspiration",
+        "sec17.1E:great-vessels-of-the-heart": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/17%3A_Cardiovascular_System%3A_The_Heart/17.1%3A_The_Heart/17.1E%3A_Great_Vessels_of_the_Heart"
+      }
     },
     {
-      "source_id": "openstax-introduction-sociology-3e",
-      "license": "CC BY-NC-SA 4.0",
-      "retrieval": "openstax-web",
-      "book": "introduction-sociology-3e",
-      "license_evidence": "https://openstax.org/details/books/introduction-sociology-3e"
+      "source_id": "boundless-sociology-2018",
+      "license": "CC BY-SA 4.0",
+      "retrieval": "libretexts-web",
+      "base_url": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)",
+      "license_evidence": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/03%3A_Culture/3.02%3A_The_Symbolic_Nature_of_Culture/3.2H%3A_Norms",
+      "locator_urls": {
+        "sec3.1B:culture-and-society": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/03%3A_Culture/3.01%3A_Culture_and_Society/3.1B%3A_Culture_and_Society",
+        "sec3.2A:the-symbolic-nature-of-culture": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/03%3A_Culture/3.02%3A_The_Symbolic_Nature_of_Culture/3.2A%3A_The_Symbolic_Nature_of_Culture",
+        "sec3.2F:gestures": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/03%3A_Culture/3.02%3A_The_Symbolic_Nature_of_Culture/3.2F%3A_Gestures",
+        "sec3.2G:values": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/03%3A_Culture/3.02%3A_The_Symbolic_Nature_of_Culture/3.2G%3A_Values",
+        "sec3.2H:norms": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/03%3A_Culture/3.02%3A_The_Symbolic_Nature_of_Culture/3.2H%3A_Norms",
+        "sec8.1A:stratification": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/08%3A_Global_Stratification_and_Inequality/8.01%3A_Systems_of_Stratification/8.1A%3A_Stratification",
+        "sec9.1A:social-class": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/09%3A_Stratification_Inequality_and_Social_Class_in_the_U.S./9.01%3A_Social_Class/9.1A%3A_Social_Class",
+        "sec9.2C:wealth": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/09%3A_Stratification_Inequality_and_Social_Class_in_the_U.S./9.02%3A_Social_Class_in_the_U.S./9.2C%3A_Wealth",
+        "sec9.5B:physical-health": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/09%3A_Stratification_Inequality_and_Social_Class_in_the_U.S./9.05%3A_The_Impacts_of_Social_Class/9.5B%3A_Physical_Health",
+        "sec19.1D:social-class-and-health": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/19%3A_Health_and_Illness/19.01%3A_The_Experience_of_Illness/19.1D%3A_Social_Class_and_Health",
+        "sec3.1E:ethnocentrism-and-cultural-relativism": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/03%3A_Culture/3.01%3A_Culture_and_Society/3.1E%3A_Ethnocentrism_and_Cultural_Relativism",
+        "sec3.1C:cultural-universals": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/03%3A_Culture/3.01%3A_Culture_and_Society/3.1C%3A_Cultural_Universals",
+        "sec10.4D:assimilation": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/10%3A_Race_and_Ethnicity/10.04%3A_Prejudice_and_Discrimination/10.4D%3A_Assimilation"
+      }
     },
     {
-      "source_id": "openstax-university-physics-2016",
-      "license": "CC BY-NC-SA 4.0",
-      "retrieval": "openstax-web",
-      "book": "university-physics-volume-{volume}",
-      "license_evidence": "https://openstax.org/details/books/university-physics-volume-1"
+      "source_id": "ostp-introductory-physics-2019",
+      "license": "CC BY-SA 4.0",
+      "retrieval": "libretexts-web",
+      "base_url": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)",
+      "license_evidence": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/15%3A_Fluid_Mechanics/15.04%3A_Summary",
+      "locator_urls": {
+        "sec5.1:newtons-three-laws": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/05%3A_Newtons_Laws/5.01%3A_Newtons_Three_Laws",
+        "sec5.5:applying-newtons-laws": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/05%3A_Newtons_Laws/5.05%3A_Applying_Newtons_Laws",
+        "sec14.2:mathematical-description-of-a-wave": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/14%3A_Waves/14.02%3A_Mathematical_Description_of_a_Wave",
+        "sec14.4:the-speed-of-a-wave": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/14%3A_Waves/14.04%3A_The_speed_of_a_wave",
+        "sec15.1:pressure": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/15%3A_Fluid_Mechanics/15.01%3A_Pressure",
+        "sec15.3:hydrodynamics": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/15%3A_Fluid_Mechanics/15.03%3A_Hydrodynamics",
+        "sec2.2:units-and-dimensions": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/02%3A_Comparing_Model_and_Experiment/2.02%3A_Units_and_dimensions",
+        "sec5.2:force": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/05%3A_Newtons_Laws/5.02%3A_Force"
+      }
     }
   ]
 }

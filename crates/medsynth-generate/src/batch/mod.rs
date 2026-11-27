@@ -30,6 +30,7 @@ use crate::manifest::{
     Totals, anchor_receipts, batch_id, pin_summary,
 };
 use crate::matrix::{CoverageMatrix, domain_slug, tier_slug};
+use crate::procedural::TEMPLATE_VERSION;
 use crate::record::GeneratedRecord;
 use crate::registry::SourceRegistry;
 use crate::teacher::{PreparedTeacher, TeacherClient, TeacherError, TeacherPinRegistry, prepare};
@@ -488,6 +489,7 @@ fn build_manifest(plan: &BatchPlan, lane: &TeacherLane, parts: ManifestParts<'_>
         taxonomy_sha256: &plan.matrix.sha256,
         sources_sha256: &plan.registry.file_sha256,
         gold_sha256: plan.gold.corpus_sha256(),
+        template_version: TEMPLATE_VERSION,
         pin_entry_sha256: lane
             .pin_ref
             .as_ref()
@@ -518,6 +520,7 @@ fn build_manifest(plan: &BatchPlan, lane: &TeacherLane, parts: ManifestParts<'_>
                 .map(|pins| pins.pins().map(pin_summary).collect())
                 .unwrap_or_default(),
         },
+        template_version: TEMPLATE_VERSION.to_owned(),
         gold: DocumentRef {
             path: display_path(&plan.paths.gold),
             version: crate::CONTRACT_VERSION.to_owned(),

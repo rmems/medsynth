@@ -54,24 +54,24 @@ source.
 | `macromolecules` | `bbf` | `lippincott-biochem-9e`, `mol-bio-cell-6e`, `mol-bio-cell-7e` |
 | `cell_function` | `bbf` | `mol-bio-cell-6e`, `mol-bio-cell-7e` |
 | `cell_processes` | `bbf` | `campbell-biology-13e`, `campbell-biology-12e`, `mol-bio-cell-6e`, `mol-bio-cell-7e` |
-| `system_interactions` | `bbf` | `campbell-biology-13e`, `campbell-biology-12e`, `mol-bio-cell-6e`, `mol-bio-cell-7e`, `openstax-anatomy-physiology-2e` |
-| `animal_structure` | `bbf` | `campbell-biology-13e`, `campbell-biology-12e`, `openstax-anatomy-physiology-2e` |
+| `system_interactions` | `bbf` | `campbell-biology-13e`, `campbell-biology-12e`, `mol-bio-cell-6e`, `mol-bio-cell-7e`, `boundless-anatomy-physiology-2018` |
+| `animal_structure` | `bbf` | `campbell-biology-13e`, `campbell-biology-12e`, `boundless-anatomy-physiology-2018` |
 | `translation` | `cpf` | `chemistry-central-science-15e` |
-| `properties_of_matter` | `cpf` | `chemistry-central-science-15e`, `openstax-university-physics-2016` |
-| `transmission` | `cpf` | `openstax-university-physics-2016` |
-| `mechanics` | `cpf` | `openstax-university-physics-2016` |
+| `properties_of_matter` | `cpf` | `chemistry-central-science-15e`, `ostp-introductory-physics-2019` |
+| `transmission` | `cpf` | `ostp-introductory-physics-2019` |
+| `mechanics` | `cpf` | `ostp-introductory-physics-2019` |
 | `development` | `psb` | `myers-psychology-14e` |
-| `socioeconomic` | `psb` | `openstax-introduction-sociology-3e` |
-| `culture_identity` | `psb` | `openstax-introduction-sociology-3e` |
+| `socioeconomic` | `psb` | `boundless-sociology-2018` |
+| `culture_identity` | `psb` | `boundless-sociology-2018` |
 | `psychology` | `psb` | `myers-psychology-14e` |
-| `environment` | `psb` | `myers-psychology-14e`, `openstax-introduction-sociology-3e` |
-| `cardiovascular` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `braunwald-heart-disease-12e`, `acc-aha-af-guideline-2023`, `robbins-kumar-basic-pathology-11e` |
-| `respiratory` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
-| `renal` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
-| `gastrointestinal` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
-| `endocrine` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `ada-standards-diabetes-2025`, `robbins-kumar-basic-pathology-11e` |
-| `neurology` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `harrison-principles-22e`, `harrison-principles-21e`, `adams-victor-neurology-12e`, `robbins-kumar-basic-pathology-11e` |
-| `musculoskeletal` | `pre_clinical` | `openstax-anatomy-physiology-2e`, `harrison-principles-22e`, `harrison-principles-21e`, `firestein-kelley-rheumatology-12e`, `robbins-kumar-basic-pathology-11e` |
+| `environment` | `psb` | `myers-psychology-14e`, `boundless-sociology-2018` |
+| `cardiovascular` | `pre_clinical` | `boundless-anatomy-physiology-2018`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `braunwald-heart-disease-12e`, `acc-aha-af-guideline-2023`, `robbins-kumar-basic-pathology-11e` |
+| `respiratory` | `pre_clinical` | `boundless-anatomy-physiology-2018`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
+| `renal` | `pre_clinical` | `boundless-anatomy-physiology-2018`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
+| `gastrointestinal` | `pre_clinical` | `boundless-anatomy-physiology-2018`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e` |
+| `endocrine` | `pre_clinical` | `boundless-anatomy-physiology-2018`, `guyton-hall-physiology-14e`, `guyton-hall-physiology-15e`, `harrison-principles-22e`, `harrison-principles-21e`, `ada-standards-diabetes-2025`, `robbins-kumar-basic-pathology-11e` |
+| `neurology` | `pre_clinical` | `boundless-anatomy-physiology-2018`, `harrison-principles-22e`, `harrison-principles-21e`, `adams-victor-neurology-12e`, `robbins-kumar-basic-pathology-11e` |
+| `musculoskeletal` | `pre_clinical` | `boundless-anatomy-physiology-2018`, `harrison-principles-22e`, `harrison-principles-21e`, `firestein-kelley-rheumatology-12e`, `robbins-kumar-basic-pathology-11e` |
 | `hematology_oncology` | `pre_clinical` | `harrison-principles-22e`, `harrison-principles-21e`, `williams-hematology-10e`, `robbins-kumar-basic-pathology-11e` |
 | `infectious_disease` | `pre_clinical` | `harrison-principles-22e`, `harrison-principles-21e`, `robbins-kumar-basic-pathology-11e`, `sherris-medical-microbiology-7e`, `sherris-medical-microbiology-8e`, `idsa-iai-update-2024` |
 | `pharmacology_principles` | `pre_clinical` | `harrison-principles-22e`, `harrison-principles-21e`, `katzung-basic-clinical-pharmacology-16e` |
@@ -160,24 +160,20 @@ source.
   authoritative for macromolecule structure/function, cell physiology, and
   cell-cell and tissue interactions.
 
-### `openstax-anatomy-physiology-2e`
+### `boundless-anatomy-physiology-2018`
 
-- **Bibliographic identity:** *Anatomy and Physiology*, 2nd ed. — J. Gordon
-  Betts, Peter Desaix, Eddie Johnson, Jody E. Johnson, Oksana Korol, Dean
-  Kruse, Brandon Poe, James A. Wise, Mark Womble, Kelly A. Young; OpenStax
-  (issuing body); OpenStax / Rice University; 2022.
+- **Bibliographic identity:** *Anatomy and Physiology (Boundless)* — Boundless (now Lumen Learning);
+  LibreTexts Medicine; LibreTexts compilation; 2018.
 - **Kind:** textbook
 - **Status:** current
 - **Coverage:** `animal_structure`, `system_interactions`, `cardiovascular`, `respiratory`, `renal`, `gastrointestinal`, `endocrine`, `neurology`, `musculoskeletal`
-- **Locator convention:** `ch<N>:<section-slug>` or `sec<N>.<M>:<section-slug>`
-  — the book is organized into units of numbered chapters; cite the chapter
-  number plus a section slug, or section number within the chapter. Examples:
-  `ch19:cardiac-cycle`, `ch20:circulatory-pathways`.
+- **Locator convention:** `sec<N>[.<M>][A-Z]:<section-slug>` — LibreTexts
+  section number from the book table of contents, including a lettered
+  subsection suffix when present, plus a lowercase hyphenated section slug.
+  Exact retrievable locators are rights-allowlisted in
+  `docs/citation-access.json`. Examples: `sec4.2A:characteristics-of-epithelial-tissue`, `sec25.1B:regulation-of-water-output`.
 - **Added by:** rmems
-- **Rationale:** Widely adopted open anatomy and physiology text organized by
-  body system; provides the structural and organ-system basis for
-  animal_structure and the pre-clinical systems.
-
+- **Rationale:** Independent openly licensed anatomy and physiology textbook hosted by LibreTexts; replaces the removed OpenStax dependency for basic tissue, organ-system, and pre-clinical physiology anchors.
 ### `chemistry-central-science-15e`
 
 - **Bibliographic identity:** *Chemistry: The Central Science*, 15th ed. —
@@ -195,23 +191,20 @@ source.
   matter, measurement, bonding, and the chemical principles MCAT
   chemical-physical foundations build on.
 
-### `openstax-university-physics-2016`
+### `ostp-introductory-physics-2019`
 
-- **Bibliographic identity:** *University Physics (Volumes 1–3)* — William
-  Moebs, Samuel J. Ling, Jeff Sanny; OpenStax (issuing body); OpenStax /
-  Rice University; Volumes 1–3; 2016.
+- **Bibliographic identity:** *Introductory Physics: Building Models to Describe Our World* — Ryan D. Martin, Emma Neary, Joshua Rinaldo, Olivia Woodman;
+  Open Scholarship in Teaching and Learning / LibreTexts Physics; First revision; 2019.
 - **Kind:** textbook
 - **Status:** current
 - **Coverage:** `mechanics`, `transmission`, `properties_of_matter`
-- **Locator convention:** `vol<N>:ch<N>:<section-slug>` — physics is split
-  across three volumes; cite the volume number, then chapter number and
-  section slug as in the print or web table of contents. Examples:
-  `vol1:ch16:wave-speed`, `vol3:ch1:law-of-reflection`.
+- **Locator convention:** `sec<N>[.<M>][A-Z]:<section-slug>` — LibreTexts
+  section number from the book table of contents, including a lettered
+  subsection suffix when present, plus a lowercase hyphenated section slug.
+  Exact retrievable locators are rights-allowlisted in
+  `docs/citation-access.json`. Examples: `sec5.1:newtons-three-laws`, `sec15.1:pressure`.
 - **Added by:** rmems
-- **Rationale:** Standard calculus-based physics reference; covers mechanics,
-  oscillations, waves, electricity and magnetism, and optics — the
-  transmission and mechanics foundations of the CPF domain.
-
+- **Rationale:** Independent openly licensed calculus-based physics textbook hosted by LibreTexts; replaces the removed OpenStax physics dependency for mechanics, fluids, waves, and quantitative model reasoning.
 ### `myers-psychology-14e`
 
 - **Bibliographic identity:** *Psychology*, 14th ed. — David G. Myers,
@@ -228,22 +221,20 @@ source.
   lifespan development, learning and social behavior, and environmental
   influences on behavior.
 
-### `openstax-introduction-sociology-3e`
+### `boundless-sociology-2018`
 
-- **Bibliographic identity:** *Introduction to Sociology*, 3rd ed. — Tonja R.
-  Conerly, Kathleen Holmes, Asha Lal Tamang; OpenStax (issuing body);
-  OpenStax / Rice University; 2021.
+- **Bibliographic identity:** *Sociology (Boundless)* — Boundless (now Lumen Learning);
+  LibreTexts Social Sciences; LibreTexts compilation; 2018.
 - **Kind:** textbook
 - **Status:** current
 - **Coverage:** `socioeconomic`, `culture_identity`, `environment`
-- **Locator convention:** `ch<N>:<section-slug>` — chapter number from the
-  table of contents plus a lowercase hyphenated slug for the section.
-  Examples: `ch8:social-stratification`, `ch12:gender-sexuality`.
+- **Locator convention:** `sec<N>[.<M>][A-Z]:<section-slug>` — LibreTexts
+  section number from the book table of contents, including a lettered
+  subsection suffix when present, plus a lowercase hyphenated section slug.
+  Exact retrievable locators are rights-allowlisted in
+  `docs/citation-access.json`. Examples: `sec3.2H:norms`, `sec9.2C:wealth`.
 - **Added by:** rmems
-- **Rationale:** Standard open introductory sociology text; authoritative for
-  social stratification, education and poverty, culture, language, and
-  identity.
-
+- **Rationale:** Independent openly licensed introductory sociology textbook hosted by LibreTexts; replaces the removed OpenStax sociology dependency for culture, stratification, inequality, health, and environmental-hazard anchors.
 ### `guyton-hall-physiology-14e`
 
 - **Bibliographic identity:** *Guyton and Hall Textbook of Medical
