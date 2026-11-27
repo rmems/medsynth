@@ -35,6 +35,9 @@ pub struct TeacherRequest {
     pub pin_id: String,
     /// The pinned variant, for the same reason.
     pub pin_variant: String,
+    /// Ask a gateway route to include machine-readable vendor routing
+    /// metadata in its response body.
+    pub include_routing_metadata: bool,
 }
 
 /// The teacher's raw text output.
@@ -45,6 +48,9 @@ pub struct TeacherCompletion {
     /// carry dated names while providers answer with an alias; capturing it
     /// keeps the draft's rights envelope honest about what served the draft.
     pub served_model: Option<String>,
+    /// The execution vendor reported by a gateway (`routing.vendor_used` or
+    /// an equivalent top-level vendor field), when present.
+    pub served_vendor: Option<String>,
 }
 
 /// A teacher fulfillment source. Production uses [`RecordedTeacherClient`];
@@ -56,7 +62,7 @@ pub trait TeacherClient {
 /// Serialize `request` as the OpenAI-compatible chat-completion body that
 /// identifies the fulfillment.
 fn request_body(request: &TeacherRequest) -> Value {
-    json!({
+    let mut body = json!({
         "model": request.model,
         "messages": [
             {"role": "system", "content": request.system},
@@ -71,7 +77,11 @@ fn request_body(request: &TeacherRequest) -> Value {
             "batch_seed": request.batch_seed
         },
         "response_format": {"type": "json_object"}
-    })
+    });
+    if request.include_routing_metadata {
+        body["include_routing_metadata"] = json!(true);
+    }
+    body
 }
 
 /// The exact bytes written to `<key>.request.json`.
@@ -173,9 +183,16 @@ pub fn parse_chat_completion(value: &Value) -> Result<TeacherCompletion, Teacher
         .get("model")
         .and_then(Value::as_str)
         .map(str::to_owned);
+    let served_vendor = value
+        .get("routing")
+        .and_then(|routing| routing.get("vendor_used").or_else(|| routing.get("vendor")))
+        .and_then(Value::as_str)
+        .or_else(|| value.get("vendor").and_then(Value::as_str))
+        .map(str::to_owned);
     Ok(TeacherCompletion {
         content: content.to_owned(),
         served_model,
+        served_vendor,
     })
 }
 
@@ -221,6 +238,7 @@ mod tests {
             batch_seed: 0,
             pin_id: "deepseek-v4.1-flash".to_owned(),
             pin_variant: "DeepSeek-V4.1-Flash-1017".to_owned(),
+            include_routing_metadata: false,
         }
     }
 
@@ -239,6 +257,7 @@ mod tests {
             serde_json::from_str(&std::fs::read_to_string(&request_path).unwrap()).unwrap();
         assert_eq!(body["model"], "deepseek-flash");
         assert_eq!(body["response_format"]["type"], "json_object");
+        assert!(body.get("include_routing_metadata").is_none());
         // The key a harness derives by hashing the request file itself.
         assert_eq!(
             fulfillment_key(&request()),
@@ -300,6 +319,34 @@ mod tests {
             fulfillment_key(&other),
             "a revised pin cannot reuse the old response"
         );
+    }
+
+    #[test]
+    fn merge_requests_ask_for_and_parse_routing_vendor_metadata() {
+        let dir = FulfillmentDir::new("routing");
+        let client = RecordedTeacherClient::new(dir.path.clone()).unwrap();
+        let mut request = request();
+        request.include_routing_metadata = true;
+        let _ = client.complete(&request);
+        let key = fulfillment_key(&request);
+        let body: Value = serde_json::from_str(
+            &std::fs::read_to_string(dir.path.join(format!("{key}.request.json"))).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(body["include_routing_metadata"], true);
+
+        std::fs::write(
+            dir.path.join(format!("{key}.response.json")),
+            json!({
+                "model": "deepseek/deepseek-v4.1-flash-1017",
+                "routing": {"vendor_used": "deepseek"},
+                "choices": [{"message": {"content": "{\"ok\":true}"}}]
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let completion = client.complete(&request).unwrap();
+        assert_eq!(completion.served_vendor.as_deref(), Some("deepseek"));
     }
 
     #[test]

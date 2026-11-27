@@ -25,6 +25,9 @@ pub enum PinLane {
 pub struct TeacherPin {
     pub pin_id: String,
     pub provider: String,
+    /// The dispatch route the external harness uses (for example Merge
+    /// Gateway or a provider-direct API).
+    pub route: String,
     pub family: String,
     pub variant: String,
     pub model_id: String,
@@ -41,6 +44,14 @@ pub struct TeacherPin {
     pub terms_date: String,
     pub terms_url: String,
     pub terms_clause: String,
+    /// Route terms are separate when a gateway rather than the model
+    /// provider serves the API call. Direct-provider pins may leave these
+    /// blank; Merge Gateway pins may not.
+    pub route_terms_document: String,
+    pub route_terms_version: String,
+    pub route_terms_date: String,
+    pub route_terms_url: String,
+    pub route_terms_clause: String,
     pub permits_distillation: Option<bool>,
     pub permits_synthetic_data: Option<bool>,
     pub snapshot_date: String,
@@ -59,6 +70,7 @@ impl TeacherPin {
         for (name, value) in [
             ("pin_id", self.pin_id.as_str()),
             ("provider", self.provider.as_str()),
+            ("route", self.route.as_str()),
             ("family", self.family.as_str()),
             ("variant", self.variant.as_str()),
             ("model_id", self.model_id.as_str()),
@@ -73,6 +85,19 @@ impl TeacherPin {
         ] {
             if value.trim().is_empty() {
                 missing.push(name);
+            }
+        }
+        if endpoint_is_merge_gateway(&self.endpoint) {
+            for (name, value) in [
+                ("route_terms_document", self.route_terms_document.as_str()),
+                ("route_terms_version", self.route_terms_version.as_str()),
+                ("route_terms_date", self.route_terms_date.as_str()),
+                ("route_terms_url", self.route_terms_url.as_str()),
+                ("route_terms_clause", self.route_terms_clause.as_str()),
+            ] {
+                if value.trim().is_empty() {
+                    missing.push(name);
+                }
             }
         }
         if self.lane.is_none() {
@@ -178,7 +203,7 @@ impl TeacherPinRegistry {
 const RESEARCH_ONLY_KEYS: &[&str] = &["claude", "anthropic", "grok", "xai"];
 
 /// Teacher families approved under the standing distillation rule.
-const APPROVED_FAMILIES: &[&str] = &["deepseek", "nvidia-nemotron", "nemotron"];
+const APPROVED_FAMILIES: &[&str] = &["deepseek", "nvidia-nemotron", "nemotron", "xiaomi-mimo"];
 
 fn is_research_only_name(pin: &TeacherPin) -> bool {
     [&pin.family, &pin.provider].iter().any(|name| {
@@ -219,7 +244,22 @@ fn require_approved_family(pin: &TeacherPin) -> Result<(), TeacherError> {
 /// Endpoint hosts the external harness may dispatch to. The pin document is
 /// what the harness follows, so a pin pointing anywhere else is refused —
 /// the credential the harness holds must never be aimed at an untrusted host.
-const TRUSTED_ENDPOINT_HOSTS: &[&str] = &["api.deepseek.com", "integrate.api.nvidia.com"];
+const TRUSTED_ENDPOINT_HOSTS: &[&str] = &[
+    "api.deepseek.com",
+    "integrate.api.nvidia.com",
+    "api-gateway.merge.dev",
+];
+
+fn endpoint_is_merge_gateway(endpoint: &str) -> bool {
+    endpoint_host_matches(endpoint, "api-gateway.merge.dev")
+}
+
+fn endpoint_host_matches(endpoint: &str, host: &str) -> bool {
+    let endpoint = endpoint.to_ascii_lowercase();
+    endpoint.starts_with("https://")
+        && endpoint[8..].starts_with(host)
+        && endpoint[8 + host.len()..].starts_with('/')
+}
 
 fn require_trusted_endpoint(pin: &TeacherPin) -> Result<(), TeacherError> {
     let endpoint = pin.endpoint.to_ascii_lowercase();
@@ -308,6 +348,7 @@ fn parse_pin(entry_text: &str) -> Result<TeacherPin, TeacherError> {
     Ok(TeacherPin {
         pin_id: get("pin_id"),
         provider: get("provider"),
+        route: get("route"),
         family: get("family"),
         variant: get("variant"),
         model_id: get("model_id"),
@@ -319,6 +360,11 @@ fn parse_pin(entry_text: &str) -> Result<TeacherPin, TeacherError> {
         terms_date: get("terms_date"),
         terms_url: get("terms_url"),
         terms_clause: get("terms_clause"),
+        route_terms_document: get("route_terms_document"),
+        route_terms_version: get("route_terms_version"),
+        route_terms_date: get("route_terms_date"),
+        route_terms_url: get("route_terms_url"),
+        route_terms_clause: get("route_terms_clause"),
         permits_distillation: parse_bool(&get("permits_distillation")),
         permits_synthetic_data: parse_bool(&get("permits_synthetic_data")),
         snapshot_date: get("snapshot_date"),

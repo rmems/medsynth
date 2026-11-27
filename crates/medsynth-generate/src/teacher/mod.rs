@@ -31,7 +31,7 @@ pub enum TeacherError {
     )]
     ResearchOnly(String),
     #[error(
-        "teacher lane refused: family `{family}` is not an approved teacher family (DeepSeek or Nemotron 3 only)"
+        "teacher lane refused: family `{family}` is not an approved teacher family (DeepSeek, MiMo, or Nemotron 3 only)"
     )]
     IneligibleFamily { family: String },
     #[error(
@@ -39,7 +39,7 @@ pub enum TeacherError {
     )]
     TermsDoNotPermit { pin_id: String },
     #[error(
-        "teacher lane refused: pin endpoint `{endpoint}` is not an approved provider host (api.deepseek.com or integrate.api.nvidia.com)"
+        "teacher lane refused: pin endpoint `{endpoint}` is not an approved provider host (api.deepseek.com, integrate.api.nvidia.com, or api-gateway.merge.dev)"
     )]
     UntrustedEndpoint { endpoint: String },
     #[error(
