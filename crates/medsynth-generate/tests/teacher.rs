@@ -524,6 +524,29 @@ impl TeacherClient for FakeTeacher {
     }
 }
 
+/// Test harness that fulfills each request with the recorded fixture matching
+/// the requested format, as the external recorded-response harness would.
+struct FormatFixtureTeacher;
+
+impl TeacherClient for FormatFixtureTeacher {
+    fn complete(&self, request: &TeacherRequest) -> Result<TeacherCompletion, TeacherError> {
+        let fixture = if request.user.contains("- format: case_vignette") {
+            "vignette_response.json"
+        } else if request.user.contains("- format: tutoring_example") {
+            "tutoring_response.json"
+        } else {
+            "mcq_response.json"
+        };
+        Ok(TeacherCompletion {
+            content: fixture_content(fixture),
+            served_model: Some("deepseek-flash".to_owned()),
+            served_vendor: Some("deepseek".to_owned()),
+            session_file: Some(format!("{fixture}.session.json")),
+            session_sha256: Some(format!("{fixture}-session-sha256")),
+        })
+    }
+}
+
 fn teacher_run_config(cells: Value) -> Value {
     json!({
         "seed": 11u64,
@@ -819,5 +842,90 @@ fn refused_teacher_lane_still_runs_the_procedural_lane() {
             procedural.produced,
         ),
         ("lane_refused", 0, 1)
+    );
+}
+
+#[test]
+fn teacher_batch_produces_schema_valid_drafts_across_all_three_formats() {
+    let cells = json!([
+        {
+            "domain": "bbf",
+            "format": "mcq",
+            "tier": "foundation",
+            "count": 1,
+            "lane": "teacher",
+            "subdomain": "animal_structure"
+        },
+        {
+            "domain": "pre_clinical",
+            "format": "case_vignette",
+            "tier": "application",
+            "count": 1,
+            "lane": "teacher",
+            "subdomain": "endocrine"
+        },
+        {
+            "domain": "bbf",
+            "format": "tutoring_example",
+            "tier": "foundation",
+            "count": 1,
+            "lane": "teacher",
+            "subdomain": "animal_structure"
+        }
+    ]);
+    let config = teacher_run_config(cells);
+    let dir = TempDir::new("teacher-all-formats");
+    let config_path = write_config(&dir, &config);
+    let plan = load_plan(&plan_paths(&config_path), None).unwrap();
+    let factory = |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
+        Ok(Box::new(FormatFixtureTeacher))
+    };
+    let options = ExecuteOptions {
+        lane_filter: LaneFilter::All,
+        teacher_client_factory: &factory,
+    };
+    let output = execute(&plan, &options).unwrap();
+
+    assert!(output.lane_error.is_none());
+    assert_eq!(output.records.len(), 3);
+    assert_eq!(output.manifest.rights_envelopes.len(), 3);
+    assert_eq!(output.manifest.dropped_by_self_validation, 0);
+    assert_eq!(output.manifest.dropped_by_generation, 0);
+    let formats: BTreeSet<_> = output
+        .records
+        .iter()
+        .map(|record| record.record.format().slug())
+        .collect();
+    assert_eq!(
+        formats,
+        BTreeSet::from(["case_vignette", "mcq", "tutoring_example"])
+    );
+    assert!(output.records.iter().all(|record| {
+        record.record.verification_status() == medsynth_schema::VerificationStatus::Unverified
+    }));
+}
+
+#[test]
+fn deepseek_pilot_config_is_valid_and_covers_all_formats() {
+    let root = workspace_root();
+    let plan = load_plan(
+        &plan_paths(&root.join("drafts/deepseek-pilot/config.json")),
+        None,
+    )
+    .unwrap();
+    let formats: BTreeSet<_> = plan.config.cells.iter().map(|cell| cell.format).collect();
+    assert_eq!(
+        formats,
+        BTreeSet::from([Format::Mcq, Format::CaseVignette, Format::TutoringExample,])
+    );
+    assert!(
+        plan.config
+            .cells
+            .iter()
+            .all(|cell| cell.lane == Lane::Teacher && cell.count == 2)
+    );
+    assert_eq!(
+        plan.config.teacher.as_ref().unwrap().pin_id,
+        "deepseek-v4.1-flash"
     );
 }

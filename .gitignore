@@ -2,6 +2,11 @@
 /drafts/*
 !/drafts/sample-batch
 !/drafts/sample-batch/**
+!/drafts/deepseek-pilot
+!/drafts/deepseek-pilot/config.json
+!/drafts/deepseek-pilot/README.md
+/drafts/deepseek-pilot/*.jsonl
+/drafts/deepseek-pilot/manifest.json
 .qlty/logs
 .qlty/out
 .qlty/results

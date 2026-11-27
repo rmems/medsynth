@@ -96,6 +96,11 @@ cargo run -p medsynth-generate -- run \
   --config drafts/sample-batch/config.json --out drafts/sample-batch
 ```
 
+`drafts/deepseek-pilot/config.json` is the target list for the first real
+DeepSeek/Hermes teacher pilot. It intentionally ships without teacher output
+until the external fulfillment harness supplies recorded responses and session
+provenance.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md) — the content contract is binding on
 every contribution.
 
