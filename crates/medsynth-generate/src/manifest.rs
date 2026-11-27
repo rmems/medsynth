@@ -193,14 +193,7 @@ pub struct RightsEnvelope {
 }
 
 impl RightsEnvelope {
-    /// Build an envelope, or fail if any piece is missing. A draft whose
-    /// envelope would be incomplete is dropped rather than written.
-    pub fn build(
-        record_id: &str,
-        raw: &str,
-        pin: &TeacherPin,
-        serving: ServingMetadata<'_>,
-    ) -> Result<Self, String> {
+    fn validate_pin(record_id: &str, pin: &TeacherPin) -> Result<(), String> {
         if record_id.trim().is_empty() {
             return Err("rights envelope: blank record id".to_owned());
         }
@@ -216,28 +209,50 @@ impl RightsEnvelope {
         if pin.entry_text.trim().is_empty() || pin.entry_sha256.trim().is_empty() {
             return Err("rights envelope: missing docs/teachers.md pin entry".to_owned());
         }
-        let gateway = pin.uses_merge_gateway();
-        let serving_vendor = if gateway {
-            serving
-                .vendor
-                .filter(|vendor| !vendor.trim().is_empty())
-                .ok_or_else(|| {
-                    "rights envelope: Merge Gateway response lacks routing vendor metadata"
-                        .to_owned()
-                })?
-                .to_owned()
-        } else {
-            pin.provider.clone()
-        };
-        let hermes = pin.route.to_ascii_lowercase().contains("hermes");
-        if hermes
-            && (serving.session_file.is_none_or(|v| v.trim().is_empty())
-                || serving.session_sha256.is_none_or(|v| v.trim().is_empty()))
-        {
-            return Err(
-                "rights envelope: Hermes response lacks session-record provenance".to_owned(),
-            );
+        Ok(())
+    }
+
+    fn serving_vendor(pin: &TeacherPin, serving: &ServingMetadata<'_>) -> Result<String, String> {
+        if !pin.uses_merge_gateway() {
+            return Ok(pin.provider.clone());
         }
+        serving
+            .vendor
+            .filter(|vendor| !vendor.trim().is_empty())
+            .map(str::to_owned)
+            .ok_or_else(|| {
+                "rights envelope: Merge Gateway response lacks routing vendor metadata".to_owned()
+            })
+    }
+
+    fn validate_hermes_session(
+        pin: &TeacherPin,
+        serving: &ServingMetadata<'_>,
+    ) -> Result<(), String> {
+        if !pin.route.to_ascii_lowercase().contains("hermes") {
+            return Ok(());
+        }
+        let complete = [serving.session_file, serving.session_sha256]
+            .into_iter()
+            .flatten()
+            .all(|value| !value.trim().is_empty());
+        if complete {
+            return Ok(());
+        }
+        Err("rights envelope: Hermes response lacks session-record provenance".to_owned())
+    }
+
+    /// Build an envelope, or fail if any piece is missing. A draft whose
+    /// envelope would be incomplete is dropped rather than written.
+    pub fn build(
+        record_id: &str,
+        raw: &str,
+        pin: &TeacherPin,
+        serving: ServingMetadata<'_>,
+    ) -> Result<Self, String> {
+        Self::validate_pin(record_id, pin)?;
+        let serving_vendor = Self::serving_vendor(pin, &serving)?;
+        Self::validate_hermes_session(pin, &serving)?;
         Ok(Self {
             record_id: record_id.to_owned(),
             teacher_variant: pin.variant.clone(),

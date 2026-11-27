@@ -390,93 +390,63 @@ fn closing_fence_must_be_at_least_as_long_as_the_opening_fence() {
     assert!(parse_completion_json(Format::Mcq, &short_close).is_err());
 }
 
+fn serving_metadata<'a>(
+    vendor: Option<&'a str>,
+    session_file: Option<&'a str>,
+    session_sha256: Option<&'a str>,
+) -> ServingMetadata<'a> {
+    ServingMetadata {
+        model: None,
+        vendor,
+        session_file,
+        session_sha256,
+    }
+}
+
 #[test]
 fn rights_envelope_requires_every_piece() {
     let pins = docs_pins();
     let mut pin = pins.ensure_teacher("deepseek-v4.1-flash").unwrap().clone();
     let raw = "{\"id\":\"draft-test-000\"}";
-    let envelope = RightsEnvelope::build(
-        "draft-test-000",
-        raw,
-        &pin,
-        ServingMetadata {
-            model: None,
-            vendor: Some("openrouter"),
-            session_file: Some("session.json"),
-            session_sha256: Some("session-hash"),
-        },
-    )
-    .unwrap();
+    let valid = serving_metadata(
+        Some("openrouter"),
+        Some("session.json"),
+        Some("session-hash"),
+    );
+    let envelope = RightsEnvelope::build("draft-test-000", raw, &pin, valid).unwrap();
     assert_eq!(
         (&envelope.content_sha256, &envelope.pin_entry_sha256),
         (&sha256_str(raw), &pin.entry_sha256)
     );
     assert!(envelope.pin_entry.starts_with("### Pin:"));
     assert_eq!(
-        (envelope.route.as_str(), envelope.serving_vendor.as_str(),),
-        ("Hermes via Merge Gateway", "openrouter")
-    );
-    assert!(
-        RightsEnvelope::build(
-            "draft-test-000",
-            raw,
-            &pin,
-            ServingMetadata {
-                model: None,
-                vendor: None,
-                session_file: None,
-                session_sha256: None,
-            },
+        (
+            envelope.route.as_str(),
+            envelope.serving_vendor.as_str(),
+            envelope.session_file.as_deref(),
+            envelope.session_sha256.as_deref(),
+        ),
+        (
+            "Hermes via Merge Gateway",
+            "openrouter",
+            Some("session.json"),
+            Some("session-hash"),
         )
-        .is_err()
-    );
-    assert!(
-        RightsEnvelope::build(
-            "draft-test-000",
-            raw,
-            &pin,
-            ServingMetadata {
-                model: None,
-                vendor: Some("openrouter"),
-                session_file: None,
-                session_sha256: None,
-            },
-        )
-        .is_err()
     );
 
+    for serving in [
+        serving_metadata(None, None, None),
+        serving_metadata(Some("openrouter"), None, None),
+    ] {
+        assert!(RightsEnvelope::build("draft-test-000", raw, &pin, serving).is_err());
+    }
+
     pin.variant.clear();
-    assert!(
-        RightsEnvelope::build(
-            "draft-test-000",
-            raw,
-            &pin,
-            ServingMetadata {
-                model: None,
-                vendor: None,
-                session_file: None,
-                session_sha256: None,
-            },
-        )
-        .is_err()
-    );
+    assert!(RightsEnvelope::build("draft-test-000", raw, &pin, valid).is_err());
 
     let mut pin = pins.ensure_teacher("deepseek-v4.1-flash").unwrap().clone();
     pin.entry_text.clear();
-    assert!(
-        RightsEnvelope::build(
-            "draft-test-000",
-            raw,
-            &pin,
-            ServingMetadata {
-                model: None,
-                vendor: None,
-                session_file: None,
-                session_sha256: None,
-            },
-        )
-        .is_err()
-    );
+    assert!(RightsEnvelope::build("draft-test-000", raw, &pin, valid).is_err());
 }
 
 #[test]
@@ -631,13 +601,6 @@ fn teacher_batch_writes_an_enveloped_unverified_draft_from_a_recorded_response()
         )
     );
     assert!(envelope.pin_entry.starts_with("### Pin:"));
-    assert_eq!(
-        (
-            envelope.session_file.as_deref(),
-            envelope.session_sha256.as_deref()
-        ),
-        (Some("session.json"), Some("session-hash"))
-    );
     assert_eq!(
         record.record.verification_status(),
         medsynth_schema::VerificationStatus::Unverified

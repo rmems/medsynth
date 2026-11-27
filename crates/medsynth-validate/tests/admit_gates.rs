@@ -60,6 +60,8 @@ struct PinRejectionCase {
     teacher_variant: &'static str,
     pin_id: &'static str,
     pin_entry: String,
+    route_override: Option<&'static str>,
+    include_session: bool,
     expected_reason: &'static str,
 }
 
@@ -75,14 +77,6 @@ const TRUSTED_CASE: TeacherCase = TeacherCase {
     name: "trusted-envelope",
     draft: DraftCase {
         id: "trusted-envelope-0001",
-        model: "deepseek-flash",
-    },
-};
-
-const MISSING_SESSION_CASE: TeacherCase = TeacherCase {
-    name: "missing-session",
-    draft: DraftCase {
-        id: "missing-session-0001",
         model: "deepseek-flash",
     },
 };
@@ -187,6 +181,8 @@ fn fabricated_pin_case() -> PinRejectionCase {
         teacher_variant: "fabricated-model",
         pin_id: "fabricated-pin",
         pin_entry: "fabricated teacher entry".to_owned(),
+        route_override: None,
+        include_session: true,
         expected_reason: "not listed",
     }
 }
@@ -206,13 +202,15 @@ fn tampered_pin_case() -> PinRejectionCase {
             "{}\n- **attacker_added:** `yes`",
             teacher_pin_entry(TRUSTED_PIN)
         ),
+        route_override: None,
+        include_session: true,
         expected_reason: "does not match the trusted teachers registry entry",
     }
 }
 
 fn run_pin_rejection(case: PinRejectionCase) {
     let fixture = setup_teacher_case(case.teacher);
-    let envelope = rights_envelope(&EnvelopeSpec {
+    let mut envelope = rights_envelope(&EnvelopeSpec {
         record_id: fixture.case.draft.id,
         teacher_variant: case.teacher_variant,
         model_id: fixture.case.draft.model,
@@ -220,6 +218,12 @@ fn run_pin_rejection(case: PinRejectionCase) {
         pin_entry: &case.pin_entry,
         content_sha256: &fixture.content_sha,
     });
+    if let Some(route) = case.route_override {
+        envelope["route"] = json!(route);
+    }
+    if !case.include_session {
+        envelope.as_object_mut().unwrap().remove("session_file");
+    }
     write_manifest_with_envelope(
         &ManifestSpec {
             harness: &fixture.harness,
@@ -278,33 +282,6 @@ fn trusted_teacher_envelope_admits() {
 }
 
 #[test]
-fn hermes_envelope_without_session_rejects_at_stage_0() {
-    let fixture = setup_teacher_case(MISSING_SESSION_CASE);
-    let mut envelope = trusted_rights_envelope(&fixture);
-    envelope.as_object_mut().unwrap().remove("session_file");
-    write_manifest_with_envelope(
-        &ManifestSpec {
-            harness: &fixture.harness,
-            record_id: fixture.case.draft.id,
-            content_sha256: &fixture.content_sha,
-        },
-        envelope,
-    );
-    let (fixture, report) = settle_prepared_fixture(fixture);
-
-    let o = outcome(&report, fixture.case.draft.id);
-    assert_eq!((o.outcome, o.stage), (Outcome::Rejected, Some(0)));
-    assert!(
-        o.reasons
-            .iter()
-            .any(|reason| reason.contains("missing session_file provenance")),
-        "missing session rejection: {:?}",
-        o.reasons
-    );
-    assert_eq!(fixture.harness.request_count("solve"), 0);
-}
-
-#[test]
 fn fabricated_unlisted_teacher_pin_rejects_at_stage_0() {
     // Self-consistency alone proves nothing: this envelope hashes its own
     // fabricated pin entry correctly, but the pin is not in docs/teachers.md.
@@ -317,6 +294,37 @@ fn teacher_pin_hash_mismatch_rejects_at_stage_0() {
     // internally self-consistent, so only comparison with the trusted registry
     // can catch it.
     run_pin_rejection(tampered_pin_case());
+
+    for (name, id, route_override, expected_reason) in [
+        (
+            "route-mismatch",
+            "route-mismatch-0001",
+            Some("Merge Gateway"),
+            "route does not match",
+        ),
+        (
+            "missing-session",
+            "missing-session-0001",
+            None,
+            "missing session_file provenance",
+        ),
+    ] {
+        run_pin_rejection(PinRejectionCase {
+            teacher: TeacherCase {
+                name,
+                draft: DraftCase {
+                    id,
+                    model: "deepseek-flash",
+                },
+            },
+            teacher_variant: TRUSTED_VARIANT,
+            pin_id: TRUSTED_PIN,
+            pin_entry: teacher_pin_entry(TRUSTED_PIN),
+            route_override,
+            include_session: false,
+            expected_reason,
+        });
+    }
 }
 
 #[test]
