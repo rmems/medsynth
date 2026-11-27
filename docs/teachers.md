@@ -143,7 +143,9 @@ documentation — the pipeline never reads, holds, or logs them.
 For a Merge Gateway pin the generated request sets
 `include_routing_metadata: true`. The harness must preserve the response body.
 If Merge returns vendor identity only in the `x-merge-vendor` header, the
-harness writes that bare vendor name to `<key>.vendor.txt` beside the raw
-response file; the pipeline reads that sidecar without altering the response
-body. When neither the body nor sidecar supplies vendor metadata the generated
-draft is dropped at the rights-envelope gate rather than written.
+harness writes `<sha256(response-json)> <vendor>` to `<key>.vendor.txt` beside
+the raw response file. The hash binds the vendor attribution to that exact
+response body, so replacing a response without refreshing the sidecar cannot
+reuse stale routing metadata. When neither the body nor a matching sidecar
+supplies vendor metadata the generated draft is dropped at the rights-envelope
+gate rather than written.

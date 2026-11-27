@@ -167,29 +167,40 @@ impl TeacherClient for RecordedTeacherClient {
             ))
         })?;
         let mut completion = parse_chat_completion(&value)?;
-        if completion
-            .served_vendor
-            .as_deref()
-            .is_none_or(str::is_empty)
-        {
-            match std::fs::read_to_string(&vendor_path) {
-                Ok(vendor) => {
-                    let vendor = vendor.trim();
-                    if !vendor.is_empty() {
-                        completion.served_vendor = Some(vendor.to_owned());
-                    }
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                Err(e) => {
-                    return Err(TeacherError::Transport(format!(
-                        "cannot read vendor file {}: {e}",
-                        vendor_path.display()
-                    )));
-                }
-            }
-        }
+        apply_vendor_sidecar(&mut completion, &vendor_path, &sha256_str(&text))?;
         Ok(completion)
     }
+}
+
+fn apply_vendor_sidecar(
+    completion: &mut TeacherCompletion,
+    vendor_path: &std::path::Path,
+    response_sha256: &str,
+) -> Result<(), TeacherError> {
+    if completion
+        .served_vendor
+        .as_deref()
+        .is_some_and(|vendor| !vendor.trim().is_empty())
+    {
+        return Ok(());
+    }
+    let vendor = match std::fs::read_to_string(vendor_path) {
+        Ok(vendor) => vendor,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(e) => {
+            return Err(TeacherError::Transport(format!(
+                "cannot read vendor file {}: {e}",
+                vendor_path.display()
+            )));
+        }
+    };
+    let mut parts = vendor.split_whitespace();
+    if let (Some(hash), Some(vendor), None) = (parts.next(), parts.next(), parts.next())
+        && hash.eq_ignore_ascii_case(response_sha256)
+    {
+        completion.served_vendor = Some(vendor.to_owned());
+    }
+    Ok(())
 }
 
 /// Extract `choices[0].message.content` from an OpenAI-compatible response.
@@ -379,24 +390,32 @@ mod tests {
         let completion = client.complete(&request).unwrap();
         assert_eq!(completion.served_vendor.as_deref(), Some("deepseek"));
 
-        std::fs::write(
-            dir.path.join(format!("{key}.response.json")),
-            json!({
-                "model": "deepseek/deepseek-v4.1-flash-1017",
-                "routing": {"vendor_used": null, "vendor": "  "},
-                "choices": [{"message": {"content": "{\"ok\":true}"}}]
-            })
-            .to_string(),
-        )
-        .unwrap();
+        let response = json!({
+            "model": "deepseek/deepseek-v4.1-flash-1017",
+            "routing": {"vendor_used": null, "vendor": "  "},
+            "choices": [{"message": {"content": "{\"ok\":true}"}}]
+        })
+        .to_string();
+        std::fs::write(dir.path.join(format!("{key}.response.json")), &response).unwrap();
         std::fs::write(
             dir.path.join(format!("{key}.vendor.txt")),
-            "openrouter
+            format!(
+                "{} openrouter
 ",
+                sha256_str(&response)
+            ),
         )
         .unwrap();
         let completion = client.complete(&request).unwrap();
         assert_eq!(completion.served_vendor.as_deref(), Some("openrouter"));
+
+        std::fs::write(
+            dir.path.join(format!("{key}.response.json")),
+            format!("{response}\n"),
+        )
+        .unwrap();
+        let completion = client.complete(&request).unwrap();
+        assert_eq!(completion.served_vendor, None);
     }
 
     #[test]

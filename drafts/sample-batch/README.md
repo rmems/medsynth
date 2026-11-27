@@ -40,7 +40,10 @@ drop behavior are exercised by the recorded fixtures under
 add real teacher drafts, run a teacher config with a fulfillment directory;
 the pipeline writes `<key>.request.json` files there, an external harness
 dispatches them to the pinned endpoint (it owns the API key), and writes the
-raw responses back as `<key>.response.json`:
+raw responses back as `<key>.response.json`. For a Merge-routed pin, preserve
+routing metadata too: either the body contains `routing.vendor_used` (or an
+equivalent vendor field), or the harness copies a header-only `x-merge-vendor`
+into `<key>.vendor.txt` as `<sha256(response-json)> <vendor>`:
 
 ```sh
 cargo run -p medsynth-generate -- run \
