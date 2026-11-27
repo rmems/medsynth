@@ -18,11 +18,11 @@
   "rationale": {
     "key_explanation": {
       "text": "Option D: acceleration doubles. Newton's second law relates net force to mass times acceleration, so the acceleration ratio equals the force ratio when mass is fixed.",
-      "anchors": [{"source_id": "openstax-university-physics-2016", "locator": "vol1:ch5:newtons-second-law"}]
+      "anchors": [{"source_id": "ostp-introductory-physics-2019", "locator": "sec5.5:applying-newtons-laws"}]
     },
     "strongest_distractor": {
       "text": "A reverses direct proportionality into inverse proportionality. B ignores the force change, and C introduces a squared dependence that Newton's second law does not have for fixed mass.",
-      "anchors": [{"source_id": "openstax-university-physics-2016", "locator": "vol1:ch5:newtons-second-law"}]
+      "anchors": [{"source_id": "ostp-introductory-physics-2019", "locator": "sec5.5:applying-newtons-laws"}]
     }
   },
   "provenance": {"generator": "factory-droid-draft-rm2522-v1; checklist=gold-review-v1", "model": null, "prompt_version": null, "template_version": null},

@@ -72,8 +72,11 @@ pub const FACTS: &[Fact] = &[
         "Simple squamous epithelium is a single layer of flattened cells; its thinness supports rapid diffusion across the alveolar wall.",
         "Simple cuboidal and columnar epithelia are thicker and specialized for secretion or absorption, and stratified squamous epithelium is multilayered and protective rather than optimized for diffusion.",
         [
-            ("openstax-anatomy-physiology-2e", "sec22.2:the-lungs"),
-            ("openstax-anatomy-physiology-2e", "sec4.2:epithelial-tissue"),
+            ("boundless-anatomy-physiology-2018", "sec21.4A:lungs"),
+            (
+                "boundless-anatomy-physiology-2018",
+                "sec4.2B:types-of-epithelial-tissue"
+            ),
         ]
     ),
     fact!(
@@ -87,8 +90,8 @@ pub const FACTS: &[Fact] = &[
         "Ethnocentrism is the practice of judging another culture by the standards of one's own culture.",
         "Cultural relativism instead evaluates a culture by its own standards, xenocentrism favors another culture over one's own, and assimilation describes adoption of a dominant culture's practices.",
         [(
-            "openstax-introduction-sociology-3e",
-            "ch3:elements-of-culture",
+            "boundless-sociology-2018",
+            "sec3.1E:ethnocentrism-and-cultural-relativism",
         )]
     ),
     fact!(
@@ -105,10 +108,7 @@ pub const FACTS: &[Fact] = &[
         ],
         "The diaphragm contracts during quiet inspiration, flattening and descending to increase thoracic volume and lower intrathoracic pressure.",
         "External intercostals assist by elevating the ribs, while the rectus abdominis and sternocleidomastoid are accessory or expiratory muscles rather than the principal driver of quiet inspiration.",
-        [(
-            "openstax-anatomy-physiology-2e",
-            "sec22.3:the-process-of-breathing",
-        )]
+        [("boundless-anatomy-physiology-2018", "sec21.5B:inspiration",)]
     ),
     fact!(
         "fact.pulmonary_artery",
@@ -122,10 +122,13 @@ pub const FACTS: &[Fact] = &[
         "The pulmonary vein returns oxygenated blood to the left atrium, the aorta carries oxygenated blood from the left ventricle, and the superior vena cava returns deoxygenated blood to the right atrium.",
         [
             (
-                "openstax-anatomy-physiology-2e",
-                "sec20.1:structure-and-function-of-blood-vessels",
+                "boundless-anatomy-physiology-2018",
+                "sec21.4C:blood-supply-to-the-lungs",
             ),
-            ("openstax-anatomy-physiology-2e", "sec19.1:heart-anatomy"),
+            (
+                "boundless-anatomy-physiology-2018",
+                "sec21.4C:blood-supply-to-the-lungs"
+            ),
         ]
     ),
     fact!(
@@ -138,7 +141,10 @@ pub const FACTS: &[Fact] = &[
         ["Osteoblast", "Osteocyte", "Chondrocyte"],
         "Osteoclasts are multinucleated cells that resorb bone matrix during remodeling.",
         "Osteoblasts form new bone matrix, osteocytes maintain bone tissue, and chondrocytes produce cartilage.",
-        [("openstax-anatomy-physiology-2e", "sec6.3:bone-structure")]
+        [(
+            "boundless-anatomy-physiology-2018",
+            "sec6.4C:bone-remodeling"
+        )]
     ),
     fact!(
         "fact.posterior_pituitary",
@@ -155,8 +161,8 @@ pub const FACTS: &[Fact] = &[
         "The posterior pituitary releases antidiuretic hormone and oxytocin, which are produced in the hypothalamus.",
         "Thyroid-stimulating hormone, prolactin, and adrenocorticotropic hormone are released from the anterior pituitary.",
         [(
-            "openstax-anatomy-physiology-2e",
-            "sec17.3:the-pituitary-gland-and-hypothalamus",
+            "boundless-anatomy-physiology-2018",
+            "sec15.7D:the-posterior-pituitary",
         )]
     ),
     fact!(
@@ -184,7 +190,10 @@ pub const FACTS: &[Fact] = &[
         ["Joule", "Pascal", "Watt"],
         "The newton is the SI unit of force, defined as one kilogram-meter per second squared.",
         "The joule is the SI unit of energy, the pascal is the unit of pressure, and the watt is the unit of power.",
-        [("openstax-university-physics-2016", "vol1:ch5:newtons-laws")]
+        [(
+            "ostp-introductory-physics-2019",
+            "sec5.1:newtons-three-laws"
+        )]
     ),
     fact!(
         "fact.fundamental_attribution",

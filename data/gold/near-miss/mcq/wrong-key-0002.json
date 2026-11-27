@@ -6,7 +6,7 @@
   "tier": "foundation",
   "stem": {
     "text": "Which term describes a society-wide ranking system based on resources and social standing?",
-    "anchors": [{"source_id": "openstax-introduction-sociology-3e", "locator": "ch9:what-is-social-stratification"}]
+    "anchors": [{"source_id": "boundless-sociology-2018", "locator": "sec8.1A:stratification"}]
   },
   "options": [
     {"label": "A", "text": "A monthly wage payment"},
@@ -18,11 +18,11 @@
   "rationale": {
     "key_explanation": {
       "text": "Option C, social stratification, describes the societal ranking system associated with unequal distribution of resources and standing, not one person's payment or possession.",
-      "anchors": [{"source_id": "openstax-introduction-sociology-3e", "locator": "ch9:what-is-social-stratification"}]
+      "anchors": [{"source_id": "boundless-sociology-2018", "locator": "sec8.1A:stratification"}]
     },
     "strongest_distractor": {
       "text": "A measures one wage payment, which is income, rather than a society-wide ranking system. B is also an income payment, and D is the value of one asset. These can contribute to resources but do not name the system of stratification.",
-      "anchors": [{"source_id": "openstax-introduction-sociology-3e", "locator": "ch9:what-is-social-stratification"}]
+      "anchors": [{"source_id": "boundless-sociology-2018", "locator": "sec8.1A:stratification"}]
     }
   },
   "provenance": {"generator": "factory-droid-draft-rm2522-v1; checklist=gold-review-v1", "model": null, "prompt_version": null, "template_version": null},

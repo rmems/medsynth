@@ -8,7 +8,7 @@
   "tutor_response": {
     "style": "explanatory",
     "text": "Frequency counts cycles per unit time, whereas wavelength is the spatial repeat distance. Wave speed equals frequency multiplied by wavelength, linking those temporal and spatial measures. Separately, pressure increases with depth in a stationary uniform-density liquid under gravity.",
-    "anchors": [{"source_id": "openstax-university-physics-2016", "locator": "vol1:ch16:mathematics-of-waves"}]
+    "anchors": [{"source_id": "ostp-introductory-physics-2019", "locator": "sec14.2:mathematical-description-of-a-wave"}]
   },
   "provenance": {"generator": "factory-droid-draft-rm2522-v1; checklist=gold-review-v1", "model": null, "prompt_version": null, "template_version": null},
   "verification_status": "unverified",

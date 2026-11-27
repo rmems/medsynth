@@ -311,8 +311,11 @@ fn mcq_fixture_parses_into_a_valid_unverified_record() {
             Subdomain::AnimalStructure,
         ),
         allow: allowlist(&[
-            ("openstax-anatomy-physiology-2e", "sec22.2:the-lungs"),
-            ("openstax-anatomy-physiology-2e", "sec4.2:epithelial-tissue"),
+            ("boundless-anatomy-physiology-2018", "sec21.4A:lungs"),
+            (
+                "boundless-anatomy-physiology-2018",
+                "sec4.2A:characteristics-of-epithelial-tissue",
+            ),
         ]),
         index: 0,
     });
@@ -331,10 +334,13 @@ fn vignette_fixture_parses_into_a_valid_unverified_record() {
         ),
         allow: allowlist(&[
             (
-                "openstax-anatomy-physiology-2e",
-                "sec17.3:the-pituitary-gland-and-hypothalamus",
+                "boundless-anatomy-physiology-2018",
+                "sec15.7D:the-posterior-pituitary",
             ),
-            ("openstax-anatomy-physiology-2e", "sec26.2:water-balance"),
+            (
+                "boundless-anatomy-physiology-2018",
+                "sec25.1B:regulation-of-water-output",
+            ),
         ]),
         index: 1,
     });
@@ -351,7 +357,7 @@ fn tutoring_fixture_parses_into_a_valid_unverified_record() {
             Tier::Foundation,
             Subdomain::AnimalStructure,
         ),
-        allow: allowlist(&[("openstax-anatomy-physiology-2e", "sec22.2:the-lungs")]),
+        allow: allowlist(&[("boundless-anatomy-physiology-2018", "sec21.4A:lungs")]),
         index: 2,
     });
 }
@@ -477,8 +483,8 @@ fn prompt_forbids_borrowed_items_and_limits_anchors() {
         Subdomain::AnimalStructure,
     );
     let anchors = vec![AnchorPoint {
-        source_id: "openstax-anatomy-physiology-2e".to_owned(),
-        locator: "sec22.2:the-lungs".to_owned(),
+        source_id: "boundless-anatomy-physiology-2018".to_owned(),
+        locator: "sec21.4A:lungs".to_owned(),
         fact: "Simple squamous epithelium forms the alveolar lining.".to_owned(),
     }];
     let selection = TeacherSelection {
@@ -497,7 +503,7 @@ fn prompt_forbids_borrowed_items_and_limits_anchors() {
     assert!(
         prompt.user.contains("Approved anchor points")
             && prompt.user.contains("proposed_key")
-            && prompt.user.contains("openstax-anatomy-physiology-2e"),
+            && prompt.user.contains("boundless-anatomy-physiology-2018"),
         "user prompt must list the approved anchors"
     );
 }

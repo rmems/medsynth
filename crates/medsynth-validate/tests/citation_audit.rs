@@ -35,19 +35,19 @@ fn sha256(text: &str) -> String {
 }
 
 fn write_passage_cache(root: &Path) {
-    let locator = "sec4.2:epithelial-tissue";
-    let text = "Cell to Cell Junctions. A gap junction forms an intercellular passageway between the membranes of adjacent cells to facilitate the movement of small molecules and ions between the cytoplasm of adjacent cells. These junctions allow electrical and metabolic coupling of adjacent cells. Tight junctions block movement between cells.";
+    let locator = "sec3.8B:intercellular-junctions";
+    let text = "A tight junction is a watertight seal between two adjacent animal cells, which prevents materials from leaking out of cells. Desmosomes connect adjacent cells when cadherins in the plasma membrane connect to intermediate filaments. Similar to plasmodesmata, gap junctions are channels between adjacent cells that allow for the transport of ions, nutrients, and other substances.";
     let cache = serde_json::json!({
-        "cache_version": 3,
-        "source_id": "openstax-anatomy-physiology-2e",
+        "cache_version": 4,
+        "source_id": "boundless-anatomy-physiology-2018",
         "locator": locator,
-        "retrieval": "openstax-web",
-        "book": "anatomy-and-physiology-2e",
-        "url": "https://openstax.org/books/anatomy-and-physiology-2e/pages/4-2-epithelial-tissue",
+        "retrieval": "libretexts-web",
+        "base_url": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)",
+        "url": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/3%3A_Organization_at_the_Cellular_Level/3.8%3A_External_Cellular_Components/3.8B%3A_Intercellular_Junctions",
         "text": text,
         "passage_sha256": sha256(text),
     });
-    let dir = root.join("cache").join("openstax-anatomy-physiology-2e");
+    let dir = root.join("cache").join("boundless-anatomy-physiology-2018");
     fs::create_dir_all(&dir).expect("create cache dir");
     fs::write(
         dir.join(format!("{}.json", sha256(locator))),
@@ -344,7 +344,7 @@ fn receipt_level_only_sources_are_named_not_skipped() {
     assert_eq!((report.counts.anchors, report.counts.unverifiable), (3, 3));
     assert_eq!(
         report.unverifiable_by_design_sources,
-        vec!["openstax-anatomy-physiology-2e".to_owned()]
+        vec!["boundless-anatomy-physiology-2018".to_owned()]
     );
     assert!(
         report
@@ -380,12 +380,12 @@ fn access_policy_entries_exist_in_the_source_registry() {
         );
         assert_eq!(
             (entry["retrieval"].as_str(), entry["license"].as_str()),
-            (Some("openstax-web"), Some("CC BY-NC-SA 4.0"))
+            (Some("libretexts-web"), Some("CC BY-SA 4.0"))
         );
         assert!(
             entry["license_evidence"]
                 .as_str()
-                .is_some_and(|url| url.starts_with("https://openstax.org/"))
+                .is_some_and(|url| url.starts_with("https://") && url.contains("libretexts.org/"))
         );
     }
 }
@@ -404,7 +404,7 @@ fn committed_gold_report_is_complete_deterministic_and_text_free() {
             report["counts"]["unsupported"].as_u64(),
             report["counts"]["unverifiable"].as_u64()
         ),
-        (Some(24), Some(89), Some(89), Some(0), Some(0))
+        (Some(24), Some(108), Some(108), Some(0), Some(0))
     );
     assert!(
         report["release_blocking_record_ids"]
@@ -443,7 +443,7 @@ fn committed_gold_report_is_complete_deterministic_and_text_free() {
         .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(
         (anchors.len(), passages.len(), actual),
-        (89, 17, gold_anchor_multiset())
+        (108, 24, gold_anchor_multiset())
     );
 }
 

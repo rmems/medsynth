@@ -20,7 +20,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section or topic, or a stable page number.",
-        "examples": ["ch8:enzyme-kinetics", "p.1247"]
+        "examples": [
+          "ch8:enzyme-kinetics",
+          "p.1247"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The standard introductory biology text; its chemistry-of-life, cell-process, and animal form-and-function units map directly onto the BB&F subdomains."
@@ -44,7 +47,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section or topic, or a stable page number.",
-        "examples": ["ch8:enzyme-kinetics", "p.1158"]
+        "examples": [
+          "ch8:enzyme-kinetics",
+          "p.1158"
+        ]
       },
       "added_by": "rmems",
       "rationale": "Retained so historical anchors citing the 12th edition remain interpretable after the 13th edition superseded it (contract §7)."
@@ -64,7 +70,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents (enzyme kinetics and enzyme inhibition are in the early enzyme chapter), a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch5:enzyme-kinetics", "ch5:competitive-inhibition"]
+        "examples": [
+          "ch5:enzyme-kinetics",
+          "ch5:competitive-inhibition"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The standard medical-school biochemistry review; authoritative for protein/enzyme structure, function, and kinetics."
@@ -87,7 +96,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch3:protein-structure", "ch17:cell-cycle-control"]
+        "examples": [
+          "ch3:protein-structure",
+          "ch17:cell-cycle-control"
+        ]
       },
       "added_by": "rmems",
       "rationale": "Retained so historical anchors citing the 6th edition remain interpretable after the 7th edition superseded it (contract §7)."
@@ -110,19 +122,22 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch3:protein-structure", "ch17:cell-cycle-control"]
+        "examples": [
+          "ch3:protein-structure",
+          "ch17:cell-cycle-control"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The definitive molecular cell-biology text (Alberts); authoritative for macromolecule structure/function, cell physiology, and cell-cell and tissue interactions."
     },
     {
-      "source_id": "openstax-anatomy-physiology-2e",
+      "source_id": "boundless-anatomy-physiology-2018",
       "kind": "textbook",
-      "title": "Anatomy and Physiology",
-      "author_or_issuer": "J. Gordon Betts, Peter Desaix, Eddie Johnson, Jody E. Johnson, Oksana Korol, Dean Kruse, Brandon Poe, James A. Wise, Mark Womble, Kelly A. Young; OpenStax (issuing body)",
-      "publisher": "OpenStax / Rice University",
-      "edition": "2nd",
-      "year": 2022,
+      "title": "Anatomy and Physiology (Boundless)",
+      "author_or_issuer": "Boundless (now Lumen Learning)",
+      "publisher": "LibreTexts Medicine",
+      "edition": "LibreTexts compilation",
+      "year": "2018",
       "status": "current",
       "coverage": [
         "animal_structure",
@@ -136,12 +151,65 @@
         "musculoskeletal"
       ],
       "locator_convention": {
-        "format": "ch<N>:<section-slug> or sec<N>.<M>:<section-slug>",
-        "description": "The book is organized into units of numbered chapters; cite the chapter number plus a section slug, or section number within the chapter.",
-        "examples": ["ch19:cardiac-cycle", "ch20:circulatory-pathways"]
+        "format": "sec<N>[.<M>][A-Z]:<section-slug>",
+        "description": "LibreTexts section number from the book table of contents, including a lettered subsection suffix when present, plus a lowercase hyphenated section slug. Exact retrievable locators are rights-allowlisted in docs/citation-access.json.",
+        "examples": [
+          "sec4.2A:characteristics-of-epithelial-tissue",
+          "sec25.1B:regulation-of-water-output"
+        ]
       },
       "added_by": "rmems",
-      "rationale": "Widely adopted open anatomy and physiology text organized by body system; provides the structural and organ-system basis for animal_structure and the pre-clinical systems."
+      "rationale": "Independent openly licensed anatomy and physiology textbook hosted by LibreTexts; replaces the removed OpenStax dependency for basic tissue, organ-system, and pre-clinical physiology anchors."
+    },
+    {
+      "source_id": "ostp-introductory-physics-2019",
+      "kind": "textbook",
+      "title": "Introductory Physics: Building Models to Describe Our World",
+      "author_or_issuer": "Ryan D. Martin, Emma Neary, Joshua Rinaldo, Olivia Woodman",
+      "publisher": "Open Scholarship in Teaching and Learning / LibreTexts Physics",
+      "edition": "First revision",
+      "year": "2019",
+      "status": "current",
+      "coverage": [
+        "mechanics",
+        "transmission",
+        "properties_of_matter"
+      ],
+      "locator_convention": {
+        "format": "sec<N>[.<M>][A-Z]:<section-slug>",
+        "description": "LibreTexts section number from the book table of contents, including a lettered subsection suffix when present, plus a lowercase hyphenated section slug. Exact retrievable locators are rights-allowlisted in docs/citation-access.json.",
+        "examples": [
+          "sec5.1:newtons-three-laws",
+          "sec15.1:pressure"
+        ]
+      },
+      "added_by": "rmems",
+      "rationale": "Independent openly licensed calculus-based physics textbook hosted by LibreTexts; replaces the removed OpenStax physics dependency for mechanics, fluids, waves, and quantitative model reasoning."
+    },
+    {
+      "source_id": "boundless-sociology-2018",
+      "kind": "textbook",
+      "title": "Sociology (Boundless)",
+      "author_or_issuer": "Boundless (now Lumen Learning)",
+      "publisher": "LibreTexts Social Sciences",
+      "edition": "LibreTexts compilation",
+      "year": "2018",
+      "status": "current",
+      "coverage": [
+        "socioeconomic",
+        "culture_identity",
+        "environment"
+      ],
+      "locator_convention": {
+        "format": "sec<N>[.<M>][A-Z]:<section-slug>",
+        "description": "LibreTexts section number from the book table of contents, including a lettered subsection suffix when present, plus a lowercase hyphenated section slug. Exact retrievable locators are rights-allowlisted in docs/citation-access.json.",
+        "examples": [
+          "sec3.2H:norms",
+          "sec9.2C:wealth"
+        ]
+      },
+      "added_by": "rmems",
+      "rationale": "Independent openly licensed introductory sociology textbook hosted by LibreTexts; replaces the removed OpenStax sociology dependency for culture, stratification, inequality, health, and environmental-hazard anchors."
     },
     {
       "source_id": "chemistry-central-science-15e",
@@ -159,32 +227,13 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch1:units-measurement", "ch10:gas-laws"]
+        "examples": [
+          "ch1:units-measurement",
+          "ch10:gas-laws"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The standard general-chemistry text; authoritative for matter, measurement, bonding, and the chemical principles MCAT chemical-physical foundations build on."
-    },
-    {
-      "source_id": "openstax-university-physics-2016",
-      "kind": "textbook",
-      "title": "University Physics (Volumes 1-3): Mechanics, Fluids, and Thermal Physics; Electricity and Magnetism; Optics and Modern Physics",
-      "author_or_issuer": "William Moebs, Samuel J. Ling, Jeff Sanny; OpenStax (issuing body)",
-      "publisher": "OpenStax / Rice University",
-      "edition": "Volumes 1-3",
-      "year": 2016,
-      "status": "current",
-      "coverage": [
-        "mechanics",
-        "transmission",
-        "properties_of_matter"
-      ],
-      "locator_convention": {
-        "format": "vol<N>:ch<N>:<section-slug>",
-        "description": "Physics is split across three volumes; cite the volume number, then chapter number and section slug as in the print or web table of contents.",
-        "examples": ["vol1:ch16:wave-speed", "vol3:ch1:law-of-reflection"]
-      },
-      "added_by": "rmems",
-      "rationale": "Standard calculus-based physics reference; covers mechanics, oscillations, waves, electricity and magnetism, and optics — the transmission and mechanics foundations of the CPF domain."
     },
     {
       "source_id": "myers-psychology-14e",
@@ -203,32 +252,13 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch6:operant-conditioning", "ch11:social-psychology"]
+        "examples": [
+          "ch6:operant-conditioning",
+          "ch11:social-psychology"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The most widely adopted introductory psychology text; covers lifespan development, learning and social behavior, and environmental influences on behavior."
-    },
-    {
-      "source_id": "openstax-introduction-sociology-3e",
-      "kind": "textbook",
-      "title": "Introduction to Sociology",
-      "author_or_issuer": "Tonja R. Conerly, Kathleen Holmes, Asha Lal Tamang; OpenStax (issuing body)",
-      "publisher": "OpenStax / Rice University",
-      "edition": "3rd",
-      "year": 2021,
-      "status": "current",
-      "coverage": [
-        "socioeconomic",
-        "culture_identity",
-        "environment"
-      ],
-      "locator_convention": {
-        "format": "ch<N>:<section-slug>",
-        "description": "Chapter number from the table of contents plus a lowercase hyphenated slug for the section.",
-        "examples": ["ch8:social-stratification", "ch12:gender-sexuality"]
-      },
-      "added_by": "rmems",
-      "rationale": "Standard open introductory sociology text; authoritative for social stratification, education and poverty, culture, language, and identity."
     },
     {
       "source_id": "guyton-hall-physiology-14e",
@@ -249,7 +279,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch21:coronary-circulation", "ch20:cardiac-output"]
+        "examples": [
+          "ch21:coronary-circulation",
+          "ch20:cardiac-output"
+        ]
       },
       "added_by": "rmems",
       "rationale": "Retained so historical anchors citing the 14th edition remain interpretable after the 15th edition superseded it (contract §7)."
@@ -273,7 +306,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch21:coronary-circulation", "ch20:cardiac-output"]
+        "examples": [
+          "ch21:coronary-circulation",
+          "ch20:cardiac-output"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The standard medical physiology text; authoritative for the integrative physiology of the cardiovascular, respiratory, renal, gastrointestinal, and endocrine systems."
@@ -302,7 +338,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch293:stemi", "ch416:community-acquired-pneumonia"]
+        "examples": [
+          "ch293:stemi",
+          "ch416:community-acquired-pneumonia"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The leading internal-medicine reference; system-by-system chapters give authoritative pathophysiology, diagnosis, and management coverage across all pre-clinical domains."
@@ -332,7 +371,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch290:stemi", "p.2140"]
+        "examples": [
+          "ch290:stemi",
+          "p.2140"
+        ]
       },
       "added_by": "rmems",
       "rationale": "Retained so historical anchors citing the 21st edition remain interpretable after the 22nd edition superseded it (contract §7)."
@@ -352,7 +394,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents (e.g. ch14 is Electrocardiography), a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch14:ecg-lead-groups", "ch57:stemi-localization"]
+        "examples": [
+          "ch14:ecg-lead-groups",
+          "ch57:stemi-localization"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The definitive cardiovascular medicine text; authoritative for cardiac physiology, ECG interpretation, and ischemic heart disease."
@@ -373,7 +418,10 @@
       "locator_convention": {
         "format": "sec<N>.<M>:<section-slug> or rec<N>",
         "description": "Guideline sections are numbered (e.g. sec4.2); numbered recommendations are cited as rec<N>.",
-        "examples": ["sec4.2:anticoagulation", "rec12"]
+        "examples": [
+          "sec4.2:anticoagulation",
+          "rec12"
+        ]
       },
       "added_by": "rmems",
       "rationale": "Current ACC/AHA-class guideline for atrial fibrillation; the cardiology guideline-body anchor for rhythm and anticoagulation recommendations (contract §7: edition/year named)."
@@ -395,7 +443,10 @@
       "locator_convention": {
         "format": "sec<N>:<title-slug>@YYYY-MM-DD",
         "description": "The Standards are organized into numbered sections; cite the section number and its title slug. This is a living document (contract §7): every locator must carry the access date of the anchor check as a @YYYY-MM-DD suffix.",
-        "examples": ["sec2:diagnosis-classification@2026-11-20", "sec8:pharmacologic-approaches@2026-11-20"]
+        "examples": [
+          "sec2:diagnosis-classification@2026-11-20",
+          "sec8:pharmacologic-approaches@2026-11-20"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The ADA Standards of Care are the gold-standard evidence-based guideline for diabetes and prediabetes; a living document updated continuously, so the access date is carried per contract §7."
@@ -415,7 +466,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch37:stroke", "p.842"]
+        "examples": [
+          "ch37:stroke",
+          "p.842"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The classic neurology text; authoritative for neurologic disease mechanisms, clinical manifestations, and management."
@@ -435,7 +489,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch89:rheumatoid-arthritis", "p.1904"]
+        "examples": [
+          "ch89:rheumatoid-arthritis",
+          "p.1904"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The comprehensive rheumatology reference; authoritative for inflammatory and degenerative musculoskeletal disease."
@@ -455,7 +512,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch107:iron-deficiency", "p.1401"]
+        "examples": [
+          "ch107:iron-deficiency",
+          "p.1401"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The landmark hematology reference; authoritative for disorders of blood and marrow cells and coagulation."
@@ -483,7 +543,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch13:myocardial-infarction", "ch15:pneumonia"]
+        "examples": [
+          "ch13:myocardial-infarction",
+          "ch15:pneumonia"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The standard pathology text; its organ-system chapters give the pathologic basis for disease across the pre-clinical systems."
@@ -503,7 +566,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch24:staphylococci", "ch9:respiratory-viruses"]
+        "examples": [
+          "ch24:staphylococci",
+          "ch9:respiratory-viruses"
+        ]
       },
       "added_by": "rmems",
       "rationale": "Retained so historical anchors citing the 7th edition remain interpretable after the 8th edition superseded it (contract §7)."
@@ -523,7 +589,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch30:neisseria", "ch16:arthropod-borne-viruses"]
+        "examples": [
+          "ch30:neisseria",
+          "ch16:arthropod-borne-viruses"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The standard medical microbiology text; authoritative for pathogen biology, virulence, and infectious disease mechanisms."
@@ -543,7 +612,10 @@
       "locator_convention": {
         "format": "ch<N>:<section-slug> or p.<page>",
         "description": "Chapter number from the print table of contents, a lowercase hyphenated slug for the section, or a stable page number.",
-        "examples": ["ch10:beta-adrenergic-antagonists", "ch4:pharmacokinetics"]
+        "examples": [
+          "ch10:beta-adrenergic-antagonists",
+          "ch4:pharmacokinetics"
+        ]
       },
       "added_by": "rmems",
       "rationale": "The leading pharmacology textbook; authoritative for drug mechanisms, pharmacokinetics, and principles of drug action."
@@ -564,7 +636,10 @@
       "locator_convention": {
         "format": "rec<N> or sec<N>:<title-slug>",
         "description": "IDSA guidelines use numbered recommendations and section headings; cite rec<N> for a recommendation or the section slug.",
-        "examples": ["rec3", "sec2:risk-assessment"]
+        "examples": [
+          "rec3",
+          "sec2:risk-assessment"
+        ]
       },
       "added_by": "rmems",
       "rationale": "Current IDSA evidence-based guideline update for complicated intra-abdominal infections; the infectious-disease guideline-body anchor (contract §7: edition/year named)."
