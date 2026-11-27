@@ -1,6 +1,6 @@
 {
   "manifest_version": 1,
-  "batch_id": "batch-2672e8401b3c905a",
+  "batch_id": "batch-0ae53f7602c8efe0",
   "seed": 2523,
   "config_sha256": "6633548d0b7f6c5e33aaf1ae07c0ff8f0c793d218ce69c1850b005e6524172da",
   "config": {
@@ -88,7 +88,7 @@
   "gold": {
     "path": "data/gold",
     "version": "0.1",
-    "sha256": "6de3a115ba7267fe218ecc5f7674fdabf9ddb64ad936e108de3dbba5cdfc917c"
+    "sha256": "92b2e095a59524daa602f4962b9f435bca4c2fe0e1652c883ba9780711a6bed0"
   },
   "teachers": {
     "path": "docs/teachers.md",
@@ -250,7 +250,7 @@
       "tier": "foundation",
       "lane": "procedural",
       "generator": "template:fact.si_unit_force",
-      "sha256": "a78e43b93c301acf7a2ff83e8dd1532c0712b3e8cb97f0ffff683ced08f4b12f",
+      "sha256": "681631d9b8d001dfd91daa760e40e73daf4eb82512c7e9be3c655cd8884effbf",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -286,7 +286,7 @@
       "tier": "foundation",
       "lane": "procedural",
       "generator": "template:fact.ethnocentrism",
-      "sha256": "19e050e013777fbf637adc37290cd6b83bd5720eee04b195b318d445e7d8b118",
+      "sha256": "4cee2f00cc47a3a5aa59e932e37c270d39bb26c0e18025ab3a827589237c59d0",
       "jsonl_file": "mcq.jsonl"
     },
     {
@@ -350,7 +350,7 @@
     {
       "record_id": "draft-cpf-mcq-foundation-c56b05eb-000",
       "source_id": "ostp-introductory-physics-2019",
-      "locator": "sec5.1:newtons-three-laws",
+      "locator": "sec2.2:units-and-dimensions",
       "registry_entry_sha256": "3c2d9965570d47890e0ef7960854f9e7a1ad50f15cc8ea4b4c91b5d63273956c",
       "registry_version": "0.1",
       "occurrences": 3
@@ -368,6 +368,22 @@
       "source_id": "ostp-introductory-physics-2019",
       "locator": "sec5.5:applying-newtons-laws",
       "registry_entry_sha256": "3c2d9965570d47890e0ef7960854f9e7a1ad50f15cc8ea4b4c91b5d63273956c",
+      "registry_version": "0.1",
+      "occurrences": 3
+    },
+    {
+      "record_id": "draft-psb-mcq-foundation-c56b05eb-000",
+      "source_id": "boundless-sociology-2018",
+      "locator": "sec10.4D:assimilation",
+      "registry_entry_sha256": "b811d2d1fb23fba3de4a2a0b11606fc2bd22a75168549339965b0ba55fd37564",
+      "registry_version": "0.1",
+      "occurrences": 3
+    },
+    {
+      "record_id": "draft-psb-mcq-foundation-c56b05eb-000",
+      "source_id": "boundless-sociology-2018",
+      "locator": "sec3.1C:cultural-universals",
+      "registry_entry_sha256": "b811d2d1fb23fba3de4a2a0b11606fc2bd22a75168549339965b0ba55fd37564",
       "registry_version": "0.1",
       "occurrences": 3
     },

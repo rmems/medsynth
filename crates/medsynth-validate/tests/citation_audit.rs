@@ -404,7 +404,7 @@ fn committed_gold_report_is_complete_deterministic_and_text_free() {
             report["counts"]["unsupported"].as_u64(),
             report["counts"]["unverifiable"].as_u64()
         ),
-        (Some(24), Some(108), Some(108), Some(0), Some(0))
+        (Some(24), Some(112), Some(112), Some(0), Some(0))
     );
     assert!(
         report["release_blocking_record_ids"]
@@ -443,7 +443,7 @@ fn committed_gold_report_is_complete_deterministic_and_text_free() {
         .collect::<std::collections::BTreeSet<_>>();
     assert_eq!(
         (anchors.len(), passages.len(), actual),
-        (108, 24, gold_anchor_multiset())
+        (112, 24, gold_anchor_multiset())
     );
 }
 

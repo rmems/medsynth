@@ -44,23 +44,32 @@ fn cache_path(cache_dir: &Path, identity: &CacheIdentity<'_>) -> PathBuf {
         .join(format!("{}.json", sha256_text(identity.locator)))
 }
 
-fn cached_passage_matches(cached: &CachedPassage, identity: &CacheIdentity<'_>) -> bool {
+fn cached_passage_matches(
+    cached: &CachedPassage,
+    identity: &CacheIdentity<'_>,
+    expected_url: &str,
+) -> bool {
     [
         cached.cache_version == PASSAGE_CACHE_VERSION,
         cached.source_id == identity.entry.source_id,
         cached.locator == identity.locator,
         cached.retrieval == identity.entry.retrieval,
         cached.base_url == identity.entry.base_url,
+        cached.url == expected_url,
         cached.passage_sha256 == sha256_text(&cached.text),
     ]
     .into_iter()
     .all(|matches| matches)
 }
 
-fn read_cached_passage(path: &Path, identity: &CacheIdentity<'_>) -> Option<Passage> {
+fn read_cached_passage(
+    path: &Path,
+    identity: &CacheIdentity<'_>,
+    expected_url: &str,
+) -> Option<Passage> {
     let text = fs::read_to_string(path).ok()?;
     let cached: CachedPassage = serde_json::from_str(&text).ok()?;
-    if !cached_passage_matches(&cached, identity) {
+    if !cached_passage_matches(&cached, identity, expected_url) {
         return None;
     }
     Some(Passage {
@@ -113,11 +122,23 @@ fn resolve_libretexts_url(entry: &AccessEntry, locator: &str) -> anyhow::Result<
             entry.source_id
         )
     })?;
-    if !url.starts_with(&entry.base_url) {
+    let base = entry.base_url.trim_end_matches('/');
+    let prefix = format!("{base}/");
+    if !url.starts_with(&prefix) {
         bail!(
             "allowlisted URL for `{locator}` escapes the `{}` base URL",
             entry.source_id
         );
+    }
+    let suffix = &url[prefix.len()..];
+    let lowercase_suffix = suffix.to_ascii_lowercase();
+    if suffix
+        .split('/')
+        .any(|segment| segment == "." || segment == "..")
+        || lowercase_suffix.contains("%2e")
+        || suffix.contains('\\')
+    {
+        bail!("allowlisted URL for `{locator}` contains path traversal");
     }
     Ok(url.clone())
 }
@@ -258,9 +279,10 @@ pub(crate) fn retrieve_passage(
     cache_dir: &Path,
     offline: bool,
 ) -> anyhow::Result<Passage> {
+    let url = resolve_libretexts_url(entry, locator)?;
     let identity = CacheIdentity { entry, locator };
     let path = cache_path(cache_dir, &identity);
-    if let Some(passage) = read_cached_passage(&path, &identity) {
+    if let Some(passage) = read_cached_passage(&path, &identity, &url) {
         return Ok(passage);
     }
     if entry.retrieval != "libretexts-web" {
@@ -269,7 +291,6 @@ pub(crate) fn retrieve_passage(
     if offline {
         bail!("no cached passage and offline mode is enabled");
     }
-    let url = resolve_libretexts_url(entry, locator)?;
     let html = fetch_text(&url)?;
     let text = extract_main_text(&html);
     if text.is_empty() {
@@ -340,6 +361,25 @@ mod tests {
     }
 
     #[test]
+    fn locator_resolution_rejects_base_escape_and_traversal() {
+        let mut entry = access_entry();
+        let locator = "sec4.2A:characteristics-of-epithelial-tissue";
+        entry.locator_urls.insert(
+            locator.to_owned(),
+            "https://med.libretexts.org/book-evil/page".to_owned(),
+        );
+        assert!(resolve_libretexts_url(&entry, locator).is_err());
+
+        for suffix in ["../other/page", "a/%2e%2e/other", "a\\..\\other"] {
+            entry.locator_urls.insert(
+                locator.to_owned(),
+                format!("https://med.libretexts.org/book/{suffix}"),
+            );
+            assert!(resolve_libretexts_url(&entry, locator).is_err(), "{suffix}");
+        }
+    }
+
+    #[test]
     fn offline_retrieval_without_valid_cache_fails_closed() {
         let entry = access_entry();
         let dir = std::env::temp_dir().join(format!(
@@ -354,5 +394,46 @@ mod tests {
         )
         .expect_err("offline retrieval cannot invent a passage");
         assert!(error.to_string().contains("offline mode"));
+    }
+
+    #[test]
+    fn stale_cache_for_a_different_allowlisted_url_is_rejected() {
+        let entry = access_entry();
+        let locator = "sec4.2A:characteristics-of-epithelial-tissue";
+        let dir = std::env::temp_dir().join(format!(
+            "medsynth-stale-passage-cache-test-{}",
+            std::process::id()
+        ));
+        let identity = CacheIdentity {
+            entry: &entry,
+            locator,
+        };
+        let path = cache_path(&dir, &identity);
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let text = "cached passage";
+        let mut cached = CachedPassage {
+            cache_version: PASSAGE_CACHE_VERSION,
+            source_id: entry.source_id.clone(),
+            locator: locator.to_owned(),
+            retrieval: entry.retrieval.clone(),
+            base_url: entry.base_url.clone(),
+            url: "https://med.libretexts.org/book/older-locator".to_owned(),
+            text: text.to_owned(),
+            passage_sha256: sha256_text(text),
+        };
+        fs::write(&path, serde_json::to_vec_pretty(&cached).unwrap()).unwrap();
+        assert!(
+            read_cached_passage(&path, &identity, entry.locator_urls.get(locator).unwrap(),)
+                .is_none()
+        );
+
+        cached.url = entry.locator_urls.get(locator).unwrap().clone();
+        fs::write(&path, serde_json::to_vec_pretty(&cached).unwrap()).unwrap();
+        assert_eq!(
+            read_cached_passage(&path, &identity, entry.locator_urls.get(locator).unwrap())
+                .unwrap()
+                .text,
+            text
+        );
     }
 }

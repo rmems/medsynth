@@ -28,7 +28,7 @@
     },
     {
       "label": "D",
-      "text": "Hemidesmosome"
+      "text": "Plasmodesma"
     }
   ],
   "key": "A",
@@ -43,7 +43,7 @@
       ]
     },
     "strongest_distractor": {
-      "text": "B is the strongest distractor: a tight junction restricts movement between cells rather than connecting their cytoplasm. C, a desmosome, mechanically links neighboring cells; D, a hemidesmosome, attaches a cell to the basal lamina. Neither is a cytoplasmic channel.",
+      "text": "B is the strongest distractor: a tight junction restricts movement between cells rather than connecting their cytoplasm. C, a desmosome, mechanically links neighboring cells; D, a plasmodesma, is a plant-cell channel rather than an epithelial junction in animal tissue. None of these is the animal-cell gap-junction channel described in the stem.",
       "anchors": [
         {
           "source_id": "boundless-anatomy-physiology-2018",

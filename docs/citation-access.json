@@ -24,7 +24,8 @@
         "sec6.4C:bone-remodeling": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/6%3A_Skeletal_System/6.4%3A_Bone_Formation/6.4C%3A_Bone_Remodeling",
         "sec21.4A:lungs": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/21%3A_Respiratory_System/21.4%3A_The_Lungs_and_Pleurae/21.4A%3A_Lungs",
         "sec21.4C:blood-supply-to-the-lungs": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/21%3A_Respiratory_System/21.4%3A_The_Lungs_and_Pleurae/21.4C%3A_Blood_Supply_to_the_Lungs",
-        "sec21.5B:inspiration": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/21%3A_Respiratory_System/21.5%3A_Mechanics_of_Breathing/21.5B%3A_Inspiration"
+        "sec21.5B:inspiration": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/21%3A_Respiratory_System/21.5%3A_Mechanics_of_Breathing/21.5B%3A_Inspiration",
+        "sec17.1E:great-vessels-of-the-heart": "https://med.libretexts.org/Bookshelves/Anatomy_and_Physiology/Anatomy_and_Physiology_(Boundless)/17%3A_Cardiovascular_System%3A_The_Heart/17.1%3A_The_Heart/17.1E%3A_Great_Vessels_of_the_Heart"
       }
     },
     {
@@ -44,7 +45,9 @@
         "sec9.2C:wealth": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/09%3A_Stratification_Inequality_and_Social_Class_in_the_U.S./9.02%3A_Social_Class_in_the_U.S./9.2C%3A_Wealth",
         "sec9.5B:physical-health": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/09%3A_Stratification_Inequality_and_Social_Class_in_the_U.S./9.05%3A_The_Impacts_of_Social_Class/9.5B%3A_Physical_Health",
         "sec19.1D:social-class-and-health": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/19%3A_Health_and_Illness/19.01%3A_The_Experience_of_Illness/19.1D%3A_Social_Class_and_Health",
-        "sec3.1E:ethnocentrism-and-cultural-relativism": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/03%3A_Culture/3.01%3A_Culture_and_Society/3.1E%3A_Ethnocentrism_and_Cultural_Relativism"
+        "sec3.1E:ethnocentrism-and-cultural-relativism": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/03%3A_Culture/3.01%3A_Culture_and_Society/3.1E%3A_Ethnocentrism_and_Cultural_Relativism",
+        "sec3.1C:cultural-universals": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/03%3A_Culture/3.01%3A_Culture_and_Society/3.1C%3A_Cultural_Universals",
+        "sec10.4D:assimilation": "https://socialsci.libretexts.org/Bookshelves/Sociology/Introduction_to_Sociology/Sociology_(Boundless)/10%3A_Race_and_Ethnicity/10.04%3A_Prejudice_and_Discrimination/10.4D%3A_Assimilation"
       }
     },
     {
@@ -59,7 +62,9 @@
         "sec14.2:mathematical-description-of-a-wave": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/14%3A_Waves/14.02%3A_Mathematical_Description_of_a_Wave",
         "sec14.4:the-speed-of-a-wave": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/14%3A_Waves/14.04%3A_The_speed_of_a_wave",
         "sec15.1:pressure": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/15%3A_Fluid_Mechanics/15.01%3A_Pressure",
-        "sec15.3:hydrodynamics": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/15%3A_Fluid_Mechanics/15.03%3A_Hydrodynamics"
+        "sec15.3:hydrodynamics": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/15%3A_Fluid_Mechanics/15.03%3A_Hydrodynamics",
+        "sec2.2:units-and-dimensions": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/02%3A_Comparing_Model_and_Experiment/2.02%3A_Units_and_dimensions",
+        "sec5.2:force": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/05%3A_Newtons_Laws/5.02%3A_Force"
       }
     }
   ]

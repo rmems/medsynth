@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 use std::path::PathBuf;
 
 use common::{TempDir, plan_paths, read_json, workspace_root, write_config};
-use medsynth_generate::batch::{ExecuteOptions, LaneFilter, execute};
+use medsynth_generate::batch::{BatchOutput, ExecuteOptions, LaneFilter, execute};
 use medsynth_generate::format::Format;
 use medsynth_generate::hash::sha256_str;
 use medsynth_generate::manifest::{RightsEnvelope, ServingMetadata};
@@ -532,6 +532,35 @@ fn teacher_run_config(cells: Value) -> Value {
     })
 }
 
+/// Execute one teacher-only cell using a recorded completion.
+fn execute_teacher_batch(cell: Value, content: String, label: &str) -> BatchOutput {
+    let config = teacher_run_config(json!([cell]));
+    let dir = TempDir::new(label);
+    let config_path = write_config(&dir, &config);
+    let plan = load_plan(&plan_paths(&config_path), None).unwrap();
+    let factory = move |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
+        Ok(Box::new(FakeTeacher {
+            content: content.clone(),
+        }))
+    };
+    let options = ExecuteOptions {
+        lane_filter: LaneFilter::All,
+        teacher_client_factory: &factory,
+    };
+    execute(&plan, &options).unwrap()
+}
+
+fn mcq_teacher_cell(domain: &str, subdomain: &str) -> Value {
+    json!({
+        "domain": domain,
+        "format": "mcq",
+        "tier": "foundation",
+        "count": 1,
+        "lane": "teacher",
+        "subdomain": subdomain
+    })
+}
+
 /// One procedural MCQ cell plus one teacher vignette cell — the refusal tests.
 fn mixed_lane_cells() -> Value {
     json!([
@@ -557,29 +586,11 @@ fn mixed_lane_cells() -> Value {
 
 #[test]
 fn teacher_batch_writes_an_enveloped_unverified_draft_from_a_recorded_response() {
-    let config = teacher_run_config(json!([{
-        "domain": "bbf",
-        "format": "mcq",
-        "tier": "foundation",
-        "count": 1,
-        "lane": "teacher",
-        "subdomain": "animal_structure"
-    }]));
-    let dir = TempDir::new("teacher-valid");
-    let config_path = write_config(&dir, &config);
-    let plan = load_plan(&plan_paths(&config_path), None).unwrap();
-
-    let content = fixture_content("mcq_response.json");
-    let factory = move |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
-        Ok(Box::new(FakeTeacher {
-            content: content.clone(),
-        }))
-    };
-    let options = ExecuteOptions {
-        lane_filter: LaneFilter::All,
-        teacher_client_factory: &factory,
-    };
-    let output = execute(&plan, &options).unwrap();
+    let output = execute_teacher_batch(
+        mcq_teacher_cell("bbf", "animal_structure"),
+        fixture_content("mcq_response.json"),
+        "teacher-valid",
+    );
     assert!(output.lane_error.is_none());
     assert_eq!(
         (
@@ -681,28 +692,11 @@ fn batch_drops_a_draft_with_an_incomplete_rights_envelope() {
 
 #[test]
 fn teacher_batch_drops_an_over_budget_completion() {
-    let config = teacher_run_config(json!([{
-        "domain": "bbf",
-        "format": "mcq",
-        "tier": "foundation",
-        "count": 1,
-        "lane": "teacher",
-        "subdomain": "animal_structure"
-    }]));
-    let dir = TempDir::new("teacher-over-budget");
-    let config_path = write_config(&dir, &config);
-    let plan = load_plan(&plan_paths(&config_path), None).unwrap();
-
-    let factory = |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
-        Ok(Box::new(FakeTeacher {
-            content: "x ".repeat(20_000),
-        }))
-    };
-    let options = ExecuteOptions {
-        lane_filter: LaneFilter::All,
-        teacher_client_factory: &factory,
-    };
-    let output = execute(&plan, &options).unwrap();
+    let output = execute_teacher_batch(
+        mcq_teacher_cell("bbf", "animal_structure"),
+        "x ".repeat(20_000),
+        "teacher-over-budget",
+    );
     assert!(output.lane_error.is_none() && output.records.is_empty());
     assert_eq!(
         (
@@ -716,29 +710,11 @@ fn teacher_batch_drops_an_over_budget_completion() {
 
 #[test]
 fn teacher_batch_drops_a_draft_with_an_unapproved_anchor() {
-    let config = teacher_run_config(json!([{
-        "domain": "psb",
-        "format": "mcq",
-        "tier": "foundation",
-        "count": 1,
-        "lane": "teacher",
-        "subdomain": "culture_identity"
-    }]));
-    let dir = TempDir::new("teacher-allowlist");
-    let config_path = write_config(&dir, &config);
-    let plan = load_plan(&plan_paths(&config_path), None).unwrap();
-
-    let content = fixture_content("mcq_response.json");
-    let factory = move |_: &PreparedTeacher| -> Result<Box<dyn TeacherClient>, TeacherError> {
-        Ok(Box::new(FakeTeacher {
-            content: content.clone(),
-        }))
-    };
-    let options = ExecuteOptions {
-        lane_filter: LaneFilter::All,
-        teacher_client_factory: &factory,
-    };
-    let output = execute(&plan, &options).unwrap();
+    let output = execute_teacher_batch(
+        mcq_teacher_cell("psb", "culture_identity"),
+        fixture_content("mcq_response.json"),
+        "teacher-allowlist",
+    );
     assert!(output.records.is_empty());
     assert_eq!(
         (

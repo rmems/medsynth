@@ -86,13 +86,17 @@ pub const FACTS: &[Fact] = &[
         Tier::Foundation,
         "A researcher evaluates a community's healing practices by the standards of the researcher's own culture and labels them inferior. This judgment best illustrates:",
         "Ethnocentrism",
-        ["Cultural relativism", "Xenocentrism", "Assimilation"],
+        ["Cultural relativism", "Cultural universal", "Assimilation"],
         "Ethnocentrism is the practice of judging another culture by the standards of one's own culture.",
-        "Cultural relativism instead evaluates a culture by its own standards, xenocentrism favors another culture over one's own, and assimilation describes adoption of a dominant culture's practices.",
-        [(
-            "boundless-sociology-2018",
-            "sec3.1E:ethnocentrism-and-cultural-relativism",
-        )]
+        "Cultural relativism instead evaluates a culture in its own terms, a cultural universal is a trait common across cultures, and assimilation describes minority integration into a dominant culture.",
+        [
+            (
+                "boundless-sociology-2018",
+                "sec3.1E:ethnocentrism-and-cultural-relativism",
+            ),
+            ("boundless-sociology-2018", "sec3.1C:cultural-universals",),
+            ("boundless-sociology-2018", "sec10.4D:assimilation"),
+        ]
     ),
     fact!(
         "fact.diaphragm",
@@ -127,7 +131,7 @@ pub const FACTS: &[Fact] = &[
             ),
             (
                 "boundless-anatomy-physiology-2018",
-                "sec21.4C:blood-supply-to-the-lungs"
+                "sec17.1E:great-vessels-of-the-heart"
             ),
         ]
     ),
@@ -187,12 +191,12 @@ pub const FACTS: &[Fact] = &[
         Tier::Foundation,
         "What is the SI unit of force?",
         "Newton",
-        ["Joule", "Pascal", "Watt"],
+        ["Joule", "Coulomb", "Watt"],
         "The newton is the SI unit of force, defined as one kilogram-meter per second squared.",
-        "The joule is the SI unit of energy, the pascal is the unit of pressure, and the watt is the unit of power.",
+        "The joule is the SI unit of energy, the coulomb is the unit of electric charge, and the watt is the unit of power.",
         [(
             "ostp-introductory-physics-2019",
-            "sec5.1:newtons-three-laws"
+            "sec2.2:units-and-dimensions"
         )]
     ),
     fact!(
