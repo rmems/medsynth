@@ -115,6 +115,16 @@ fn fetch_text(url: &str) -> anyhow::Result<String> {
         .with_context(|| format!("cannot decode {url} as text"))
 }
 
+fn has_dot_segments(suffix: &str) -> bool {
+    suffix
+        .split('/')
+        .any(|segment| segment == "." || segment == "..")
+}
+
+fn has_encoded_or_separator_traversal(suffix: &str) -> bool {
+    suffix.to_ascii_lowercase().contains("%2e") || suffix.contains('\\')
+}
+
 fn resolve_libretexts_url(entry: &AccessEntry, locator: &str) -> anyhow::Result<String> {
     let url = entry.locator_urls.get(locator).ok_or_else(|| {
         anyhow::anyhow!(
@@ -131,13 +141,7 @@ fn resolve_libretexts_url(entry: &AccessEntry, locator: &str) -> anyhow::Result<
         );
     }
     let suffix = &url[prefix.len()..];
-    let lowercase_suffix = suffix.to_ascii_lowercase();
-    if suffix
-        .split('/')
-        .any(|segment| segment == "." || segment == "..")
-        || lowercase_suffix.contains("%2e")
-        || suffix.contains('\\')
-    {
+    if has_dot_segments(suffix) || has_encoded_or_separator_traversal(suffix) {
         bail!("allowlisted URL for `{locator}` contains path traversal");
     }
     Ok(url.clone())
