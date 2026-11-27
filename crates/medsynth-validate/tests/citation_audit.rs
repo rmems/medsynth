@@ -231,20 +231,40 @@ fn gold_review_manifest_marks_hash_identical_gold_anchors_supported() {
 }
 
 #[test]
-fn gold_manifest_drafting_id_does_not_apply_to_unreviewed_records() {
-    let root = temp_root("unreviewed-record");
+fn gold_manifest_drafting_id_does_not_apply_to_edited_records() {
+    let root = temp_root("edited-record");
     write_passage_cache(&root);
-    write_negative_record(&root);
+    let source = workspace_root().join("data/gold/mcq.jsonl");
+    let first_line = fs::read_to_string(&source)
+        .expect("read gold shard")
+        .lines()
+        .next()
+        .expect("gold shard has a record")
+        .to_owned();
+    let mut edited: Value = serde_json::from_str(&first_line).expect("parse gold record");
+    edited["rationale"]["key_explanation"]["text"] = Value::String(format!(
+        "{} Edited after review.",
+        edited["rationale"]["key_explanation"]["text"]
+            .as_str()
+            .expect("key explanation text")
+    ));
+    let edited_line = serde_json::to_string(&edited).expect("serialize edited record");
+    fs::write(root.join("data/gold/mcq.jsonl"), format!("{edited_line}\n"))
+        .expect("write edited record");
+
+    let review: Value = serde_json::from_str(
+        &fs::read_to_string(workspace_root().join("data/gold/review-manifest.json"))
+            .expect("read review manifest"),
+    )
+    .expect("parse review manifest");
+    let mut review = review;
+    review["records"] = Value::Array(vec![review["records"][0].clone()]);
     let review_path = root.join("review-manifest.json");
     fs::write(
         &review_path,
-        serde_json::to_vec_pretty(&serde_json::json!({
-            "drafting_run_id": "gold-drafting-run",
-            "records": []
-        }))
-        .expect("serialize empty review"),
+        serde_json::to_vec_pretty(&review).expect("serialize review"),
     )
-    .expect("write empty review");
+    .expect("write review");
     let mut audit_options = options(&root, Some(review_path));
     audit_options.drafting_run_id = None;
 
@@ -255,7 +275,7 @@ fn gold_manifest_drafting_id_does_not_apply_to_unreviewed_records() {
     assert_eq!(
         (second.counts.supported, second.counts.unverifiable),
         (0, 3),
-        "an unrelated gold manifest must not establish adjudicator independence"
+        "a hash-mismatched gold manifest entry must not establish adjudicator independence"
     );
 }
 
