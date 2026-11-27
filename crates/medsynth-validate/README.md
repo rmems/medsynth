@@ -55,3 +55,50 @@ rejection by a nonexistent verifier.
 coverage, registry locator syntax, and per-record independent review
 evidence, bound to the exact record content by SHA-256. Neither suite
 advances a verification status or substitutes for #9 admission.
+
+## Citation-support audit (#26)
+
+`medsynth-citation-audit` is the deeper citation check: it resolves the text
+at each cited locator where `docs/citation-access.json` says the source
+license permits text access, submits claim/passage pairs to an independent
+adjudicator, and writes a per-run report containing record id, claim path,
+anchor, verdict, passage SHA-256, passage URL, access basis, and adjudicator
+run id. Passage text itself is confined to the working cache under `target/`
+and is never written to `data/` or emitted in the report.
+
+```sh
+cargo run -p medsynth-validate --bin medsynth-citation-audit -- \
+  --root . \
+  --records data/gold \
+  --gold-review data/gold/review-manifest.json \
+  --report reports/citation-audit/gold.json
+```
+
+Sources absent from `docs/citation-access.json` are not skipped: every anchor
+to one is reported as `unverifiable` with access `receipt-level-only`, and the
+source is named in `unverifiable_by_design_sources`. Verdicts are
+`supported`, `unsupported`, or `unverifiable`. `unsupported` is
+release-blocking: the binary exits nonzero and the report's
+`release_blocking_record_ids` is the exclusion list release assembly must
+apply until the record is re-anchored and re-audited.
+
+Semantic adjudication uses the same recorded-fulfillment pattern as admission:
+the audit writes `<key>.audit.request.json` files containing claim text,
+passage text, and passage hash, then reads hash-bound
+`<key>.audit.response.json` files with a verdict and non-empty independent
+`run_id`. A response missing, malformed, unbound, or using an
+unknown/drafting run id is `unverifiable`, never silently supported. Response
+`detail` text is not copied into the report, so reviewer prose cannot smuggle
+passage text into the committed artifact. For the existing gold set only, the
+independently produced `data/gold/review-manifest.json` is accepted as the
+adjudication when its record SHA-256 matches exactly and quoted review
+evidence still appears in the retrieved passage; a hash-bound response for
+the current passage takes precedence when present. Future batches use the
+request/response exchange.
+
+The committed gold report is `reports/citation-audit/gold.json`. It was
+generated from the three OpenStax CC BY-NC-SA 4.0 sources in the access
+policy: 24 records, 104 claim blocks, 89 anchor occurrences, all supported,
+across 17 distinct retrieved passages. The access policy also carries the
+OpenStax AI-ingestion terms note; it records provenance, not a downstream
+rights determination.

@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "purpose": "Citation-audit passage access policy. Sources absent here remain receipt-level-only and must be named unverifiable-by-design in citation-audit reports.",
+  "usage_note": "OpenStax book pages currently identify CC BY-NC-SA 4.0 and additional OpenStax terms restricting ingestion into large language models or generative AI offerings without written permission. This policy records text-access provenance only; it does not decide whether any particular adjudicator/model or downstream dataset use is permitted. That rights decision must be explicit before production reliance.",
+  "sources": [
+    {
+      "source_id": "openstax-anatomy-physiology-2e",
+      "license": "CC BY-NC-SA 4.0",
+      "retrieval": "openstax-web",
+      "book": "anatomy-and-physiology-2e",
+      "license_evidence": "https://openstax.org/details/books/anatomy-and-physiology-2e"
+    },
+    {
+      "source_id": "openstax-introduction-sociology-3e",
+      "license": "CC BY-NC-SA 4.0",
+      "retrieval": "openstax-web",
+      "book": "introduction-sociology-3e",
+      "license_evidence": "https://openstax.org/details/books/introduction-sociology-3e"
+    },
+    {
+      "source_id": "openstax-university-physics-2016",
+      "license": "CC BY-NC-SA 4.0",
+      "retrieval": "openstax-web",
+      "book": "university-physics-volume-{volume}",
+      "license_evidence": "https://openstax.org/details/books/university-physics-volume-1"
+    }
+  ]
+}

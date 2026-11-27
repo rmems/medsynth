@@ -13,6 +13,14 @@ slugs).
 The crate's fixture tests (`cargo test -p medsynth-schema`) enforce both
 directions.
 
+`citation-audit/` holds schema-valid negative fixtures for #26. They are not
+`valid-*.json` corpus fixtures because their planted defect is semantic rather
+than structural: `negative-unsupported-mcq.json` has a well-formed registry
+citation whose key explanation asserts the wrong junction type, so the cited
+OpenStax passage does not support it. The citation-audit integration test
+fulfills it as `unsupported` through the independent-adjudicator exchange and
+checks that the verdict carries the passage hash.
+
 **Source ids are real registry ids.** Anchor `source_id` values cite the
 approved sources in `docs/sources.md` / `docs/sources.json` (#5); the
 `source_registry` test in `medsynth-schema` proves every id cited by the

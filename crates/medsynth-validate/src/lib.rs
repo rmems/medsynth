@@ -497,3 +497,4 @@ pub mod originality;
 pub use checks::{run_checks, run_schema_check};
 
 pub mod admit;
+pub mod citation_audit;
