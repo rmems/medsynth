@@ -7,6 +7,11 @@
 !/drafts/deepseek-pilot/README.md
 /drafts/deepseek-pilot/*.jsonl
 /drafts/deepseek-pilot/manifest.json
+/drafts/deepseek-pilot/**/*.request.json
+/drafts/deepseek-pilot/**/*.response.json
+/drafts/deepseek-pilot/**/*.vendor.txt
+/drafts/deepseek-pilot/**/*.session.json
+/drafts/deepseek-pilot/**/*.session.txt
 .qlty/logs
 .qlty/out
 .qlty/results
