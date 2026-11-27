@@ -345,17 +345,15 @@ pub fn format_of(path: &Path) -> Option<Format> {
             .find(|f| Some(f.slug()) == c.as_os_str().to_str())
     });
     directory_format.or_else(|| {
-        // #7 uses one flat shard per format. This exception is deliberately
-        // confined to the corpus-relative gold staging directory; callers
-        // must pass the corpus-relative display path, as load_corpus does.
+        // Flat shards use the format slug as their file stem (`mcq.jsonl`).
+        // #7 uses this layout for gold, and generated sample batches use the
+        // same one-shard-per-format layout outside `data/`.
         debug_assert!(
             path.is_relative(),
             "format_of expects a corpus-relative path, got {}",
             path.display()
         );
-        if path.parent() != Some(Path::new("data/gold"))
-            || path.extension().is_none_or(|e| e != "jsonl")
-        {
+        if path.extension().is_none_or(|e| e != "jsonl") {
             return None;
         }
         Format::all()
@@ -498,3 +496,4 @@ pub use checks::{run_checks, run_schema_check};
 
 pub mod admit;
 pub mod citation_audit;
+pub mod originality_audit;

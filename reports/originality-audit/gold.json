@@ -1,0 +1,431 @@
+{
+  "report_version": 1,
+  "inputs": {
+    "records": 24,
+    "reference_items": 4,
+    "record_corpus_sha256": "551cd14b79ea7839a4ac51d93d94f1da39b4d040d89f1df100867cbbd12380fd",
+    "reference_corpus_sha256": "b4f46695f108afd5e7dfda60fe202e6bc2ed24d1f46f2ef15fa46625369e800b",
+    "splits_sha256": null,
+    "dispositions_sha256": null
+  },
+  "thresholds": {
+    "contamination": 0.35,
+    "external_overlap": 0.6,
+    "internal_dedup": 0.35
+  },
+  "counts": {
+    "external_pairs_screened": 96,
+    "internal_pairs_screened": 276,
+    "external_overlap_flags": 0,
+    "internal_dedup_flags": 0,
+    "split_violation_flags": 0,
+    "contamination_groups": 0,
+    "needs_review": 0,
+    "dispositions_applied": 0,
+    "release_blocking_flags": 0
+  },
+  "records": [
+    {
+      "record_id": "gold-cv-bbf-0001",
+      "path": "data/gold/case_vignette.jsonl",
+      "line": 1,
+      "format": "case_vignette",
+      "domain": "bbf",
+      "tier": "foundation",
+      "coverage_cell": "bbf:case_vignette:foundation",
+      "prompt_sha256": "bf8a7b94054dcf586e1e73ecec9d4c465b3265e03d9b619d463981e1161dd20e",
+      "record_text_sha256": "5b5db223a25fd324262ef034d371978fca04afbe5724eec9d921386069a42f07",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec4.2B:types-of-epithelial-tissue"
+      ]
+    },
+    {
+      "record_id": "gold-cv-bbf-0002",
+      "path": "data/gold/case_vignette.jsonl",
+      "line": 2,
+      "format": "case_vignette",
+      "domain": "bbf",
+      "tier": "reasoning",
+      "coverage_cell": "bbf:case_vignette:reasoning",
+      "prompt_sha256": "b2bafad64ac58260082d9f8ecec20f1eb4c8d791caa1fa7f4ed8434c6627d936",
+      "record_text_sha256": "bbffe76ca812168b4749c1108e9dda7896ba153ce925e4a68e9beead47ebc26c",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec15.7D:the-posterior-pituitary",
+        "boundless-anatomy-physiology-2018::sec25.1A:regulation-of-water-intake",
+        "boundless-anatomy-physiology-2018::sec25.1B:regulation-of-water-output"
+      ]
+    },
+    {
+      "record_id": "gold-cv-cpf-0001",
+      "path": "data/gold/case_vignette.jsonl",
+      "line": 3,
+      "format": "case_vignette",
+      "domain": "cpf",
+      "tier": "application",
+      "coverage_cell": "cpf:case_vignette:application",
+      "prompt_sha256": "3a104f42deced08e05c6bed2164a8090106689f438da9ed77f57985c529a59b1",
+      "record_text_sha256": "3d5566d1e33b9979792724c57b4b1047fd0ea88adf0071bd167b70d219750c76",
+      "anchor_passages": [
+        "ostp-introductory-physics-2019::sec5.1:newtons-three-laws",
+        "ostp-introductory-physics-2019::sec5.5:applying-newtons-laws"
+      ]
+    },
+    {
+      "record_id": "gold-cv-cpf-0002",
+      "path": "data/gold/case_vignette.jsonl",
+      "line": 4,
+      "format": "case_vignette",
+      "domain": "cpf",
+      "tier": "foundation",
+      "coverage_cell": "cpf:case_vignette:foundation",
+      "prompt_sha256": "f261afb3601ad8d9573ca80f4c322c689006c4f5bb89d12f5eb5283a41bd2c8a",
+      "record_text_sha256": "05a6a50b884d66b9040b5e1270157fce36f6ff2b87060a10b4d16e7bab3facb3",
+      "anchor_passages": [
+        "ostp-introductory-physics-2019::sec15.1:pressure"
+      ]
+    },
+    {
+      "record_id": "gold-cv-psb-0001",
+      "path": "data/gold/case_vignette.jsonl",
+      "line": 5,
+      "format": "case_vignette",
+      "domain": "psb",
+      "tier": "application",
+      "coverage_cell": "psb:case_vignette:application",
+      "prompt_sha256": "52d920574be43ad24174c792fa81dec04f796dee9b8e92c9c1b8f5d1450b14e9",
+      "record_text_sha256": "7297dc5c641c4694bb4eb5e660064f709b63da7bd2fe387fca2c1935db299ce7",
+      "anchor_passages": [
+        "boundless-sociology-2018::sec3.2A:the-symbolic-nature-of-culture"
+      ]
+    },
+    {
+      "record_id": "gold-cv-psb-0002",
+      "path": "data/gold/case_vignette.jsonl",
+      "line": 6,
+      "format": "case_vignette",
+      "domain": "psb",
+      "tier": "reasoning",
+      "coverage_cell": "psb:case_vignette:reasoning",
+      "prompt_sha256": "4125e87eb5604a7965a429494afae806dec28b00e2a3d9c13cb4ddf3fc64e46a",
+      "record_text_sha256": "5833d6f5803ee6f3bc97d2e42024c5ed4cc8a116bf526666c4d5a14870253495",
+      "anchor_passages": [
+        "boundless-sociology-2018::sec19.1D:social-class-and-health",
+        "boundless-sociology-2018::sec8.1A:stratification",
+        "boundless-sociology-2018::sec9.1A:social-class",
+        "boundless-sociology-2018::sec9.2C:wealth"
+      ]
+    },
+    {
+      "record_id": "gold-cv-preclinical-0001",
+      "path": "data/gold/case_vignette.jsonl",
+      "line": 7,
+      "format": "case_vignette",
+      "domain": "pre_clinical",
+      "tier": "foundation",
+      "coverage_cell": "pre_clinical:case_vignette:foundation",
+      "prompt_sha256": "0fbeea6429af9660cbdf0dc20159c2c099a21db969951293b88c171b800a4fa2",
+      "record_text_sha256": "a4cf266650a2eadaeacc221ead4cc17bc094f0c6894dbd6eeb6b20ad948a4221",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec22.13B:absorption-of-lipids",
+        "boundless-anatomy-physiology-2018::sec22.7F:bile"
+      ]
+    },
+    {
+      "record_id": "gold-cv-preclinical-0002",
+      "path": "data/gold/case_vignette.jsonl",
+      "line": 8,
+      "format": "case_vignette",
+      "domain": "pre_clinical",
+      "tier": "reasoning",
+      "coverage_cell": "pre_clinical:case_vignette:reasoning",
+      "prompt_sha256": "f5451baff05c89be3f61596868c1b68f857b0eeafd2b177e227ac67c892f901e",
+      "record_text_sha256": "d703785e2eedcd606983cea466dd305b8460101e0eb7a7e43d60a10aa5846c41",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec21.1A:external-respiration",
+        "boundless-anatomy-physiology-2018::sec21.9C:oxygen-transport"
+      ]
+    },
+    {
+      "record_id": "gold-mcq-bbf-0001",
+      "path": "data/gold/mcq.jsonl",
+      "line": 1,
+      "format": "mcq",
+      "domain": "bbf",
+      "tier": "foundation",
+      "coverage_cell": "bbf:mcq:foundation",
+      "prompt_sha256": "e558b8494218790467958e029a5e760e6d83acc7f9396af045ecc81c88660627",
+      "record_text_sha256": "1306394a15c6cd62170a021b27de1f0a0ef86f4b47ab2494791d3bbbbf2b4c43",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec3.8B:intercellular-junctions"
+      ]
+    },
+    {
+      "record_id": "gold-mcq-bbf-0002",
+      "path": "data/gold/mcq.jsonl",
+      "line": 2,
+      "format": "mcq",
+      "domain": "bbf",
+      "tier": "application",
+      "coverage_cell": "bbf:mcq:application",
+      "prompt_sha256": "077f6d4d1413026eaf78954b3362e0ca753976e621c9aa52ac7a7a046e28e40d",
+      "record_text_sha256": "a80b66cd9e8c18efbe4a0f0fce69bd1ddd90bed320e9804b358ca2e7d8e04cd6",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec25.1A:regulation-of-water-intake",
+        "boundless-anatomy-physiology-2018::sec25.1B:regulation-of-water-output"
+      ]
+    },
+    {
+      "record_id": "gold-mcq-cpf-0001",
+      "path": "data/gold/mcq.jsonl",
+      "line": 3,
+      "format": "mcq",
+      "domain": "cpf",
+      "tier": "application",
+      "coverage_cell": "cpf:mcq:application",
+      "prompt_sha256": "3d0bcafad6bb8f7d37e152f508d97f66f86f652a98771208002c53bde156a84f",
+      "record_text_sha256": "b32abe588ed3f3b90f982ddd14f6d554709676501bfaf521edc7e2f16b902596",
+      "anchor_passages": [
+        "ostp-introductory-physics-2019::sec5.1:newtons-three-laws",
+        "ostp-introductory-physics-2019::sec5.5:applying-newtons-laws"
+      ]
+    },
+    {
+      "record_id": "gold-mcq-cpf-0002",
+      "path": "data/gold/mcq.jsonl",
+      "line": 4,
+      "format": "mcq",
+      "domain": "cpf",
+      "tier": "reasoning",
+      "coverage_cell": "cpf:mcq:reasoning",
+      "prompt_sha256": "94d0b45ecfc6fb20bfeb6553bee8d79b01d118a845f512fce61cd8e54abafe5c",
+      "record_text_sha256": "64990b22d84563f56938bad6b83abed987b31325520a7cb61c4b2628f627af82",
+      "anchor_passages": [
+        "ostp-introductory-physics-2019::sec14.2:mathematical-description-of-a-wave",
+        "ostp-introductory-physics-2019::sec14.4:the-speed-of-a-wave"
+      ]
+    },
+    {
+      "record_id": "gold-mcq-psb-0001",
+      "path": "data/gold/mcq.jsonl",
+      "line": 5,
+      "format": "mcq",
+      "domain": "psb",
+      "tier": "foundation",
+      "coverage_cell": "psb:mcq:foundation",
+      "prompt_sha256": "8cb660bd64bfd59a9677643b29b4e8983baaabc1bc3de607dd37dd126338548a",
+      "record_text_sha256": "1126fa00c486f570a7e309ea5422e378cc3922a759f63e5b87ead6dc55a29b64",
+      "anchor_passages": [
+        "boundless-sociology-2018::sec3.2A:the-symbolic-nature-of-culture",
+        "boundless-sociology-2018::sec3.2G:values",
+        "boundless-sociology-2018::sec3.2H:norms"
+      ]
+    },
+    {
+      "record_id": "gold-mcq-psb-0002",
+      "path": "data/gold/mcq.jsonl",
+      "line": 6,
+      "format": "mcq",
+      "domain": "psb",
+      "tier": "application",
+      "coverage_cell": "psb:mcq:application",
+      "prompt_sha256": "a099d3dbe8f142cda37dfcc8ed331b76bcf1003d8d946a66f3971d85b798b7f6",
+      "record_text_sha256": "3e0c9da7e6152602c253a7780f45d47dcae40f662e5643c3105bf6f8db6072db",
+      "anchor_passages": [
+        "boundless-sociology-2018::sec9.2C:wealth"
+      ]
+    },
+    {
+      "record_id": "gold-mcq-preclinical-0001",
+      "path": "data/gold/mcq.jsonl",
+      "line": 7,
+      "format": "mcq",
+      "domain": "pre_clinical",
+      "tier": "application",
+      "coverage_cell": "pre_clinical:mcq:application",
+      "prompt_sha256": "b8e9175c197a9060eab46c6c13943e82a0e3dd581e48e0b4040cc568f884cabe",
+      "record_text_sha256": "289f0a3b208f590a19cbc6523f171f5ed2704f6cad7a2dc7a0d6f85c1c5f144f",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec21.1A:external-respiration"
+      ]
+    },
+    {
+      "record_id": "gold-mcq-preclinical-0002",
+      "path": "data/gold/mcq.jsonl",
+      "line": 8,
+      "format": "mcq",
+      "domain": "pre_clinical",
+      "tier": "reasoning",
+      "coverage_cell": "pre_clinical:mcq:reasoning",
+      "prompt_sha256": "338f2dbc39c8d65367060ec5a21c93f027a950a29126fce871ce8fc355973036",
+      "record_text_sha256": "6d28b3af6e7f5db142c539a122e11505c90e1890d0400fa7f314c861f6dcf15d",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec25.1B:regulation-of-water-output"
+      ]
+    },
+    {
+      "record_id": "gold-tut-bbf-0001",
+      "path": "data/gold/tutoring_example.jsonl",
+      "line": 1,
+      "format": "tutoring_example",
+      "domain": "bbf",
+      "tier": "foundation",
+      "coverage_cell": "bbf:tutoring_example:foundation",
+      "prompt_sha256": "4ca104af897f2bd2a6b4a86d7836e34bd457cec4c455fcbd8c0b775eab3fc9c7",
+      "record_text_sha256": "f261dc683d23a7dac4fc351861b0390a77179d09a888e49b70577da6e8dcdb81",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec4.2A:characteristics-of-epithelial-tissue"
+      ]
+    },
+    {
+      "record_id": "gold-tut-bbf-0002",
+      "path": "data/gold/tutoring_example.jsonl",
+      "line": 2,
+      "format": "tutoring_example",
+      "domain": "bbf",
+      "tier": "application",
+      "coverage_cell": "bbf:tutoring_example:application",
+      "prompt_sha256": "39480cb0d4edf67cc8611a8a7493ce29d965ce22809232435710e1fb5f6f30c7",
+      "record_text_sha256": "e65bdaf915637aa3cd56e986061806a44f7889277d2bb144fd32d219eb7da625",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec15.7D:the-posterior-pituitary",
+        "boundless-anatomy-physiology-2018::sec25.1B:regulation-of-water-output"
+      ]
+    },
+    {
+      "record_id": "gold-tut-cpf-0001",
+      "path": "data/gold/tutoring_example.jsonl",
+      "line": 3,
+      "format": "tutoring_example",
+      "domain": "cpf",
+      "tier": "application",
+      "coverage_cell": "cpf:tutoring_example:application",
+      "prompt_sha256": "8541b4fbd9174f097f2daf7803abbbcdac6bbcbbe76ac32ee3d3ba38f87ddc7c",
+      "record_text_sha256": "1fb193b13071e8d94df38fbe638e103a7d6720bb45b0ad1caca8b771e3661d2f",
+      "anchor_passages": [
+        "ostp-introductory-physics-2019::sec15.1:pressure"
+      ]
+    },
+    {
+      "record_id": "gold-tut-cpf-0002",
+      "path": "data/gold/tutoring_example.jsonl",
+      "line": 4,
+      "format": "tutoring_example",
+      "domain": "cpf",
+      "tier": "reasoning",
+      "coverage_cell": "cpf:tutoring_example:reasoning",
+      "prompt_sha256": "6ffc62cec87e1ca73135edf800630a35ac266f72fc7c68c51b4562adc2a568bf",
+      "record_text_sha256": "68e464c116667bf34bb6cba396c7403a0669f8e5a416baf61f98d5c09aa3072e",
+      "anchor_passages": [
+        "ostp-introductory-physics-2019::sec14.2:mathematical-description-of-a-wave",
+        "ostp-introductory-physics-2019::sec14.4:the-speed-of-a-wave"
+      ]
+    },
+    {
+      "record_id": "gold-tut-psb-0001",
+      "path": "data/gold/tutoring_example.jsonl",
+      "line": 5,
+      "format": "tutoring_example",
+      "domain": "psb",
+      "tier": "foundation",
+      "coverage_cell": "psb:tutoring_example:foundation",
+      "prompt_sha256": "50899fb8d0ae893711e4598ed677011cd8e819614aef6d38d731fd80ef8e2aca",
+      "record_text_sha256": "3bb1bbd72a5ea3f2430d1244270bd9ca5428eaca20ab838ccc2ef9bdfbd5e00e",
+      "anchor_passages": [
+        "boundless-sociology-2018::sec3.2G:values",
+        "boundless-sociology-2018::sec3.2H:norms"
+      ]
+    },
+    {
+      "record_id": "gold-tut-psb-0002",
+      "path": "data/gold/tutoring_example.jsonl",
+      "line": 6,
+      "format": "tutoring_example",
+      "domain": "psb",
+      "tier": "reasoning",
+      "coverage_cell": "psb:tutoring_example:reasoning",
+      "prompt_sha256": "cc63ebcf39566ba9d473334736b117cbf7466d3e9636c82edab6c1d7a362a56e",
+      "record_text_sha256": "a626e5ab1448c06c8cf884473aaeb7596d266a97ebb99abbd2b13609876a6f08",
+      "anchor_passages": [
+        "boundless-sociology-2018::sec8.1A:stratification",
+        "boundless-sociology-2018::sec9.1A:social-class",
+        "boundless-sociology-2018::sec9.5B:physical-health"
+      ]
+    },
+    {
+      "record_id": "gold-tut-preclinical-0001",
+      "path": "data/gold/tutoring_example.jsonl",
+      "line": 7,
+      "format": "tutoring_example",
+      "domain": "pre_clinical",
+      "tier": "foundation",
+      "coverage_cell": "pre_clinical:tutoring_example:foundation",
+      "prompt_sha256": "350c2c77648136c058f8fb91584de5f3f2a4feaabd18e21a8f5675ccc696f4c9",
+      "record_text_sha256": "2c581a0da4a680aa8754779edb8d0946bc48cd09627a103ab36905e554d031ca",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec15.7D:the-posterior-pituitary",
+        "boundless-anatomy-physiology-2018::sec25.1B:regulation-of-water-output"
+      ]
+    },
+    {
+      "record_id": "gold-tut-preclinical-0002",
+      "path": "data/gold/tutoring_example.jsonl",
+      "line": 8,
+      "format": "tutoring_example",
+      "domain": "pre_clinical",
+      "tier": "reasoning",
+      "coverage_cell": "pre_clinical:tutoring_example:reasoning",
+      "prompt_sha256": "1a52deec9c5842dc8a839c48f841f5776bce093e2d8d41e868addf7592706e70",
+      "record_text_sha256": "c11308fe95a6fdc7e8d9c870550753dc28bfece15f71cd01e3f57fbf25b3a751",
+      "anchor_passages": [
+        "boundless-anatomy-physiology-2018::sec18.4A:introduction-to-blood-flow-pressure-and-resistance"
+      ]
+    }
+  ],
+  "reference_items": [
+    {
+      "reference_id": "ostp-physics-fluid-hose-flow-rate",
+      "kind": "public-exercise",
+      "source_url": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/15%3A_Fluid_Mechanics/15.03%3A_Hydrodynamics",
+      "license": "CC BY-SA 4.0",
+      "provenance": "LibreTexts, Introductory Physics: Building Models to Describe Our World, section 15.3 Hydrodynamics, Example 1; whitespace-normalized exact public exercise prompt excerpt.",
+      "text_sha256": "a6e6c88b2e19fa6b9d2a995d8904d9b89d934b51faaabe358f184279bcc074d5",
+      "line": 1
+    },
+    {
+      "reference_id": "ostp-physics-train-window-pressure",
+      "kind": "public-exercise",
+      "source_url": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/15%3A_Fluid_Mechanics/15.03%3A_Hydrodynamics",
+      "license": "CC BY-SA 4.0",
+      "provenance": "LibreTexts, Introductory Physics: Building Models to Describe Our World, section 15.3 Hydrodynamics, Exercise 2; whitespace-normalized exact public exercise prompt excerpt.",
+      "text_sha256": "236e367b9fbff393e3987f695a9083ff68f87d07bbcb7687e4715f8201e0a6d5",
+      "line": 2
+    },
+    {
+      "reference_id": "ostp-physics-straw-water-pressure",
+      "kind": "public-exercise",
+      "source_url": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/15%3A_Fluid_Mechanics/15.01%3A_Pressure",
+      "license": "CC BY-SA 4.0",
+      "provenance": "LibreTexts, Introductory Physics: Building Models to Describe Our World, section 15.1 Pressure, straw exercise; whitespace-normalized exact public exercise prompt excerpt.",
+      "text_sha256": "c90b9337dbd5dda25ee98117f22a84baa315c3a310c743f19163f6860bb13b18",
+      "line": 3
+    },
+    {
+      "reference_id": "ostp-physics-piston-force",
+      "kind": "public-exercise",
+      "source_url": "https://phys.libretexts.org/Bookshelves/University_Physics/Book%3A_Introductory_Physics_-_Building_Models_to_Describe_Our_World_(Martin_Neary_Rinaldo_and_Woodman)/15%3A_Fluid_Mechanics/15.01%3A_Pressure",
+      "license": "CC BY-SA 4.0",
+      "provenance": "LibreTexts, Introductory Physics: Building Models to Describe Our World, section 15.1 Pressure, hydraulic-piston example; whitespace-normalized exact public exercise prompt excerpt.",
+      "text_sha256": "7a6c1419378ee64949b8c83a7aa5affaf5ff005582f0dcd3e39a7664beddb705",
+      "line": 4
+    }
+  ],
+  "flags": [],
+  "contamination_groups": [],
+  "split_audit": {
+    "status": "not-run-no-split-assignments",
+    "assignments": 0,
+    "violations": 0
+  },
+  "unused_disposition_ids": [],
+  "release_blocking_record_ids": []
+}
