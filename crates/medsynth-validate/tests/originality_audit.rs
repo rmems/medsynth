@@ -97,9 +97,14 @@ fn external_overlap_requires_review_and_report_omits_reference_text() {
     let references = write_references(&root, &[reference_text]);
     let report = run_audit(&options(&root, references)).expect("run audit");
 
-    assert_eq!(report.counts.external_overlap_flags, 1);
-    assert_eq!(report.counts.needs_review, 1);
-    assert_eq!(report.counts.release_blocking_flags, 1);
+    assert_eq!(
+        (
+            report.counts.external_overlap_flags,
+            report.counts.needs_review,
+            report.counts.release_blocking_flags,
+        ),
+        (1, 1, 1)
+    );
     assert_eq!(report.release_blocking_record_ids, ["rec-external"]);
     let serialized = report_json(&report).expect("serialize report");
     assert!(!serialized.contains("high speed train"));
@@ -173,16 +178,19 @@ fn same_cell_dedup_and_cross_split_contamination_are_flagged() {
     opts.splits = Some(splits);
     let report = run_audit(&opts).expect("run audit");
 
-    assert_eq!(report.counts.internal_dedup_flags, 1);
-    assert_eq!(report.counts.contamination_groups, 1);
-    assert_eq!(report.counts.split_violation_flags, 1);
+    assert_eq!(
+        (
+            report.counts.internal_dedup_flags,
+            report.counts.contamination_groups,
+            report.counts.split_violation_flags,
+        ),
+        (1, 1, 1)
+    );
     assert!(report.counts.release_blocking_flags >= 2);
     assert_eq!(report.split_audit.status, "checked");
+    let evidence_link = &report.contamination_groups[0].evidence_links[0];
     assert_eq!(report.contamination_groups[0].evidence_links.len(), 1);
-    assert_eq!(
-        report.contamination_groups[0].evidence_links[0].record_ids,
-        ["rec-a", "rec-b"]
-    );
+    assert_eq!(evidence_link.record_ids, ["rec-a", "rec-b"]);
     let split_flag = report
         .flags
         .iter()
@@ -253,10 +261,15 @@ fn real_gold_is_clean_and_sample_batch_exposes_procedural_duplicates() {
 
     let sample = run_audit(&base(vec![root.join("drafts/sample-batch/mcq.jsonl")]))
         .expect("audit sample batch");
-    assert_eq!(sample.inputs.records, 8);
-    assert_eq!(sample.counts.internal_dedup_flags, 2);
-    assert_eq!(sample.counts.contamination_groups, 2);
-    assert_eq!(sample.counts.release_blocking_flags, 2);
+    assert_eq!(
+        (
+            sample.inputs.records,
+            sample.counts.internal_dedup_flags,
+            sample.counts.contamination_groups,
+            sample.counts.release_blocking_flags,
+        ),
+        (8, 2, 2, 2)
+    );
     assert_eq!(sample.split_audit.status, "not-run-no-split-assignments");
 }
 
@@ -449,7 +462,12 @@ fn changed_reference_evidence_invalidates_stale_disposition() {
     let second = run_audit(&opts).expect("second audit");
 
     assert_ne!(second.flags[0].flag_id, stale_flag_id);
-    assert_eq!(second.counts.dispositions_applied, 0);
-    assert_eq!(second.counts.release_blocking_flags, 1);
-    assert_eq!(second.unused_disposition_ids.len(), 1);
+    assert_eq!(
+        (
+            second.counts.dispositions_applied,
+            second.counts.release_blocking_flags,
+            second.unused_disposition_ids.len(),
+        ),
+        (0, 1, 1)
+    );
 }
