@@ -4,7 +4,7 @@
 //!
 //! Exit status: `0` means the gate ran to completion and wrote its log —
 //! the log is the verdict (rejections and holds live there, not in the
-//! exit code). `1` means an operational failure: unreadable batch or
+//! exit code). `1` means an operational failure: unreadable batch or trusted
 //! registry, missing pins the batch requires, or I/O errors.
 
 use std::path::PathBuf;
@@ -29,6 +29,9 @@ struct Cli {
     /// Source registry the anchors are checked against.
     #[arg(long, default_value = "docs/sources.json")]
     sources: PathBuf,
+    /// Trusted teacher pin registry rights envelopes are checked against.
+    #[arg(long, default_value = "docs/teachers.md")]
+    teachers: PathBuf,
     /// Dataset root admitted records are written under (`<format>/<batch>.jsonl`).
     #[arg(long, default_value = "data")]
     data_dir: PathBuf,
@@ -44,6 +47,7 @@ fn main() -> anyhow::Result<()> {
     let report = admit::run(&AdmissionOptions {
         batch_dir: cli.batch.clone(),
         sources_path: cli.sources.clone(),
+        teachers_path: cli.teachers.clone(),
         data_dir: cli.data_dir.clone(),
         log_path: cli.log.clone(),
         config,

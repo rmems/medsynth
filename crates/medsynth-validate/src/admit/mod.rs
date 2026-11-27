@@ -46,6 +46,7 @@ mod pipeline;
 mod published;
 mod registry;
 mod review;
+mod teachers;
 
 pub use config::{AgentPin, RunConfig, SolverPin, load_run_config};
 pub use pipeline::{

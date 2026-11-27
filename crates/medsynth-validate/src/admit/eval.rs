@@ -20,6 +20,7 @@ use super::fulfill::{Exchange, Fulfillment, RequestKind};
 use super::outputs::display;
 use super::pipeline::{Outcome, RecordOutcome, Stage};
 use super::registry::SourceRegistry;
+use super::teachers::TeacherPinRegistry;
 use super::{anchor, intake, key};
 
 /// Everything a record evaluation reads.
@@ -27,6 +28,7 @@ pub(super) struct Ctx<'a> {
     pub batch: &'a Batch,
     pub validators: &'a crate::Validators,
     pub registry: &'a SourceRegistry,
+    pub teacher_registry: &'a TeacherPinRegistry,
     pub config: &'a RunConfig,
     pub fulfillment: &'a Fulfillment,
     /// Ids already admitted under `data/` (minus this run's own shards) —
