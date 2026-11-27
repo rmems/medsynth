@@ -8,6 +8,7 @@ use medsynth_validate::originality_audit::{
     AuditOptions, DEFAULT_CONTAMINATION_THRESHOLD, DEFAULT_DEDUP_THRESHOLD,
     DEFAULT_OVERLAP_THRESHOLD, report_json, run_audit,
 };
+use medsynth_validate::{Format, format_of};
 use serde_json::json;
 
 fn workspace_root() -> PathBuf {
@@ -33,6 +34,7 @@ fn mcq(id: &str, stem: &str, locator: &str) -> String {
         "id": id,
         "domain": "cpf",
         "tier": "application",
+        "answer_key": "A",
         "stem": {
             "text": stem,
             "anchors": [{
@@ -176,6 +178,17 @@ fn same_cell_dedup_and_cross_split_contamination_are_flagged() {
     assert_eq!(report.counts.split_violation_flags, 1);
     assert!(report.counts.release_blocking_flags >= 2);
     assert_eq!(report.split_audit.status, "checked");
+    assert_eq!(report.contamination_groups[0].evidence_links.len(), 1);
+    assert_eq!(
+        report.contamination_groups[0].evidence_links[0].record_ids,
+        ["rec-a", "rec-b"]
+    );
+    let split_flag = report
+        .flags
+        .iter()
+        .find(|flag| flag.kind == "cross-split-contamination")
+        .expect("cross-split flag");
+    assert_eq!(split_flag.evidence_links.len(), 1);
 }
 
 #[test]
@@ -297,4 +310,146 @@ fn non_allowlisted_reference_license_fail_closed() {
 
     let error = run_audit(&options(&root, references)).expect_err("incompatible license must fail");
     assert!(error.to_string().contains("non-allowlisted license"));
+}
+
+#[test]
+fn flat_shard_classification_stays_confined_to_gold_layout() {
+    assert_eq!(
+        format_of(Path::new("data/gold/mcq.jsonl")),
+        Some(Format::Mcq)
+    );
+    assert_eq!(format_of(Path::new("data/mcq.jsonl")), None);
+}
+
+#[test]
+fn explicit_unclassifiable_record_file_fails_closed() {
+    let root = temp_root("explicit-unclassifiable");
+    fs::write(root.join("corpus/items.jsonl"), "{\"id\":\"bad\"}\n").expect("write bad shard");
+    let references = write_references(&root, &["An unrelated public exercise."]);
+    let mut opts = options(&root, references);
+    opts.records = vec![root.join("corpus/items.jsonl")];
+
+    let error = run_audit(&opts).expect_err("unclassifiable explicit shard must fail");
+    assert!(
+        error
+            .to_string()
+            .contains("not a recognizable format shard")
+    );
+}
+
+#[test]
+fn outside_root_flat_shard_is_classified_without_crashing() {
+    let root = temp_root("outside-root");
+    let outside = temp_root("outside-root-shard");
+    write_records(
+        &outside,
+        &[mcq(
+            "rec-outside",
+            "A distinct question about acceleration outside the audit root.",
+            "sec5.2:force",
+        )],
+    );
+    let references = write_references(&root, &["An unrelated public exercise."]);
+    let mut opts = options(&root, references);
+    opts.records = vec![outside.join("corpus/mcq.jsonl")];
+
+    let report = run_audit(&opts).expect("outside-root flat shard should audit");
+    assert_eq!(report.inputs.records, 1);
+}
+
+#[test]
+fn missing_prompt_fails_closed() {
+    let root = temp_root("missing-prompt");
+    let record = serde_json::to_string(&json!({
+        "id": "rec-no-prompt",
+        "domain": "cpf",
+        "tier": "application",
+        "answer_key": "A",
+    }))
+    .expect("serialize malformed mcq");
+    write_records(&root, &[record]);
+    let references = write_references(&root, &["An unrelated public exercise."]);
+
+    let error = run_audit(&options(&root, references)).expect_err("missing prompt must fail");
+    assert!(error.to_string().contains("no mcq prompt text"));
+}
+
+#[test]
+fn answer_key_edit_changes_record_and_corpus_hashes() {
+    let root = temp_root("answer-hash");
+    let stem = "A force of 12 N acts on a 3 kg cart. What is its acceleration?";
+    write_records(&root, &[mcq("rec-key", stem, "sec5.2:force")]);
+    let references = write_references(&root, &["An unrelated public exercise about pressure."]);
+    let first = run_audit(&options(&root, references.clone())).expect("first audit");
+
+    let path = root.join("corpus/mcq.jsonl");
+    let text = fs::read_to_string(&path).expect("read shard");
+    fs::write(
+        &path,
+        text.replace(r#""answer_key":"A""#, r#""answer_key":"B""#),
+    )
+    .expect("mutate key");
+    let second = run_audit(&options(&root, references)).expect("second audit");
+
+    assert_ne!(
+        first.records[0].record_text_sha256,
+        second.records[0].record_text_sha256
+    );
+    assert_ne!(
+        first.inputs.record_corpus_sha256,
+        second.inputs.record_corpus_sha256
+    );
+}
+
+#[test]
+fn changed_reference_evidence_invalidates_stale_disposition() {
+    let root = temp_root("stale-disposition");
+    let reference_text = "Your garden hose has a diameter of D = 2 cm. How fast must water flow out of the hose if you are to fill a 5 l bucket in one minute? Choose the flow speed from the answer options.";
+    write_records(
+        &root,
+        &[mcq("rec-stale", reference_text, "sec15.3:hydrodynamics")],
+    );
+    let references = write_references(&root, &[reference_text]);
+    let first = run_audit(&options(&root, references.clone())).expect("first audit");
+    let stale_flag_id = first.flags[0].flag_id.clone();
+
+    let changed = reference_text.replace("Choose the flow speed", "Select the water speed");
+    fs::write(
+        &references,
+        format!(
+            "{}\n",
+            serde_json::to_string(&json!({
+                "id": "ref-0",
+                "kind": "public-exercise",
+                "text": changed,
+                "source_url": "https://example.org/public-exercise",
+                "license": "CC BY-SA 4.0",
+                "provenance": "seeded integration-test reference",
+            }))
+            .expect("serialize changed reference")
+        ),
+    )
+    .expect("rewrite reference");
+    let dispositions = root.join("dispositions.json");
+    fs::write(
+        &dispositions,
+        serde_json::to_string_pretty(&json!({
+            "dispositions": [{
+                "flag_id": stale_flag_id,
+                "decision": "not-a-duplicate",
+                "reviewer_run_id": "reviewer-test-run",
+                "rationale": "stale false-positive review decision",
+            }],
+        }))
+        .expect("serialize dispositions"),
+    )
+    .expect("write dispositions");
+    let mut opts = options(&root, references);
+    opts.dispositions = Some(dispositions);
+    let second = run_audit(&opts).expect("second audit");
+
+    assert_ne!(second.flags[0].flag_id, stale_flag_id);
+    assert_eq!(second.counts.dispositions_applied, 0);
+    assert_eq!(second.counts.release_blocking_flags, 1);
+    assert_eq!(second.unused_disposition_ids.len(), 1);
 }

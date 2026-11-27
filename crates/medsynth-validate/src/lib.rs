@@ -345,15 +345,17 @@ pub fn format_of(path: &Path) -> Option<Format> {
             .find(|f| Some(f.slug()) == c.as_os_str().to_str())
     });
     directory_format.or_else(|| {
-        // Flat shards use the format slug as their file stem (`mcq.jsonl`).
-        // #7 uses this layout for gold, and generated sample batches use the
-        // same one-shard-per-format layout outside `data/`.
+        // #7 uses one flat shard per format. This exception is deliberately
+        // confined to the corpus-relative gold staging directory; callers
+        // must pass the corpus-relative display path, as load_corpus does.
         debug_assert!(
             path.is_relative(),
             "format_of expects a corpus-relative path, got {}",
             path.display()
         );
-        if path.extension().is_none_or(|e| e != "jsonl") {
+        if path.parent() != Some(Path::new("data/gold"))
+            || path.extension().is_none_or(|e| e != "jsonl")
+        {
             return None;
         }
         Format::all()
@@ -382,12 +384,23 @@ pub fn load_paths(
     paths: Vec<PathBuf>,
     display: impl Fn(&Path) -> PathBuf,
 ) -> (Vec<RecordFile>, Vec<Finding>) {
+    load_paths_with_format(paths, display, format_of)
+}
+
+/// Load paths with a caller-supplied format classifier. The classifier sees
+/// the same display path reported in findings; use [`load_paths`] for the
+/// standard corpus layout rules.
+pub fn load_paths_with_format(
+    paths: Vec<PathBuf>,
+    display: impl Fn(&Path) -> PathBuf,
+    classify: impl Fn(&Path) -> Option<Format>,
+) -> (Vec<RecordFile>, Vec<Finding>) {
     let mut records = Vec::new();
     let mut findings = Vec::new();
     for path in paths {
         let display_path = display(&path);
         let is_jsonl = path.extension().is_some_and(|e| e == "jsonl");
-        let Some(format) = format_of(&display_path) else {
+        let Some(format) = classify(&display_path) else {
             findings.push(Finding {
                 path: display_path,
                 line: None,

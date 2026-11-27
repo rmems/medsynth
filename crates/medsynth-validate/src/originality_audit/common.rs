@@ -4,7 +4,6 @@ use std::path::Path;
 use sha2::{Digest, Sha256};
 
 use crate::Format;
-use crate::originality::record_text;
 
 pub(crate) fn sha256_bytes(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
@@ -25,7 +24,7 @@ pub(crate) fn display_path(root: &Path, path: &Path) -> String {
         .replace('\\', "/")
 }
 
-pub(crate) fn prompt_text(value: &serde_json::Value, format: Format) -> String {
+pub(crate) fn prompt_text(value: &serde_json::Value, format: Format) -> Option<String> {
     let path: &[&str] = match format {
         Format::Mcq => &["stem", "text"],
         Format::CaseVignette => &["presentation"],
@@ -35,32 +34,37 @@ pub(crate) fn prompt_text(value: &serde_json::Value, format: Format) -> String {
     for key in path {
         current = &current[key];
     }
-    current
-        .as_str()
-        .map(str::to_owned)
-        .unwrap_or_else(|| record_text(value))
+    current.as_str().map(str::to_owned)
+}
+
+fn anchor_key(anchor: &serde_json::Value) -> Option<String> {
+    let source = anchor.get("source_id")?.as_str()?;
+    let locator = anchor.get("locator")?.as_str()?;
+    Some(format!("{source}::{locator}"))
+}
+
+fn collect_anchor_array(items: &[serde_json::Value], out: &mut BTreeSet<String>) {
+    out.extend(items.iter().filter_map(anchor_key));
+}
+
+fn collect_object_anchors(
+    map: &serde_json::Map<String, serde_json::Value>,
+    out: &mut BTreeSet<String>,
+) {
+    for (key, child) in map {
+        if key == "anchors" {
+            if let serde_json::Value::Array(items) = child {
+                collect_anchor_array(items, out);
+            }
+        } else {
+            collect_anchors(child, out);
+        }
+    }
 }
 
 pub(crate) fn collect_anchors(value: &serde_json::Value, out: &mut BTreeSet<String>) {
     match value {
-        serde_json::Value::Object(map) => {
-            for (key, child) in map {
-                if key == "anchors" {
-                    if let serde_json::Value::Array(items) = child {
-                        for anchor in items {
-                            if let (Some(source), Some(locator)) = (
-                                anchor.get("source_id").and_then(|v| v.as_str()),
-                                anchor.get("locator").and_then(|v| v.as_str()),
-                            ) {
-                                out.insert(format!("{source}::{locator}"));
-                            }
-                        }
-                    }
-                } else {
-                    collect_anchors(child, out);
-                }
-            }
-        }
+        serde_json::Value::Object(map) => collect_object_anchors(map, out),
         serde_json::Value::Array(items) => {
             for item in items {
                 collect_anchors(item, out);

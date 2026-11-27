@@ -141,6 +141,14 @@ pub struct ReferenceSummary {
     pub line: usize,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct ContaminationLink {
+    pub record_ids: Vec<String>,
+    pub shared_anchor_passages: Vec<String>,
+    pub containment: f64,
+    pub split_assignments: BTreeMap<String, String>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct AuditFlag {
     pub flag_id: String,
@@ -149,6 +157,7 @@ pub struct AuditFlag {
     pub reference_id: Option<String>,
     pub coverage_cell: Option<String>,
     pub anchor_passage_overlap: Vec<String>,
+    pub evidence_links: Vec<ContaminationLink>,
     pub containment: f64,
     pub threshold: f64,
     pub status: String,
@@ -161,6 +170,8 @@ pub struct ContaminationGroup {
     pub group_id: String,
     pub record_ids: Vec<String>,
     pub shared_anchor_passages: Vec<String>,
+    pub evidence_links: Vec<ContaminationLink>,
+    pub record_text_sha256: BTreeMap<String, String>,
     pub max_containment: f64,
     pub split_assignments: BTreeMap<String, String>,
 }

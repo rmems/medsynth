@@ -121,8 +121,9 @@ cargo run -p medsynth-validate --bin medsynth-originality-audit -- \
 ```
 
 The audit is deterministic and writes JSON containing record ids, coverage
-cells, prompt/record hashes, anchor-passage keys, pair counts, containment
-scores, deterministic flag ids, contamination groups, split-check status,
+cells, prompt hashes, per-record raw-content hashes, anchor-passage keys,
+pair counts, containment scores, deterministic evidence-bound flag ids,
+contamination groups with linking-pair evidence, split-check status,
 dispositions, and the release-blocking record-id exclusion list. It never
 copies external reference text into the report.
 
@@ -137,11 +138,13 @@ Three comparisons are distinct:
   splits is a release-blocking cross-split violation.
 
 Any flag starts as `needs-review` and blocks release. A `--dispositions` JSON
-file binds human review to the deterministic `flag_id` with a decision of
-`rewrite`, `replace`, or `not-a-duplicate`, plus an independent
-`reviewer_run_id` and rationale. `rewrite`/`replace` remain release-blocking
-until the candidate data changes; `not-a-duplicate` clears only a reviewed
-false positive. Unused disposition ids are reported, never silently ignored.
+file binds human review to the deterministic evidence-bound `flag_id` with
+a decision of `rewrite`, `replace`, or `not-a-duplicate`, plus an independent
+`reviewer_run_id` and rationale. Changing the compared record or reference
+evidence changes the flag id, so stale reviews cannot clear new text.
+`rewrite`/`replace` remain release-blocking until the candidate data changes;
+`not-a-duplicate` clears only a reviewed false positive for the exact evidence
+reviewed. Unused disposition ids are reported, never silently ignored.
 
 `docs/contamination-reference.md` documents the JSONL reference-entry schema
 and provenance requirements. The seed corpus is intentionally small and
