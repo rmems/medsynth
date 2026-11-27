@@ -210,7 +210,7 @@ impl RightsEnvelope {
         if pin.entry_text.trim().is_empty() || pin.entry_sha256.trim().is_empty() {
             return Err("rights envelope: missing docs/teachers.md pin entry".to_owned());
         }
-        let gateway = pin.endpoint.contains("api-gateway.merge.dev");
+        let gateway = pin.uses_merge_gateway();
         let serving_vendor = if gateway {
             serving
                 .vendor
@@ -221,7 +221,7 @@ impl RightsEnvelope {
                 })?
                 .to_owned()
         } else {
-            serving.vendor.unwrap_or(&pin.provider).to_owned()
+            pin.provider.clone()
         };
         Ok(Self {
             record_id: record_id.to_owned(),

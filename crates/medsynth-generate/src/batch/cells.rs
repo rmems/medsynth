@@ -328,7 +328,7 @@ fn request_completion(
         batch_seed: ctx.cell_ctx.plan.config.seed,
         pin_id: pin.pin_id.clone(),
         pin_variant: pin.variant.clone(),
-        include_routing_metadata: pin.endpoint.contains("api-gateway.merge.dev"),
+        include_routing_metadata: pin.uses_merge_gateway(),
     };
     let completion = ctx.teacher.client.complete(&request).map_err(|e| {
         let stage = if matches!(e, TeacherError::Transport(_)) {

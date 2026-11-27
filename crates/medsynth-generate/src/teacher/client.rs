@@ -118,18 +118,19 @@ impl RecordedTeacherClient {
         Ok(Self { dir })
     }
 
-    fn paths(&self, request: &TeacherRequest) -> (PathBuf, PathBuf) {
+    fn paths(&self, request: &TeacherRequest) -> (PathBuf, PathBuf, PathBuf) {
         let key = fulfillment_key(request);
         (
             self.dir.join(format!("{key}.request.json")),
             self.dir.join(format!("{key}.response.json")),
+            self.dir.join(format!("{key}.vendor.txt")),
         )
     }
 }
 
 impl TeacherClient for RecordedTeacherClient {
     fn complete(&self, request: &TeacherRequest) -> Result<TeacherCompletion, TeacherError> {
-        let (request_path, response_path) = self.paths(request);
+        let (request_path, response_path, vendor_path) = self.paths(request);
         // Stage then rename: a pre-existing symlink at the request path is
         // replaced by the rename, never followed to truncate its target.
         // Per-process staging name: overlapping reruns never share a tmp file.
@@ -165,7 +166,29 @@ impl TeacherClient for RecordedTeacherClient {
                 response_path.display()
             ))
         })?;
-        parse_chat_completion(&value)
+        let mut completion = parse_chat_completion(&value)?;
+        if completion
+            .served_vendor
+            .as_deref()
+            .is_none_or(str::is_empty)
+        {
+            match std::fs::read_to_string(&vendor_path) {
+                Ok(vendor) => {
+                    let vendor = vendor.trim();
+                    if !vendor.is_empty() {
+                        completion.served_vendor = Some(vendor.to_owned());
+                    }
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => {
+                    return Err(TeacherError::Transport(format!(
+                        "cannot read vendor file {}: {e}",
+                        vendor_path.display()
+                    )));
+                }
+            }
+        }
+        Ok(completion)
     }
 }
 
@@ -183,12 +206,20 @@ pub fn parse_chat_completion(value: &Value) -> Result<TeacherCompletion, Teacher
         .get("model")
         .and_then(Value::as_str)
         .map(str::to_owned);
-    let served_vendor = value
-        .get("routing")
-        .and_then(|routing| routing.get("vendor_used").or_else(|| routing.get("vendor")))
-        .and_then(Value::as_str)
-        .or_else(|| value.get("vendor").and_then(Value::as_str))
-        .map(str::to_owned);
+    let routing = value.get("routing");
+    let served_vendor = [
+        routing
+            .and_then(|routing| routing.get("vendor_used"))
+            .and_then(Value::as_str),
+        routing
+            .and_then(|routing| routing.get("vendor"))
+            .and_then(Value::as_str),
+        value.get("vendor").and_then(Value::as_str),
+    ]
+    .into_iter()
+    .flatten()
+    .find(|vendor| !vendor.trim().is_empty())
+    .map(str::to_owned);
     Ok(TeacherCompletion {
         content: content.to_owned(),
         served_model,
@@ -346,6 +377,43 @@ mod tests {
         )
         .unwrap();
         let completion = client.complete(&request).unwrap();
+        assert_eq!(completion.served_vendor.as_deref(), Some("deepseek"));
+
+        std::fs::write(
+            dir.path.join(format!("{key}.response.json")),
+            json!({
+                "model": "deepseek/deepseek-v4.1-flash-1017",
+                "routing": {"vendor_used": null, "vendor": "  "},
+                "choices": [{"message": {"content": "{\"ok\":true}"}}]
+            })
+            .to_string(),
+        )
+        .unwrap();
+        std::fs::write(
+            dir.path.join(format!("{key}.vendor.txt")),
+            "openrouter
+",
+        )
+        .unwrap();
+        let completion = client.complete(&request).unwrap();
+        assert_eq!(completion.served_vendor.as_deref(), Some("openrouter"));
+    }
+
+    #[test]
+    fn blank_vendor_fields_fall_through_to_the_next_vendor_field() {
+        let completion = parse_chat_completion(&json!({
+            "routing": {"vendor_used": null, "vendor": "openrouter"},
+            "choices": [{"message": {"content": "{\"ok\":true}"}}]
+        }))
+        .unwrap();
+        assert_eq!(completion.served_vendor.as_deref(), Some("openrouter"));
+
+        let completion = parse_chat_completion(&json!({
+            "routing": {"vendor_used": " ", "vendor": " "},
+            "vendor": "deepseek",
+            "choices": [{"message": {"content": "{\"ok\":true}"}}]
+        }))
+        .unwrap();
         assert_eq!(completion.served_vendor.as_deref(), Some("deepseek"));
     }
 

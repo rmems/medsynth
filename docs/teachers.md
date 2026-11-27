@@ -141,6 +141,9 @@ live only in that harness, under the env var named in the pin entry for
 documentation — the pipeline never reads, holds, or logs them.
 
 For a Merge Gateway pin the generated request sets
-`include_routing_metadata: true`. The harness must preserve the response body;
-when the body lacks `routing.vendor_used` the generated draft is dropped at
-the rights-envelope gate rather than written.
+`include_routing_metadata: true`. The harness must preserve the response body.
+If Merge returns vendor identity only in the `x-merge-vendor` header, the
+harness writes that bare vendor name to `<key>.vendor.txt` beside the raw
+response file; the pipeline reads that sidecar without altering the response
+body. When neither the body nor sidecar supplies vendor metadata the generated
+draft is dropped at the rights-envelope gate rather than written.

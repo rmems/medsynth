@@ -104,6 +104,12 @@ impl TeacherPin {
     pub fn is_complete(&self) -> bool {
         self.missing_fields().is_empty()
     }
+
+    /// True when the pin routes through Merge Gateway, regardless of URL
+    /// scheme/host casing.
+    pub fn uses_merge_gateway(&self) -> bool {
+        endpoint_is_merge_gateway(&self.endpoint)
+    }
 }
 
 fn missing_text_fields<const N: usize>(fields: [(&'static str, &str); N]) -> Vec<&'static str> {
@@ -244,7 +250,10 @@ fn endpoint_is_merge_gateway(endpoint: &str) -> bool {
 }
 
 fn endpoint_host(endpoint: &str) -> Option<&str> {
-    endpoint.strip_prefix("https://")?.split('/').next()
+    let scheme = endpoint.get(..8)?;
+    scheme
+        .eq_ignore_ascii_case("https://")
+        .then(|| endpoint[8..].split('/').next())?
 }
 
 fn require_trusted_endpoint(pin: &TeacherPin) -> Result<(), TeacherError> {

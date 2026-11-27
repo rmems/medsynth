@@ -231,6 +231,11 @@ fn teacher_lane_refuses_untrusted_endpoints_and_foreign_env_names() {
     let pins = load_pin_text(&text);
     let error = pins.ensure_teacher("bad-env").unwrap_err();
     assert!(matches!(error, TeacherError::InvalidCredentialEnv { .. }));
+
+    let text = pin_markdown("uppercase-endpoint", "deepseek", "teacher", "yes")
+        .replace("https://api.deepseek.com", "HTTPS://API.DEEPSEEK.COM");
+    let pins = load_pin_text(&text);
+    assert!(pins.ensure_teacher("uppercase-endpoint").is_ok());
 }
 
 #[test]
@@ -461,6 +466,23 @@ fn rights_envelope_requires_every_piece() {
         )
         .is_err()
     );
+}
+
+#[test]
+fn direct_route_envelope_uses_the_pinned_provider_not_response_metadata() {
+    let pins = load_pin_text(&pin_markdown("direct-pin", "deepseek", "teacher", "yes"));
+    let pin = pins.ensure_teacher("direct-pin").unwrap();
+    let envelope = RightsEnvelope::build(
+        "draft-test-000",
+        "{\"id\":\"draft-test-000\"}",
+        pin,
+        ServingMetadata {
+            model: None,
+            vendor: Some("unrelated-vendor"),
+        },
+    )
+    .unwrap();
+    assert_eq!(envelope.serving_vendor, "Test Provider");
 }
 
 #[test]
