@@ -101,9 +101,20 @@ fn write_cached_passage(
     Ok(())
 }
 
-fn fetch_text(url: &str) -> anyhow::Result<String> {
+fn fetch_text(url: &str, base_url: &str) -> anyhow::Result<String> {
+    let base_url = base_url.to_owned();
+    let redirect_policy = reqwest::redirect::Policy::custom(move |attempt| {
+        if attempt.previous().len() >= 10 {
+            attempt.error("too many passage redirects")
+        } else if url_stays_under_base(attempt.url().as_str(), &base_url) {
+            attempt.follow()
+        } else {
+            attempt.error("passage redirect escapes the allowlisted source root")
+        }
+    });
     reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
+        .redirect(redirect_policy)
         .build()
         .context("cannot build passage-fetch client")?
         .get(url)
@@ -125,6 +136,16 @@ fn has_encoded_or_separator_traversal(suffix: &str) -> bool {
     suffix.to_ascii_lowercase().contains("%2e") || suffix.contains('\\')
 }
 
+fn url_stays_under_base(url: &str, base_url: &str) -> bool {
+    let base = base_url.trim_end_matches('/');
+    let prefix = format!("{base}/");
+    if !url.starts_with(&prefix) {
+        return false;
+    }
+    let suffix = &url[prefix.len()..];
+    !(has_dot_segments(suffix) || has_encoded_or_separator_traversal(suffix))
+}
+
 fn resolve_libretexts_url(entry: &AccessEntry, locator: &str) -> anyhow::Result<String> {
     let url = entry.locator_urls.get(locator).ok_or_else(|| {
         anyhow::anyhow!(
@@ -132,17 +153,11 @@ fn resolve_libretexts_url(entry: &AccessEntry, locator: &str) -> anyhow::Result<
             entry.source_id
         )
     })?;
-    let base = entry.base_url.trim_end_matches('/');
-    let prefix = format!("{base}/");
-    if !url.starts_with(&prefix) {
+    if !url_stays_under_base(url, &entry.base_url) {
         bail!(
-            "allowlisted URL for `{locator}` escapes the `{}` base URL",
+            "allowlisted URL for `{locator}` escapes the `{}` base URL or contains path traversal",
             entry.source_id
         );
-    }
-    let suffix = &url[prefix.len()..];
-    if has_dot_segments(suffix) || has_encoded_or_separator_traversal(suffix) {
-        bail!("allowlisted URL for `{locator}` contains path traversal");
     }
     Ok(url.clone())
 }
@@ -295,7 +310,7 @@ pub(crate) fn retrieve_passage(
     if offline {
         bail!("no cached passage and offline mode is enabled");
     }
-    let html = fetch_text(&url)?;
+    let html = fetch_text(&url, &entry.base_url)?;
     let text = extract_main_text(&html);
     if text.is_empty() {
         bail!("no main text extracted from {url}");

@@ -324,18 +324,22 @@ pub struct BatchIdInputs<'a> {
     /// SHA-256 of the gold corpus, so a batch id changes when the exemplar
     /// inputs that shaped its drafts change.
     pub gold_sha256: &'a str,
+    /// Procedural template version, so a template-content bump cannot reuse
+    /// the prior batch id when the other pinned inputs stay unchanged.
+    pub template_version: &'a str,
     pub pin_entry_sha256: Option<&'a str>,
 }
 
 /// Deterministic batch id: seed plus the pinned input documents.
 pub fn batch_id(inputs: &BatchIdInputs<'_>) -> String {
     let material = format!(
-        "v{MANIFEST_VERSION}\nseed={}\nconfig={}\ntaxonomy={}\nsources={}\ngold={}\npin={}\n",
+        "v{MANIFEST_VERSION}\nseed={}\nconfig={}\ntaxonomy={}\nsources={}\ngold={}\ntemplates={}\npin={}\n",
         inputs.seed,
         inputs.config_sha256,
         inputs.taxonomy_sha256,
         inputs.sources_sha256,
         inputs.gold_sha256,
+        inputs.template_version,
         inputs.pin_entry_sha256.unwrap_or("-")
     );
     format!("batch-{}", &sha256_hex(material.as_bytes())[..16])
