@@ -121,7 +121,7 @@ cargo run -p medsynth-validate --bin medsynth-originality-audit -- \
 ```
 
 The audit is deterministic and writes JSON containing record ids, coverage
-cells, prompt hashes, per-record raw-content hashes, anchor-passage keys,
+cells, prompt hashes, per-record canonical-content hashes, anchor-passage keys,
 pair counts, containment scores, deterministic evidence-bound flag ids,
 contamination groups with linking-pair evidence, split-check status,
 dispositions, and the release-blocking record-id exclusion list. It never
