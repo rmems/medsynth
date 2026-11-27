@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{AccessEntry, sha256_text};
 
-const PASSAGE_CACHE_VERSION: u32 = 2;
+const PASSAGE_CACHE_VERSION: u32 = 3;
 
 #[derive(Debug, Clone)]
 pub(crate) struct Passage {
@@ -238,6 +238,36 @@ fn append_mathml_parts(node: NodeRef<'_, Node>, out: &mut String, separator: &st
     }
 }
 
+fn append_mathml_subsup(node: NodeRef<'_, Node>, out: &mut String) {
+    let parts = element_children(node).collect::<Vec<_>>();
+    if parts.len() == 3 {
+        append_mathml(parts[0], out);
+        out.push_str("_{");
+        append_mathml(parts[1], out);
+        out.push_str("}^{");
+        append_mathml(parts[2], out);
+        out.push('}');
+    } else {
+        append_child_mathml(node, out);
+    }
+}
+
+fn append_mathml_table(node: NodeRef<'_, Node>, out: &mut String) {
+    for (index, row) in element_children(node).enumerate() {
+        if index > 0 {
+            out.push_str(" ; ");
+        }
+        append_mathml(row, out);
+    }
+}
+
+fn append_mathml_row(node: NodeRef<'_, Node>, out: &mut String) {
+    for cell in element_children(node) {
+        append_mathml(cell, out);
+        out.push(' ');
+    }
+}
+
 fn append_mathml(node: NodeRef<'_, Node>, out: &mut String) {
     if let Some(text) = node.value().as_text() {
         out.push_str(&text.text);
@@ -260,6 +290,10 @@ fn append_mathml(node: NodeRef<'_, Node>, out: &mut String) {
         }
         "msub" => append_mathml_parts(node, out, "_"),
         "msup" => append_mathml_parts(node, out, "^"),
+        "msubsup" => append_mathml_subsup(node, out),
+        "mtable" => append_mathml_table(node, out),
+        "mtr" => append_mathml_row(node, out),
+        "mspace" => out.push(' '),
         _ => append_child_mathml(node, out),
     }
 }
@@ -364,6 +398,15 @@ mod tests {
     fn extracts_mathml_fractions_subscripts_and_square_roots() {
         let html = r#"<main><math><semantics><mrow><mo>|</mo><mi>v</mi><mo>|</mo><mo>=</mo><msqrt><mrow><mfrac><mrow><msub><mi>F</mi><mi>T</mi></msub></mrow><mi>μ</mi></mfrac></mrow></msqrt></mrow><annotation-xml encoding="MathML-Content"><mrow><mi>duplicate</mi></mrow></annotation-xml></semantics></math></main>"#;
         assert_eq!(extract_main_text(html), "|v|=sqrt((F_T)/(μ))");
+    }
+
+    #[test]
+    fn extracts_integral_limits_and_aligned_equation_rows() {
+        let html = r#"<main><math><semantics><mtable><mtr><mtd><msubsup><mo>∫</mo><mrow><msub><mi>p</mi><mn>0</mn></msub></mrow><mi>p</mi></msubsup><mrow><mi>d</mi><mi>p</mi></mrow></mtd><mtd><mo>=</mo></mtd><mtd><mtext>−</mtext><msubsup><mo>∫</mo><mn>0</mn><mrow><mtext>−</mtext><mi>h</mi></mrow></msubsup><mi>ρ</mi><mi>g</mi><mi>d</mi><mi>y</mi></mtd></mtr><mtr><mtd><mi>p</mi><mo>−</mo><msub><mi>p</mi><mn>0</mn></msub></mtd><mtd><mo>=</mo></mtd><mtd><mi>ρ</mi><mi>g</mi><mi>h</mi></mtd></mtr><mtr><mtd><mi>p</mi></mtd><mtd><mo>=</mo></mtd><mtd><msub><mi>p</mi><mn>0</mn></msub><mo>+</mo><mi>ρ</mi><mi>g</mi><mi>h</mi><mo>.</mo></mtd></mtr></mtable><annotation-xml encoding="MathML-Content"><mi>duplicate</mi></annotation-xml></semantics></math></main>"#;
+        assert_eq!(
+            extract_main_text(html),
+            "∫_{p_0}^{p}dp = −∫_{0}^{−h}ρgdy ; p−p_0 = ρgh ; p = p_0+ρgh."
+        );
     }
 
     #[test]

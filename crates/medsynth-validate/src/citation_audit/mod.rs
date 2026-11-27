@@ -211,6 +211,7 @@ struct RecordAudit<'a> {
     options: &'a AuditOptions,
     access: &'a BTreeMap<String, AccessEntry>,
     gold: Option<GoldAdjudication>,
+    drafting_run_id: Option<String>,
 }
 
 struct AnchorInput<'a> {
@@ -328,7 +329,7 @@ fn adjudicate(
             &context.options.fulfillment_dir,
             key,
             request_sha256,
-            context.options.drafting_run_id.as_deref(),
+            context.drafting_run_id.as_deref(),
         );
     }
     let Some(gold) = &context.gold else {
@@ -336,7 +337,7 @@ fn adjudicate(
             &context.options.fulfillment_dir,
             key,
             request_sha256,
-            context.options.drafting_run_id.as_deref(),
+            context.drafting_run_id.as_deref(),
         );
     };
     if evidence_matches_passage(&gold.evidence, passage_text) {
@@ -415,6 +416,11 @@ fn audit_record(
         options: run.options,
         access: run.access,
         gold: gold_adjudication(run.review, record),
+        drafting_run_id: run
+            .options
+            .drafting_run_id
+            .clone()
+            .or_else(|| run.review.map(|review| review.drafting_run_id().to_owned())),
     };
     for claim in claim_blocks_for(record.format, &record.value) {
         audit_claim(&context, &claim, state)?;

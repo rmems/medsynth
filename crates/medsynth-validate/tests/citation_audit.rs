@@ -38,7 +38,7 @@ fn write_passage_cache(root: &Path) {
     let locator = "sec4.2:epithelial-tissue";
     let text = "Cell to Cell Junctions. A gap junction forms an intercellular passageway between the membranes of adjacent cells to facilitate the movement of small molecules and ions between the cytoplasm of adjacent cells. These junctions allow electrical and metabolic coupling of adjacent cells. Tight junctions block movement between cells.";
     let cache = serde_json::json!({
-        "cache_version": 2,
+        "cache_version": 3,
         "source_id": "openstax-anatomy-physiology-2e",
         "locator": locator,
         "retrieval": "openstax-web",
@@ -201,7 +201,9 @@ fn gold_review_manifest_marks_hash_identical_gold_anchors_supported() {
     )
     .expect("write review");
 
-    let report = run_audit(&options(&root, Some(review_path.clone()))).expect("run audit");
+    let mut gold_options = options(&root, Some(review_path.clone()));
+    gold_options.drafting_run_id = None;
+    let report = run_audit(&gold_options).expect("run audit");
     assert_eq!(
         (
             report.counts.anchors,
@@ -220,7 +222,7 @@ fn gold_review_manifest_marks_hash_identical_gold_anchors_supported() {
     );
 
     fulfill_all(&root, "unsupported");
-    let rebound = run_audit(&options(&root, Some(review_path))).expect("audit reads responses");
+    let rebound = run_audit(&gold_options).expect("audit reads responses");
     assert_eq!(
         (rebound.counts.supported, rebound.counts.unsupported),
         (0, 3),

@@ -18,6 +18,12 @@ pub(crate) struct GoldReviewManifest {
     records: Vec<GoldReviewRecord>,
 }
 
+impl GoldReviewManifest {
+    pub(crate) fn drafting_run_id(&self) -> &str {
+        &self.drafting_run_id
+    }
+}
+
 #[derive(Debug, Deserialize)]
 struct GoldReviewRecord {
     record_id: String,
@@ -133,13 +139,44 @@ fn quoted_evidence_spans(evidence: &str) -> Vec<String> {
         .collect()
 }
 
+fn looks_like_section_title(span: &str) -> bool {
+    let words = span.split_whitespace().collect::<Vec<_>>();
+    if words.len() > 8 || span.chars().any(|c| matches!(c, '.' | '!' | '?' | ';')) {
+        return false;
+    }
+    words.iter().all(|word| {
+        let lowercase = word.trim_matches(|c: char| !c.is_alphanumeric());
+        lowercase.is_empty()
+            || lowercase.chars().next().is_some_and(char::is_uppercase)
+            || lowercase.chars().next().is_some_and(|c| c.is_ascii_digit())
+            || matches!(
+                lowercase,
+                "a" | "an"
+                    | "and"
+                    | "as"
+                    | "at"
+                    | "by"
+                    | "for"
+                    | "in"
+                    | "of"
+                    | "on"
+                    | "or"
+                    | "the"
+                    | "to"
+            )
+    })
+}
+
 /// Whether the gold reviewer's quoted evidence is still present in the
 /// retrieved passage. This prevents a record-level gold review from being
 /// applied to unrelated replacement text when OpenStax content changes.
+/// Title-shaped quotations are ignored: a surviving heading is provenance
+/// context, not support for the claim.
 pub(crate) fn evidence_matches_passage(evidence: &str, passage: &str) -> bool {
     let passage = compact_evidence_text(passage);
     quoted_evidence_spans(evidence)
         .iter()
+        .filter(|span| !looks_like_section_title(span))
         .any(|span| passage.contains(&compact_evidence_text(span)))
 }
 
@@ -295,6 +332,19 @@ mod tests {
         assert!(!evidence_matches_passage(
             evidence,
             "Tight junctions block movement between cells."
+        ));
+    }
+
+    #[test]
+    fn surviving_section_title_alone_does_not_validate_multi_quote_evidence() {
+        let evidence = r#"Review cites 'A Mathematical Approach to Factors Affecting Blood Flow' and 'small changes in the radius will greatly affect flow'."#;
+        assert!(!evidence_matches_passage(
+            evidence,
+            "A Mathematical Approach to Factors Affecting Blood Flow. The replacement text no longer discusses radius."
+        ));
+        assert!(evidence_matches_passage(
+            evidence,
+            "A Mathematical Approach to Factors Affecting Blood Flow. Small changes in the radius will greatly affect flow."
         ));
     }
 
