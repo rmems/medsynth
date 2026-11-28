@@ -65,8 +65,17 @@ fn fulfill_requests(dir: &Path) {
         };
         let request = read_json(&path);
         let user = request["messages"][1]["content"].as_str().unwrap();
+        assert_eq!(request["provider"]["only"], json!(["deepseek"]));
+        assert_eq!(request["provider"]["allow_fallbacks"], json!(false));
         let mut response = read_json(&fixture_path(fixture_for_prompt(user)));
-        response["vendor"] = json!("deepseek");
+        response["openrouter_metadata"] = json!({
+            "endpoints": {
+                "available": [
+                    {"provider": "Other Provider", "selected": false},
+                    {"provider": "DeepSeek", "selected": true}
+                ]
+            }
+        });
         let response_text = serde_json::to_string_pretty(&response).unwrap();
         std::fs::write(dir.join(format!("{key}.response.json")), &response_text).unwrap();
         write_session_sidecars(dir, key, &response_text);
@@ -146,6 +155,6 @@ fn deepseek_pilot_config_is_valid_and_covers_all_formats() {
     );
     assert_eq!(
         plan.config.teacher.as_ref().unwrap().pin_id,
-        "deepseek-v4.1-flash"
+        "deepseek-v4.1-flash-openrouter"
     );
 }

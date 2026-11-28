@@ -127,6 +127,25 @@ fn pin_registry_parses_all_teacher_pins() {
             && deepseek.entry_text.starts_with("### Pin:")
     );
 
+    let openrouter = pins
+        .ensure_teacher("deepseek-v4.1-flash-openrouter")
+        .unwrap();
+    assert_eq!(
+        (
+            openrouter.variant.as_str(),
+            openrouter.model_id.as_str(),
+            openrouter.api_key_env.as_str(),
+            openrouter.route.as_str(),
+        ),
+        (
+            "DeepSeek-V4.1-Flash-1017",
+            "deepseek/deepseek-v4.1-flash-1017",
+            "OPENROUTER_API_KEY",
+            "Hermes via OpenRouter",
+        )
+    );
+    assert!(openrouter.uses_gateway());
+
     assert!(matches!(
         pins.ensure_teacher("mimo-v2.6-flash"),
         Err(TeacherError::Unpinned(_))

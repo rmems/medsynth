@@ -332,6 +332,15 @@ fn request_completion(
         pin_variant: pin.variant.clone(),
         include_routing_metadata: pin.uses_merge_gateway(),
         requires_session_record: pin.route.to_ascii_lowercase().contains("hermes"),
+        openrouter_provider_only: pin.uses_openrouter().then(|| {
+            vec![
+                pin.model_id
+                    .split('/')
+                    .next()
+                    .unwrap_or("deepseek")
+                    .to_owned(),
+            ]
+        }),
     };
     let completion = ctx.teacher.client.complete(&request).map_err(|e| {
         let stage = if matches!(e, TeacherError::Transport(_)) {

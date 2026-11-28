@@ -86,7 +86,7 @@ impl TeacherPin {
             ("terms_clause", self.terms_clause.as_str()),
             ("snapshot_date", self.snapshot_date.as_str()),
         ]);
-        if endpoint_is_merge_gateway(&self.endpoint) {
+        if endpoint_is_gateway(&self.endpoint) {
             missing.extend(missing_text_fields([
                 ("route_terms_document", self.route_terms_document.as_str()),
                 ("route_terms_version", self.route_terms_version.as_str()),
@@ -109,6 +109,17 @@ impl TeacherPin {
     /// scheme/host casing.
     pub fn uses_merge_gateway(&self) -> bool {
         endpoint_is_merge_gateway(&self.endpoint)
+    }
+
+    /// True when the pin routes through OpenRouter.
+    pub fn uses_openrouter(&self) -> bool {
+        endpoint_host(&self.endpoint).is_some_and(|host| host.eq_ignore_ascii_case("openrouter.ai"))
+    }
+
+    /// True when the pin routes through a gateway whose serving vendor must be
+    /// captured per response rather than assumed from the pin.
+    pub fn uses_gateway(&self) -> bool {
+        endpoint_is_gateway(&self.endpoint)
     }
 }
 
@@ -243,10 +254,18 @@ const TRUSTED_ENDPOINT_HOSTS: &[&str] = &[
     "api.deepseek.com",
     "integrate.api.nvidia.com",
     "api-gateway.merge.dev",
+    "openrouter.ai",
 ];
 
 fn endpoint_is_merge_gateway(endpoint: &str) -> bool {
     endpoint_host(endpoint).is_some_and(|host| host.eq_ignore_ascii_case("api-gateway.merge.dev"))
+}
+
+fn endpoint_is_gateway(endpoint: &str) -> bool {
+    endpoint_host(endpoint).is_some_and(|host| {
+        host.eq_ignore_ascii_case("api-gateway.merge.dev")
+            || host.eq_ignore_ascii_case("openrouter.ai")
+    })
 }
 
 fn endpoint_host(endpoint: &str) -> Option<&str> {
