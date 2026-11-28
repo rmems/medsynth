@@ -319,10 +319,10 @@ fn request_completion(
         user: ctx.prompt.user.clone(),
         max_tokens: ctx.selection.max_output_tokens,
         temperature: ctx.selection.temperature,
-        // Fold every batch-seed bit into the API seed so a new --seed also
-        // asks the teacher for a fresh sample, not a replayed one. The fold
-        // needn't be injective — the fulfillment key is unique via
-        // metadata.batch_seed; only the sampling varies here.
+        // Fold every batch-seed bit into the API seed so a new --seed asks
+        // for a fresh sample where the serving provider honors seeds. The
+        // fulfillment key stays unique via metadata.batch_seed even when a
+        // provider ignores this best-effort sampling hint.
         seed: ((ctx.cell_ctx.plan.config.seed ^ (ctx.cell_ctx.plan.config.seed >> 32)) as u32)
             .wrapping_add(ctx.attempt),
         // Carried in `metadata` so a shared fulfillment directory serves

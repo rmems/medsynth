@@ -86,7 +86,7 @@ fn request_body(request: &TeacherRequest) -> Value {
         "metadata": {
             "pin_id": request.pin_id,
             "variant": request.pin_variant,
-            "batch_seed": request.batch_seed
+            "batch_seed": request.batch_seed.to_string()
         },
         "response_format": {"type": "json_object"}
     });
@@ -512,6 +512,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(body["include_routing_metadata"], true);
+        assert!(body["metadata"]["batch_seed"].is_string());
 
         std::fs::write(
             dir.path.join(format!("{key}.response.json")),
