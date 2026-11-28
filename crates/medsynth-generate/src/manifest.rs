@@ -213,7 +213,7 @@ impl RightsEnvelope {
     }
 
     fn serving_vendor(pin: &TeacherPin, serving: &ServingMetadata<'_>) -> Result<String, String> {
-        if !pin.uses_merge_gateway() {
+        if !pin.uses_gateway() {
             return Ok(pin.provider.clone());
         }
         serving
@@ -221,7 +221,7 @@ impl RightsEnvelope {
             .filter(|vendor| !vendor.trim().is_empty())
             .map(str::to_owned)
             .ok_or_else(|| {
-                "rights envelope: Merge Gateway response lacks routing vendor metadata".to_owned()
+                "rights envelope: gateway response lacks routing vendor metadata".to_owned()
             })
     }
 

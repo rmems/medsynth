@@ -93,10 +93,15 @@
   "template_version": "2",
   "teachers": {
     "path": "docs/teachers.md",
-    "sha256": "14096cbf38b05af35f6f89ec561036baba2f25bb147751e9ebe3781c28b17d83",
+    "sha256": "d01638ee54bd02257d01589af00ffa8cb9dd2257421ac44aa538d91dccdd3154",
     "pins": [
       {
         "pin_id": "deepseek-v4.1-flash",
+        "variant": "DeepSeek-V4.1-Flash-1017",
+        "lane": "teacher"
+      },
+      {
+        "pin_id": "deepseek-v4.1-flash-openrouter",
         "variant": "DeepSeek-V4.1-Flash-1017",
         "lane": "teacher"
       },

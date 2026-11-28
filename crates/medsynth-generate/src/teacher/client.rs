@@ -43,6 +43,9 @@ pub struct TeacherRequest {
     /// Whether this pin executes through Hermes and therefore uses session
     /// provenance. Direct routes ignore session sidecars entirely.
     pub requires_session_record: bool,
+    /// OpenRouter provider slugs the request is restricted to, when the pin
+    /// needs a fixed serving provider rather than open router choice.
+    pub openrouter_provider_only: Option<Vec<String>>,
 }
 
 /// The teacher's raw text output.
@@ -89,6 +92,10 @@ fn request_body(request: &TeacherRequest) -> Value {
     });
     if request.include_routing_metadata {
         body["include_routing_metadata"] = json!(true);
+    }
+    if let Some(providers) = &request.openrouter_provider_only {
+        body["metadata"]["batch_seed"] = json!(request.batch_seed.to_string());
+        body["provider"] = json!({"only": providers, "allow_fallbacks": false});
     }
     body
 }
@@ -331,6 +338,18 @@ pub fn parse_chat_completion(value: &Value) -> Result<TeacherCompletion, Teacher
         .and_then(Value::as_str)
         .map(str::to_owned);
     let routing = value.get("routing");
+    let openrouter_provider = value
+        .get("openrouter_metadata")
+        .and_then(|metadata| metadata.get("endpoints"))
+        .and_then(|endpoints| endpoints.get("available"))
+        .and_then(Value::as_array)
+        .and_then(|endpoints| {
+            endpoints
+                .iter()
+                .find(|endpoint| endpoint.get("selected").and_then(Value::as_bool) == Some(true))
+        })
+        .and_then(|endpoint| endpoint.get("provider"))
+        .and_then(Value::as_str);
     let served_vendor = [
         routing
             .and_then(|routing| routing.get("vendor_used"))
@@ -338,6 +357,7 @@ pub fn parse_chat_completion(value: &Value) -> Result<TeacherCompletion, Teacher
         routing
             .and_then(|routing| routing.get("vendor"))
             .and_then(Value::as_str),
+        openrouter_provider,
         value.get("vendor").and_then(Value::as_str),
     ]
     .into_iter()
@@ -397,6 +417,7 @@ mod tests {
             pin_variant: "DeepSeek-V4.1-Flash-1017".to_owned(),
             include_routing_metadata: false,
             requires_session_record: false,
+            openrouter_provider_only: None,
         }
     }
 
@@ -492,6 +513,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(body["include_routing_metadata"], true);
+        assert!(body["metadata"]["batch_seed"].is_u64());
 
         std::fs::write(
             dir.path.join(format!("{key}.response.json")),
@@ -609,6 +631,35 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(completion.served_vendor.as_deref(), Some("deepseek"));
+    }
+
+    #[test]
+    fn openrouter_requests_serialize_the_full_batch_seed_as_a_string() {
+        let mut request = request();
+        request.batch_seed = (1_u64 << 53) + 1;
+        request.openrouter_provider_only = Some(vec!["deepseek".to_owned()]);
+        let body = request_body(&request);
+        assert_eq!(
+            body["metadata"]["batch_seed"],
+            json!(request.batch_seed.to_string())
+        );
+    }
+
+    #[test]
+    fn parses_openrouter_selected_provider_metadata() {
+        let completion = parse_chat_completion(&json!({
+            "openrouter_metadata": {
+                "endpoints": {
+                    "available": [
+                        {"provider": "Other Provider", "selected": false},
+                        {"provider": "Wafer", "selected": true}
+                    ]
+                }
+            },
+            "choices": [{"message": {"content": "{\"ok\":true}"}}]
+        }))
+        .unwrap();
+        assert_eq!(completion.served_vendor.as_deref(), Some("Wafer"));
     }
 
     #[test]

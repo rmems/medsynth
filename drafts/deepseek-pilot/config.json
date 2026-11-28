@@ -27,7 +27,7 @@
     }
   ],
   "teacher": {
-    "pin_id": "deepseek-v4.1-flash",
+    "pin_id": "deepseek-v4.1-flash-openrouter",
     "prompt_version": "teacher-draft-v1",
     "max_prompt_tokens": 6000,
     "max_output_tokens": 1200,

@@ -23,6 +23,7 @@ quoted in each entry, so the basis is auditable without re-fetching the page.
 | --- | --- | --- | --- |
 | DeepSeek V4.1 Flash | DeepSeek Open Platform Terms of Service | Release 2026-04-22; effective 2026-04-29 | <https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html> |
 | Merge Gateway serving route | Merge Gateway Terms | Last updated 2026-04-02 | <https://www.merge.dev/legal/gateway-terms> |
+| OpenRouter serving route | OpenRouter Terms of Service | Last updated 2026-08-31 | <https://openrouter.ai/terms> |
 | NVIDIA Nemotron 3 Ultra | NVIDIA Nemotron Open Model License | v. December 15, 2025 | <https://www.nvidia.com/en-us/agreements/enterprise-software/nvidia-nemotron-open-model-license/> |
 
 Merge Gateway's routing documentation is part of the route receipt rather than
@@ -64,6 +65,32 @@ record is absent.
 - **snapshot_date:** `2026-11-27`
 - **notes:** `Variant as updated 2026-10-17 (DeepSeek-V4.1-Flash-1017), addressed through the exact Merge catalog id deepseek/deepseek-v4.1-flash-1017. Outputs are assigned to the developer under DeepSeek §4.2(2) and may be used for model distillation under §4.2(3). The serving vendor must be captured from Merge routing metadata in each rights envelope.`
 
+### Pin: `deepseek-v4.1-flash-openrouter`
+
+- **pin_id:** `deepseek-v4.1-flash-openrouter`
+- **provider:** `DeepSeek`
+- **route:** `Hermes via OpenRouter`
+- **family:** `deepseek`
+- **variant:** `DeepSeek-V4.1-Flash-1017`
+- **model_id:** `deepseek/deepseek-v4.1-flash-1017`
+- **endpoint:** `https://openrouter.ai/api/v1/chat/completions`
+- **api_key_env:** `OPENROUTER_API_KEY`
+- **lane:** `teacher`
+- **terms_document:** `DeepSeek Open Platform Terms of Service`
+- **terms_version:** `release 2026-04-22; effective 2026-04-29`
+- **terms_date:** `2026-04-29`
+- **terms_url:** `https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html`
+- **terms_clause:** `§4.2(3): "You may apply the Inputs and Outputs of the Services to a wide range of use cases, including personal use, academic research, derivative product development, training other models (such as model distillation), etc."`
+- **route_terms_document:** `OpenRouter Terms of Service`
+- **route_terms_version:** `last updated 2026-08-31`
+- **route_terms_date:** `2026-08-31`
+- **route_terms_url:** `https://openrouter.ai/terms`
+- **route_terms_clause:** `§5.1: users are responsible for determining whether applicable Model Terms allow use of Inputs and Outputs as intended. §5.8: OpenRouter does not modify, waive, or limit any Model Terms unless expressly stated in writing. §6.1: ownership rights in the Output are set forth in the Model Terms for each Model used.`
+- **permits_distillation:** `yes`
+- **permits_synthetic_data:** `yes`
+- **snapshot_date:** `2026-11-27`
+- **notes:** `Alternate serving route for the same fixed 2026-10-17 variant and exact catalog id as deepseek-v4.1-flash. OpenRouter's catalog snapshot on 2026-11-27 listed deepseek/deepseek-v4.1-flash-1017 as the fixed 1017 snapshot. The generated request uses the exact catalog id and restricts OpenRouter to the "deepseek" provider with fallbacks disabled. The harness must enable OpenRouter routing metadata and preserve the selected serving provider in each rights envelope; the floating latest alias and 0731 variant remain unpinned.`
+
 ### Pin: `nemotron-3-ultra`
 
 - **pin_id:** `nemotron-3-ultra`
@@ -101,9 +128,9 @@ look permissive. The gate also rejects an entry that omits any required field
 or that does not affirm both `permits_distillation` and
 `permits_synthetic_data`, and an entry whose `endpoint` is not an approved
 provider host (`api.deepseek.com`, `integrate.api.nvidia.com`,
-`api-gateway.merge.dev`) or whose `api_key_env` does not name a provider
+`api-gateway.merge.dev`, `openrouter.ai`) or whose `api_key_env` does not name a provider
 API-key variable — this document is what the harness dispatches on, so it must
-stay accurate. Merge Gateway pins must also carry the route-terms fields.
+stay accurate. Merge Gateway and OpenRouter pins must also carry the route-terms fields.
 
 ## Fail-closed behavior
 
@@ -129,6 +156,14 @@ response body, so replacing a response without refreshing the sidecar cannot
 reuse stale routing metadata. When neither the body nor a matching sidecar
 supplies vendor metadata the generated draft is dropped at the rights-envelope
 gate rather than written.
+
+For an OpenRouter pin the harness must send `X-OpenRouter-Metadata: enabled`
+and preserve the response body. The pipeline reads the selected provider from
+`openrouter_metadata.endpoints.available[]` where `selected` is true; if the
+harness cannot preserve that body metadata, it must write the equivalent
+`<sha256(response-json)> <vendor>` binding to `<key>.vendor.txt`. As with
+Merge, missing vendor provenance drops the generated draft at the
+rights-envelope gate.
 
 For a Hermes route the harness must always export the session record as
 `<key>.session.json`, regardless of how vendor metadata was supplied. The

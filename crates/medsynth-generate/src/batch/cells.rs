@@ -319,10 +319,10 @@ fn request_completion(
         user: ctx.prompt.user.clone(),
         max_tokens: ctx.selection.max_output_tokens,
         temperature: ctx.selection.temperature,
-        // Fold every batch-seed bit into the API seed so a new --seed also
-        // asks the teacher for a fresh sample, not a replayed one. The fold
-        // needn't be injective — the fulfillment key is unique via
-        // metadata.batch_seed; only the sampling varies here.
+        // Fold every batch-seed bit into the API seed so a new --seed asks
+        // for a fresh sample where the serving provider honors seeds. The
+        // fulfillment key stays unique via metadata.batch_seed even when a
+        // provider ignores this best-effort sampling hint.
         seed: ((ctx.cell_ctx.plan.config.seed ^ (ctx.cell_ctx.plan.config.seed >> 32)) as u32)
             .wrapping_add(ctx.attempt),
         // Carried in `metadata` so a shared fulfillment directory serves
@@ -332,6 +332,15 @@ fn request_completion(
         pin_variant: pin.variant.clone(),
         include_routing_metadata: pin.uses_merge_gateway(),
         requires_session_record: pin.route.to_ascii_lowercase().contains("hermes"),
+        openrouter_provider_only: pin.uses_openrouter().then(|| {
+            vec![
+                pin.model_id
+                    .split('/')
+                    .next()
+                    .unwrap_or("deepseek")
+                    .to_owned(),
+            ]
+        }),
     };
     let completion = ctx.teacher.client.complete(&request).map_err(|e| {
         let stage = if matches!(e, TeacherError::Transport(_)) {
